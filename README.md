@@ -1,3 +1,5 @@
+<img width="180" alt="kite-logo" src="https://cloud.githubusercontent.com/assets/2286325/24246365/471df478-0fc7-11e7-845e-0719dcc9adef.png" align="left" hspace="10" vspace="6">
+
 This is the source code for [Kite](https://erkal.github.io/kite/).
 Kite is work in progress. It is **pre-alpha**.
 
@@ -7,7 +9,7 @@ Kite is almost entirely written in [Elm](http://elm-lang.org/).
 The source code contains only a little amount of javascript. 
 All the javascript code is in `index.html`, and serves to interact with [d3-force](https://github.com/d3/d3/blob/master/API.md#forces-d3-force).
 
-#### How to build it locally:
+#### How to build locally (for development):
 You should have the last version of Elm installed.
 ```
 git clone https://github.com/erkal/kite.git
