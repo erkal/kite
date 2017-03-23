@@ -1,9 +1,10 @@
-<img width="180" alt="kite-logo" src="https://cloud.githubusercontent.com/assets/2286325/24246365/471df478-0fc7-11e7-845e-0719dcc9adef.png" align="left" hspace="10" vspace="6">
+<img width="200" alt="kite-logo" src="https://cloud.githubusercontent.com/assets/2286325/24246365/471df478-0fc7-11e7-845e-0719dcc9adef.png" align="left" hspace="10" vspace="6">
 
-This is the source code for [Kite](https://erkal.github.io/kite/).
-Kite is work in progress. It is **pre-alpha**.
+This is the source code for Kite, an interactive visualization tool for graph theory.
 
-Kite is a graph editor for graph theoretical purposes.
+Kite is work in progress. It is **pre-alpha**. 
+
+A **demo** of the latest state can be found [here](https://erkal.github.io/kite/).
 
 Kite is almost entirely written in [Elm](http://elm-lang.org/).
 The source code contains only a little amount of javascript. 
