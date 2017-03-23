@@ -1,5 +1,7 @@
 <img width="200" alt="kite-logo" src="https://cloud.githubusercontent.com/assets/2286325/24246365/471df478-0fc7-11e7-845e-0719dcc9adef.png" align="left" hspace="10" vspace="6">
+
 # Kite 
+
 ***An Interactive Visualization Tool for Graph Theory***
 
 This is work in progress, still in **pre-alpha**. 
