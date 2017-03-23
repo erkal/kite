@@ -14,8 +14,8 @@ You should have the last version of Elm installed.
 ```
 git clone https://github.com/erkal/kite.git
 cd kite
-elm-make src/Main.elm --yes --output=build/Main.js
-open src/index.html
+elm-make Main.elm --yes --output=build/Main.js
+open index.html
 ```
 
 #### A little bit more about Kite:
