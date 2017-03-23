@@ -1,14 +1,14 @@
 <img width="200" alt="kite-logo" src="https://cloud.githubusercontent.com/assets/2286325/24246365/471df478-0fc7-11e7-845e-0719dcc9adef.png" align="left" hspace="10" vspace="6">
 
-This is the source code for Kite, an interactive visualization tool for graph theory.
+# Kite 
 
-Kite is work in progress. It is **pre-alpha**. 
+***An Interactive Visualization Tool for Graph Theory***
 
-A **demo** of the latest state can be found [here](https://erkal.github.io/kite/).
+This is work in progress, still in **pre-alpha**. 
+
+[A **demo** of the latest state can be found here](https://erkal.github.io/kite/).
 
 Kite is almost entirely written in [Elm](http://elm-lang.org/).
-The source code contains only a little amount of javascript. 
-All the javascript code is in `index.html`, and serves to interact with [d3-force](https://github.com/d3/d3/blob/master/API.md#forces-d3-force).
 
 #### How to build locally (for development):
 You should have the last version of Elm installed.
@@ -26,4 +26,5 @@ If you think that graph theorists must have solved this problem, you are mistake
 
 Well, Elm solves this problem. It brings functional programming in all its purity to the browser. Elm does not restrict you in any way. The so called Elm Architecture makes it possible to use full capabilities of the browser while staying purely functional. If it were not Elm, Kite wouldn't make it here. Hence, the logo. I am sure that Elm is the best choice for a project like Kite. Thanks to Evan Czaplicki, the creator of this beautifully designed language. Are you interested in visualizing mathematical concepts? Then learn Elm and build your own tools!
 
-A graph editor without spring embedding would be flavorless. Thanks to Mike Bostock for implementing d3-force. This is the only javascript library that Kite uses.
+A graph editor without spring embedding would be flavorless. Thanks to Mike Bostock for implementing [d3-force](https://github.com/d3/d3/blob/master/API.md#forces-d3-force). The source code of Kite contains only few amount of javascript. All the javascript code is in `index.html`, and serves to interact with d3-force.
+
