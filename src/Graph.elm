@@ -17,6 +17,7 @@ module Graph exposing
 
     , contractEdge
     , devideEdge
+    , duplicateSubgraphAndGetTheDuplicate
     ,  empty
        -- ENCODERS
 
@@ -920,40 +921,44 @@ cartesianProduct ( vIds, wIds ) vertexProp edgeProp graph =
 
         edgesOfTheCP =
             Dict.union edgesBecauseOfVs edgesBecauseOfWs
+
+        ( cP, _, _ ) =
+            disjointUnion ( verticesOfTheCP, edgesOfTheCP ) graph
     in
-    union ( verticesOfTheCP, edgesOfTheCP ) graph
+    cP
 
 
-{-| The good thing about union is that it doesn't expect the nre graph to have Int's as vertex id's.
+{-| The good thing about disjointUnion is that it doesn't expect the nre graph to have Int's as vertex id's.
+It returns also the ids
 -}
-union :
+disjointUnion :
     ( Dict comparable Vertex, Dict ( comparable, comparable ) Edge )
     -> Graph
-    -> Graph
-union ( verts, edgs ) ((Graph p) as graph) =
+    -> ( Graph, Set VertexId, Set EdgeId )
+disjointUnion ( verts, edgs ) ((Graph p) as graph) =
     let
         n =
             newVertexId graph
 
-        dictForVertexIds : Dict comparable ( VertexId, Vertex )
-        dictForVertexIds =
+        dictForTheAddedVertices : Dict comparable ( VertexId, Vertex )
+        dictForTheAddedVertices =
             verts
                 |> Dict.toList
                 |> List.indexedMap (\i ( oldId, v ) -> ( oldId, ( n + i, v ) ))
                 |> Dict.fromList
 
         newVertices =
-            dictForVertexIds
+            dictForTheAddedVertices
                 |> Dict.foldr
                     (\_ ( newId, v ) -> Dict.insert newId v)
                     p.vertices
 
-        newEdges =
+        addedEdges =
             edgs
                 |> Dict.toList
                 |> List.map
                     (\( ( oldSourceId, oldTargetId ), e ) ->
-                        case ( Dict.get oldSourceId dictForVertexIds, Dict.get oldTargetId dictForVertexIds ) of
+                        case ( Dict.get oldSourceId dictForTheAddedVertices, Dict.get oldTargetId dictForTheAddedVertices ) of
                             ( Just ( newSourceId, _ ), Just ( newTargetId, _ ) ) ->
                                 ( ( newSourceId, newTargetId ), e )
 
@@ -962,13 +967,26 @@ union ( verts, edgs ) ((Graph p) as graph) =
                                 ( ( 0, 0 ), e )
                     )
                 |> Dict.fromList
-                |> Dict.union p.edges
+
+        newEdges =
+            Dict.union addedEdges p.edges
     in
-    Graph
-        { p
-            | vertices = newVertices
-            , edges = newEdges
-        }
+    ( Graph { p | vertices = newVertices, edges = newEdges }
+    , dictForTheAddedVertices |> Dict.values |> List.map Tuple.first |> Set.fromList
+    , addedEdges |> Dict.keys |> Set.fromList
+    )
+
+
+duplicateSubgraphAndGetTheDuplicate : Set VertexId -> Set EdgeId -> Graph -> ( Graph, Set VertexId, Set EdgeId )
+duplicateSubgraphAndGetTheDuplicate vs es graph =
+    let
+        addedVertices =
+            graph |> getVertices |> Dict.filter (\vertexId _ -> Set.member vertexId vs)
+
+        addedEdges =
+            graph |> getEdges |> Dict.filter (\edgeId _ -> Set.member edgeId es)
+    in
+    graph |> disjointUnion ( addedVertices, addedEdges )
 
 
 movePullCenterToCenter : Maybe BagId -> Graph -> Graph

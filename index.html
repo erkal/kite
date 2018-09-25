@@ -42,9 +42,48 @@
                 })
                 .stop();
 
+
+        function updateGraphData({ vertices, edges, manyBody }) {
+            const forceManyBody =
+                d3.forceManyBody()
+                    .strength(manyBody.strength)
+                    .theta(manyBody.theta)
+                    .distanceMin(manyBody.distanceMin)
+                    .distanceMax(manyBody.distanceMax)
+
+            const forceLink =
+                d3.forceLink(edges)
+                    .id(d => d.id)
+                    .distance(link => link.distance)
+                    .strength(link => link.strength)
+
+            sim
+                .nodes(vertices)
+                .force("many-body", forceManyBody)
+                .force("links", forceLink)
+                .force("pull-to-bag-centers", pullToBagCenters())
+        }
+
+        app.ports.toD3GraphData.subscribe(updateGraphData);
+
+
+        app.ports.toD3RestartWithAlpha.subscribe(a => {
+            sim.alpha(a).restart();
+        });
+
+        app.ports.toD3StopSimulation.subscribe(() => {
+            sim.stop();
+        });
+
+
+
+
+
+
         let draggedNodes = {};
 
-        app.ports.toD3DragStart.subscribe(l => {
+        app.ports.toD3DragStart.subscribe(([graphData, l]) => {
+            updateGraphData(graphData);
             for (var e of l) {
                 node = sim.nodes().find(node => node.id == e.id);
                 draggedNodes[e.id] = node;
@@ -73,34 +112,8 @@
         });
 
 
-        app.ports.toD3GraphData.subscribe(({ vertices, edges, manyBody }) => {
-            const forceManyBody =
-                d3.forceManyBody()
-                    .strength(manyBody.strength)
-                    .theta(manyBody.theta)
-                    .distanceMin(manyBody.distanceMin)
-                    .distanceMax(manyBody.distanceMax)
 
-            const forceLink =
-                d3.forceLink(edges)
-                    .id(d => d.id)
-                    .distance(link => link.distance)
-                    .strength(link => link.strength)
 
-            sim
-                .nodes(vertices)
-                .force("many-body", forceManyBody)
-                .force("links", forceLink)
-                .force("pull-to-bag-centers", pullToBagCenters())
-        });
-
-        app.ports.toD3RestartWithAlpha.subscribe(a => {
-            sim.alpha(a).restart();
-        });
-
-        app.ports.toD3StopSimulation.subscribe(() => {
-            sim.stop();
-        });
     </script>
 </body>
 

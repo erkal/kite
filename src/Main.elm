@@ -61,7 +61,7 @@ port toD3RestartWithAlpha : Float -> Cmd msg
 port toD3StopSimulation : () -> Cmd msg
 
 
-port toD3DragStart : List { id : VertexId, x : Float, y : Float } -> Cmd msg
+port toD3DragStart : ( Value, List { id : VertexId, x : Float, y : Float } ) -> Cmd msg
 
 
 port toD3Drag : List { id : VertexId, x : Float, y : Float } -> Cmd msg
@@ -76,6 +76,8 @@ port toD3DragEnd : () -> Cmd msg
 
 type alias Model =
     { windowSize : { width : Int, height : Int }
+    , altIsDown : Bool
+    , shiftIsDown : Bool
     , graph : Graph
     , tool : Tool
     , leftBarContent : LeftBarContent
@@ -137,6 +139,8 @@ type alias Brush =
 initialModel : Model
 initialModel =
     { windowSize = { width = 800, height = 600 }
+    , altIsDown = False
+    , shiftIsDown = False
     , graph = Graph.empty
     , tool = Draw Nothing
     , leftBarContent = ListsOfBagsVerticesAndEdges
@@ -183,6 +187,10 @@ initialModel =
 
 type Msg
     = NoOp
+    | AltKeyDown
+    | AltKeyUp
+    | ShiftKeyDown
+    | ShiftKeyUp
     | UpdateWindowSize { width : Int, height : Int }
     | DrawToolClicked
     | SelectToolClicked
@@ -261,6 +269,26 @@ update msg m =
     case msg of
         NoOp ->
             ( m
+            , Cmd.none
+            )
+
+        AltKeyDown ->
+            ( { m | altIsDown = True }
+            , Cmd.none
+            )
+
+        AltKeyUp ->
+            ( { m | altIsDown = False }
+            , Cmd.none
+            )
+
+        ShiftKeyDown ->
+            ( { m | shiftIsDown = True }
+            , Cmd.none
+            )
+
+        ShiftKeyUp ->
+            ( { m | shiftIsDown = False }
             , Cmd.none
             )
 
@@ -557,28 +585,34 @@ update msg m =
 
                 Select Idle ->
                     let
-                        newSelectedVertices =
+                        ( newGraph, newSelectedVertices, newSelectedEdges ) =
                             if Set.member id m.selectedVertices then
-                                m.selectedVertices
+                                if m.altIsDown then
+                                    m.graph |> Graph.duplicateSubgraphAndGetTheDuplicate m.selectedVertices m.selectedEdges
+
+                                else
+                                    ( m.graph, m.selectedVertices, m.selectedEdges )
 
                             else
-                                Set.singleton id
+                                ( m.graph, Set.singleton id, Set.empty )
 
                         idAndPosition vertexId { x, y } =
                             { id = vertexId, x = x, y = y }
 
                         startPositionsOfVertices =
-                            m.graph
+                            newGraph
                                 |> Graph.getVerticesIn newSelectedVertices
                                 |> Dict.map idAndPosition
                                 |> Dict.values
                     in
                     ( { m
                         | tool = Select (DraggingSelection startPositionsOfVertices (Brush mousePos mousePos))
+                        , graph = newGraph
                         , selectedVertices = newSelectedVertices
+                        , selectedEdges = newSelectedEdges
                       }
                     , if m.vaderIsOn then
-                        toD3DragStart startPositionsOfVertices
+                        toD3DragStart ( Graph.encodeForD3 newGraph, startPositionsOfVertices )
 
                       else
                         Cmd.none
@@ -607,12 +641,17 @@ update msg m =
 
                 Select Idle ->
                     let
-                        ( newSelectedVertices, newSelectedEdges ) =
+                        ( newGraph, newSelectedVertices, newSelectedEdges ) =
                             if Set.member ( s, t ) m.selectedEdges then
-                                ( m.selectedVertices, m.selectedEdges )
+                                if m.altIsDown then
+                                    m.graph |> Graph.duplicateSubgraphAndGetTheDuplicate m.selectedVertices m.selectedEdges
+
+                                else
+                                    ( m.graph, m.selectedVertices, m.selectedEdges )
 
                             else
-                                ( Set.fromList [ s, t ]
+                                ( m.graph
+                                , Set.fromList [ s, t ]
                                 , Set.singleton ( s, t )
                                 )
 
@@ -620,7 +659,7 @@ update msg m =
                             { id = vertexId, x = x, y = y }
 
                         startPositionsOfVertices =
-                            m.graph
+                            newGraph
                                 |> Graph.getVerticesIn newSelectedVertices
                                 |> Dict.map idAndPosition
                                 |> Dict.values
@@ -631,11 +670,12 @@ update msg m =
                                 (DraggingSelection startPositionsOfVertices
                                     (Brush mousePos mousePos)
                                 )
+                        , graph = newGraph
                         , selectedVertices = newSelectedVertices
                         , selectedEdges = newSelectedEdges
                       }
                     , if m.vaderIsOn then
-                        toD3DragStart startPositionsOfVertices
+                        toD3DragStart ( Graph.encodeForD3 newGraph, startPositionsOfVertices )
 
                       else
                         Cmd.none
@@ -1437,12 +1477,13 @@ subscriptions _ =
         , Browser.Events.onMouseMove (Decode.map MouseMove mousePosition)
         , Browser.Events.onMouseUp (Decode.map MouseUp mousePosition)
         , fromD3TickData FromD3Tick
-        , Browser.Events.onKeyDown (Decode.map keyBoardShortcut keyDecoder)
+        , Browser.Events.onKeyDown (Decode.map toKeyDownMsg keyDecoder)
+        , Browser.Events.onKeyUp (Decode.map toKeyUpMsg keyDecoder)
         ]
 
 
-keyBoardShortcut : Key -> Msg
-keyBoardShortcut key =
+toKeyDownMsg : Key -> Msg
+toKeyDownMsg key =
     case key of
         Character 's' ->
             SelectToolClicked
@@ -1455,6 +1496,25 @@ keyBoardShortcut key =
 
         Control "Backspace" ->
             ClickOnVertexTrash
+
+        Control "Alt" ->
+            AltKeyDown
+
+        Control "Shift" ->
+            ShiftKeyDown
+
+        _ ->
+            NoOp
+
+
+toKeyUpMsg : Key -> Msg
+toKeyUpMsg key =
+    case key of
+        Control "Alt" ->
+            AltKeyUp
+
+        Control "Shift" ->
+            ShiftKeyUp
 
         _ ->
             NoOp
@@ -1519,10 +1579,23 @@ view m =
 
 forDebugging : Model -> Html Msg
 forDebugging m =
-    div [ HA.id "forDebugging" ]
-        [ H.text ""
+    let
+        toShow =
+            case ( m.shiftIsDown, m.altIsDown ) of
+                ( True, True ) ->
+                    "Shift + Alt"
 
-        -- (Debug.toString (m.graph |> Graph.getManyBody))
+                ( False, True ) ->
+                    "Alt"
+
+                ( True, False ) ->
+                    "Shift"
+
+                ( False, False ) ->
+                    ""
+    in
+    div [ HA.id "forDebugging" ]
+        [ H.text toShow
         ]
 
 
