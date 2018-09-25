@@ -1,121 +1,107 @@
-<!DOCTYPE html>
+<!DOCTYPE HTML>
+<html>
 
 <head>
-    <title>Kite</title>
-    <meta charset="utf-8">
-    <style>
-    body,
-    html {
-        margin: 0px;
-        overflow: hidden;
-        font-size: 12px;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
-    }
-    </style>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-96090937-1"></script>
     <script>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
 
-      ga('create', 'UA-96090937-1', 'auto');
-      ga('send', 'pageview');
-
-    </script>    
+        gtag('config', 'UA-96090937-1');
+    </script>
+    <!--  -->
+    <meta charset="UTF-8">
+    <title>Kite</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style-color-picker.css">
+    <!-- See https://github.com/d3/d3-force -->
+    <script src="src/third-party-libraries/d3-collection.v1.min.js"></script>
+    <script src="src/third-party-libraries/d3-dispatch.v1.min.js"></script>
+    <script src="src/third-party-libraries/d3-quadtree.v1.min.js"></script>
+    <script src="src/third-party-libraries/d3-timer.v1.min.js"></script>
+    <script src="src/third-party-libraries/d3-force.v1.min.js"></script>
+    <script src="src/js/pullToBagCenters.js"></script>
+    <!-- Elm -->
+    <script type="text/javascript" src="elm.js"></script>
+    <!-- <script type="text/javascript" src="elm.min.js"></script> -->
 </head>
 
 <body>
-    <script src="third-party-js-libraries/d3-collection.v1.min.js"></script>
-    <script src="third-party-js-libraries/d3-dispatch.v1.min.js"></script>
-    <script src="third-party-js-libraries/d3-quadtree.v1.min.js"></script>
-    <script src="third-party-js-libraries/d3-timer.v1.min.js"></script>
-    <script src="third-party-js-libraries/d3-force.v1.min.js"></script>
-    <script src="build/Main.js"></script>
-    <!-- 
+    <script type="text/javascript">
+        var app = Elm.Main.init();
+
+        const sim =
+            d3.forceSimulation()
+                .on("tick", function () {
+                    app.ports.fromD3TickData.send({
+                        alpha: this.alpha(),
+                        nodes: this.nodes()
+                    });
+                })
+                .stop();
+
+        let draggedNodes = {};
+
+        app.ports.toD3DragStart.subscribe(l => {
+            for (var e of l) {
+                node = sim.nodes().find(node => node.id == e.id);
+                draggedNodes[e.id] = node;
+                node.fx = e.x;
+                node.fy = e.y;
+                sim.alphaTarget(0.3).restart();
+            };
+        });
+
+        app.ports.toD3Drag.subscribe(l => {
+            for (var e of l) {
+                node = draggedNodes[e.id];
+                node.fx = e.x;
+                node.fy = e.y;
+            };
+        });
+
+        app.ports.toD3DragEnd.subscribe(() => {
+            for (var id in draggedNodes) {
+                node = draggedNodes[id];
+                node.fx = null;
+                node.fy = null;
+            };
+            draggedNodes = {};
+            sim.alphaTarget(0);
+        });
 
 
+        app.ports.toD3GraphData.subscribe(({ vertices, edges, manyBody }) => {
+            const forceManyBody =
+                d3.forceManyBody()
+                    .strength(manyBody.strength)
+                    .theta(manyBody.theta)
+                    .distanceMin(manyBody.distanceMin)
+                    .distanceMax(manyBody.distanceMax)
 
+            const forceLink =
+                d3.forceLink(edges)
+                    .id(d => d.id)
+                    .distance(link => link.distance)
+                    .strength(link => link.strength)
 
-            FOR LOCAL STORAGE 
-    -->
-    <script>
-    // parse and stringify are necessary, see here http://stackoverflow.com/questions/2010892/storing-objects-in-html5-localstorage
-    var storedState = localStorage.getItem('elm-kite-graphs');
-    var startingState = storedState ? JSON.parse(storedState) : null;
-    var app = Elm.Main.fullscreen(startingState);
-    app.ports.setStorage.subscribe(state => {
-        localStorage.setItem('elm-kite-graphs', JSON.stringify(state));
-    });
+            sim
+                .nodes(vertices)
+                .force("many-body", forceManyBody)
+                .force("links", forceLink)
+                .force("pull-to-bag-centers", pullToBagCenters())
+        });
+
+        app.ports.toD3RestartWithAlpha.subscribe(a => {
+            sim.alpha(a).restart();
+        });
+
+        app.ports.toD3StopSimulation.subscribe(() => {
+            sim.stop();
+        });
     </script>
-    <!-- 
+</body>
 
-
-
-
-            FOR JSON EXPORT & IMPORT
-    -->
-    <script>
-    app.ports.exportJsonPort.subscribe(function(str) {
-        window.open(encodeURI(str));
-    });
-
-    //  TODO: I couldn't get the input tag with "type" = "file" working.
-    </script>
-    <!-- 
-
-
-
-
-           FOR D3 FORCE 
-    -->
-    <script>
-    function pullForce(alpha) {
-        for (var i = 0, n = simulation.nodes().length, node, k; i < n; ++i) {
-            node = simulation.nodes()[i]
-            k = alpha * node.pullStrengthTogC
-            if (node.gC) {
-                node.vx -= (node.x - node.gC.x) * k
-            }
-            if (node.gC) {
-                node.vy -= (node.y - node.gC.y) * k
-            }
-        }
-    }
-
-    function extractPosition(node) {
-        return {
-            vertexName: node.id,
-            position: {
-                x: node.x,
-                y: node.y
-            }
-        }
-    }
-
-    var simulation = d3.forceSimulation()
-        .force("charge", d3.forceManyBody().strength(d => d.charge))
-        .force("pull", pullForce)
-        .force("link", d3.forceLink().id(d => d.id).strength(link => link.strength).distance(link => link.distance))
-        .force("collide", d3.forceCollide().radius(d => d.radius).iterations(2))
-        // .force("center", d3.forceCenter(800, 600))
-        .on("tick", function() {
-            app.ports.fromD3_Positions
-                .send(simulation.nodes().map(extractPosition))
-            app.ports.fromD3_Alpha
-                .send(simulation.alpha())
-            console.log("tick");
-        })
-        .on("end", function() {
-            app.ports.fromD3_SimulationEnded
-                .send(null)
-        })
-        .alphaDecay(1 - Math.pow(0.001, 1 / 100))
-        .stop()
-
-    app.ports.toD3_Fire
-        .subscribe(([nodes, links]) => {
-            simulation.nodes(nodes)
-            simulation.force("link").links(links)
-            simulation.alpha(1).restart()
-        })
-    </script>
+</html>
