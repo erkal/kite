@@ -148,7 +148,7 @@ empty =
         , edges = Dict.empty
         , bags = Dict.empty
         , manyBody =
-            { strength = -40
+            { strength = -100
             , theta = 0.9
             , distanceMin = 1
             , distanceMax = 1000
@@ -160,14 +160,12 @@ empty =
 -- INTERNALS
 
 
-makeNewId : Dict Int a -> VertexId
-makeNewId =
-    Dict.keys >> List.maximum >> Maybe.withDefault -1 >> (+) 1
-
-
-newVertexId : Graph -> VertexId
-newVertexId (Graph { vertices }) =
-    makeNewId vertices
+biggestIdPlusOne : Dict Int a -> VertexId
+biggestIdPlusOne =
+    Dict.keys
+        >> List.maximum
+        >> Maybe.withDefault -1
+        >> (+) 1
 
 
 mapVertices : (VertexDict -> VertexDict) -> Graph -> Graph
@@ -566,10 +564,10 @@ updateManyBody up (Graph p) =
 
 
 addVertexAndGetTheNewVertexId : { x : Int, y : Int } -> ( Vertex, Maybe BagId ) -> Graph -> ( Graph, VertexId )
-addVertexAndGetTheNewVertexId { x, y } ( v, maybeBagId ) graph =
+addVertexAndGetTheNewVertexId { x, y } ( v, maybeBagId ) (Graph p) =
     let
         id =
-            newVertexId graph
+            biggestIdPlusOne p.vertices
 
         newVertex =
             { v
@@ -586,16 +584,16 @@ addVertexAndGetTheNewVertexId { x, y } ( v, maybeBagId ) graph =
                            )
             }
     in
-    ( mapVertices (Dict.insert id newVertex) graph
+    ( Graph { p | vertices = Dict.insert id newVertex p.vertices }
     , id
     )
 
 
 addNeighbour : { x : Int, y : Int } -> VertexId -> ( Vertex, Maybe BagId ) -> Edge -> Graph -> Graph
-addNeighbour { x, y } sourceId ( v, maybeBagId ) e graph =
+addNeighbour { x, y } sourceId ( v, maybeBagId ) e ((Graph p) as graph) =
     let
         targetId =
-            newVertexId graph
+            biggestIdPlusOne p.vertices
 
         newVertex =
             { v
@@ -689,7 +687,7 @@ addBagAndGetNewBagId : Set VertexId -> Bag -> Graph -> ( Graph, BagId )
 addBagAndGetNewBagId vertexSet bag (Graph p) =
     let
         idOfTheNewBag =
-            makeNewId p.bags
+            biggestIdPlusOne p.bags
 
         updateInBags vertexId v =
             { v
@@ -784,7 +782,7 @@ contractEdge : EdgeId -> Vertex -> Graph -> Graph
 contractEdge ( s, t ) v ((Graph { vertices }) as graph) =
     let
         newId =
-            newVertexId graph
+            biggestIdPlusOne vertices
 
         newVertex =
             case ( Dict.get s vertices, Dict.get t vertices ) of
@@ -935,16 +933,21 @@ disjointUnion :
     ( Dict comparable Vertex, Dict ( comparable, comparable ) Edge )
     -> Graph
     -> ( Graph, Set VertexId, Set EdgeId )
-disjointUnion ( verts, edgs ) ((Graph p) as graph) =
+disjointUnion ( verts, edgs ) (Graph p) =
     let
         n =
-            newVertexId graph
+            biggestIdPlusOne p.vertices
 
         dictForTheAddedVertices : Dict comparable ( VertexId, Vertex )
         dictForTheAddedVertices =
             verts
                 |> Dict.toList
-                |> List.indexedMap (\i ( oldId, v ) -> ( oldId, ( n + i, v ) ))
+                |> List.indexedMap
+                    (\i ( oldId, v ) ->
+                        ( oldId
+                        , ( n + i, { v | inBags = Set.empty } )
+                        )
+                    )
                 |> Dict.fromList
 
         newVertices =
@@ -981,10 +984,14 @@ duplicateSubgraphAndGetTheDuplicate : Set VertexId -> Set EdgeId -> Graph -> ( G
 duplicateSubgraphAndGetTheDuplicate vs es graph =
     let
         addedVertices =
-            graph |> getVertices |> Dict.filter (\vertexId _ -> Set.member vertexId vs)
+            graph
+                |> getVertices
+                |> Dict.filter (\vertexId _ -> Set.member vertexId vs)
 
         addedEdges =
-            graph |> getEdges |> Dict.filter (\edgeId _ -> Set.member edgeId es)
+            graph
+                |> getEdges
+                |> Dict.filter (\edgeId _ -> Set.member edgeId es)
     in
     graph |> disjointUnion ( addedVertices, addedEdges )
 

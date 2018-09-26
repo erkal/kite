@@ -91,8 +91,8 @@ type alias Model =
     , selectedEdges : Set EdgeId
     , vertexPreferences : Graph.Vertex
     , edgePreferences : Graph.Edge
-    , maybeSelectedBag : Maybe BagId
     , bagPreferences : Graph.Bag
+    , maybeSelectedBag : Maybe BagId
     , alpha : Float
     }
 
@@ -119,8 +119,12 @@ type Tool
 
 type alias EdgeBrush =
     { sourceId : VertexId
-    , mousePos : { x : Int, y : Int }
+    , mousePos : MousePosition
     }
+
+
+type alias MousePosition =
+    { x : Int, y : Int }
 
 
 type SelectState
@@ -131,8 +135,8 @@ type SelectState
 
 
 type alias Brush =
-    { start : { x : Int, y : Int }
-    , mousePos : { x : Int, y : Int }
+    { start : MousePosition
+    , mousePos : MousePosition
     }
 
 
@@ -164,19 +168,19 @@ initialModel =
     , edgePreferences =
         { color = "white"
         , thickness = 3
-        , distance = 50
+        , distance = 30
         , strength = 0.5
         }
-    , maybeSelectedBag = Nothing
     , bagPreferences =
         { hasConvexHull = False
-        , pullIsActive = False
+        , pullIsActive = True
         , draggablePullCenter = False
         , pullX = 600
-        , pullXStrength = 0.04
+        , pullXStrength = 0.1
         , pullY = 300
-        , pullYStrength = 0.04
+        , pullYStrength = 0.1
         }
+    , maybeSelectedBag = Nothing
     , alpha = 0
     }
 
@@ -187,29 +191,64 @@ initialModel =
 
 type Msg
     = NoOp
+      --
+    | UpdateWindowSize { width : Int, height : Int }
+    | FromD3Tick TickData
+      --
     | AltKeyDown
     | AltKeyUp
     | ShiftKeyDown
     | ShiftKeyUp
-    | UpdateWindowSize { width : Int, height : Int }
+      --
+    | LeftMostBarRadioButtonClicked LeftBarContent
+      --
     | DrawToolClicked
     | SelectToolClicked
+    | VaderClicked
+      --
     | RectSelectorClicked
     | LineSelectorClicked
-    | MouseMove { x : Int, y : Int }
-    | MouseUp { x : Int, y : Int }
-    | MouseDownOnTransparentInteractionRect { x : Int, y : Int }
-    | MouseUpOnTransparentInteractionRect { x : Int, y : Int }
-    | MouseDownOnVertex VertexId { x : Int, y : Int }
-    | MouseDownOnEdge EdgeId { x : Int, y : Int }
+      --
+    | MouseMove MousePosition
+    | MouseUp MousePosition
+      --
+    | MouseDownOnTransparentInteractionRect MousePosition
+    | MouseUpOnTransparentInteractionRect MousePosition
+      --
     | MouseOverVertex VertexId
-    | MouseOverEdge EdgeId
     | MouseOutVertex VertexId
-    | MouseOutEdge EdgeId
+    | MouseDownOnVertex VertexId MousePosition
     | MouseUpOnVertex VertexId
-    | MouseUpOnEdge EdgeId { x : Int, y : Int }
-    | FromD3Tick TickData
-    | VaderClicked
+      --
+    | MouseOverEdge EdgeId
+    | MouseOutEdge EdgeId
+    | MouseDownOnEdge EdgeId MousePosition
+    | MouseUpOnEdge EdgeId MousePosition
+      --
+    | MouseOverPullCenter BagId
+    | MouseOutPullCenter BagId
+    | MouseDownOnPullCenter BagId MousePosition
+    | ClickOnPullCenter BagId
+      --
+    | ClickOnBagPlus
+    | ClickOnBagTrash
+      --
+    | ClickOnVertexTrash
+      --
+    | ClickOnEdgeContract
+    | ClickOnEdgeTrash
+      --
+      --
+    | MouseOverVertexItem VertexId
+    | MouseOverEdgeItem EdgeId
+    | MouseOverBagItem BagId
+    | MouseOutVertexItem VertexId
+    | MouseOutEdgeItem EdgeId
+    | MouseOutBagItem BagId
+    | ClickOnVertexItem VertexId
+    | ClickOnEdgeItem EdgeId
+    | ClickOnBagItem BagId
+      --
     | FromVertexColorPicker Color
     | FromEdgeColorPicker Color
     | FromFixedCheckBox Bool
@@ -230,25 +269,6 @@ type Msg
     | FromManyBodyMaxDistanceInput String
     | FromYInput String
     | FromXInput String
-    | ClickOnVertexTrash
-    | ClickOnBagTrash
-    | ClickOnEdgeTrash
-    | ClickOnEdgeContract
-    | ClickOnBagPlus
-    | MouseOverVertexItem VertexId
-    | MouseOverEdgeItem EdgeId
-    | MouseOverBagItem BagId
-    | MouseOverPullCenter BagId
-    | MouseOutVertexItem VertexId
-    | MouseOutEdgeItem EdgeId
-    | MouseOutBagItem BagId
-    | MouseOutPullCenter BagId
-    | ClickOnVertexItem VertexId
-    | ClickOnEdgeItem EdgeId
-    | ClickOnBagItem BagId
-    | ClickOnPullCenter BagId
-    | MouseDownOnPullCenter BagId { x : Int, y : Int }
-    | ThinBarButtonClicked LeftBarContent
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -412,7 +432,11 @@ update msg m =
                                     (Brush start mousePos)
                                 )
                         , graph =
-                            Graph.moveVertices newPositions m.graph
+                            if m.vaderIsOn then
+                                m.graph
+
+                            else
+                                Graph.moveVertices newPositions m.graph
                       }
                     , if m.vaderIsOn then
                         toD3Drag newPositions
@@ -483,7 +507,7 @@ update msg m =
                         toD3DragEnd (Graph.encodeForD3 m.graph)
 
                       else
-                        Cmd.none
+                        sendGraphData m.graph
                     )
 
                 Select (DraggingPullCenter _ _ _) ->
@@ -596,20 +620,20 @@ update msg m =
                         idAndPosition vertexId { x, y } =
                             { id = vertexId, x = x, y = y }
 
-                        startPositionsOfVertices =
+                        startPositionsOfDraggedVertices =
                             newGraph
                                 |> Graph.getVerticesIn newSelectedVertices
                                 |> Dict.map idAndPosition
                                 |> Dict.values
                     in
                     ( { m
-                        | tool = Select (DraggingSelection startPositionsOfVertices (Brush mousePos mousePos))
+                        | tool = Select (DraggingSelection startPositionsOfDraggedVertices (Brush mousePos mousePos))
                         , graph = newGraph
                         , selectedVertices = newSelectedVertices
                         , selectedEdges = newSelectedEdges
                       }
                     , if m.vaderIsOn then
-                        toD3DragStart ( Graph.encodeForD3 newGraph, startPositionsOfVertices )
+                        toD3DragStart ( Graph.encodeForD3 newGraph, startPositionsOfDraggedVertices )
 
                       else
                         Cmd.none
@@ -705,7 +729,7 @@ update msg m =
                 _ ->
                     ( m, Cmd.none )
 
-        MouseUpOnEdge edgeId pos ->
+        MouseUpOnEdge ( s, t ) pos ->
             case m.tool of
                 Draw (Just { sourceId }) ->
                     let
@@ -714,15 +738,14 @@ update msg m =
                                 |> Graph.addNeighbourDevidingEdge
                                     sourceId
                                     pos
-                                    edgeId
+                                    ( s, t )
                                     ( m.vertexPreferences, m.maybeSelectedBag )
                                     m.edgePreferences
                     in
                     ( { m
                         | graph = newGraph
                         , highlightingEdgeOnMouseOver = Nothing
-                        , tool =
-                            Draw Nothing
+                        , tool = Draw Nothing
                       }
                     , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
                     )
@@ -1362,7 +1385,7 @@ update msg m =
                 | graph = newGraph
                 , maybeSelectedBag = Just idOfTheNewBag
               }
-            , Cmd.none
+            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
             )
 
         MouseOverVertexItem vertexId ->
@@ -1457,7 +1480,7 @@ update msg m =
                 Nothing ->
                     ( m, Cmd.none )
 
-        ThinBarButtonClicked leftBarContent ->
+        LeftMostBarRadioButtonClicked leftBarContent ->
             ( { m | leftBarContent = leftBarContent }
             , Cmd.none
             )
@@ -1570,12 +1593,12 @@ view m =
         , leftBar m
         , rightBar m
         , topBar m
-        , forDebugging m
+        , forDebuggingKeyPresses m
         ]
 
 
-forDebugging : Model -> Html Msg
-forDebugging m =
+forDebuggingKeyPresses : Model -> Html Msg
+forDebuggingKeyPresses m =
     let
         toShow =
             case ( m.shiftIsDown, m.altIsDown ) of
@@ -1591,7 +1614,7 @@ forDebugging m =
                 ( False, False ) ->
                     ""
     in
-    div [ HA.id "forDebugging" ]
+    div [ HA.class "forDebugging" ]
         [ H.text toShow
         ]
 
@@ -1939,7 +1962,7 @@ leftBar m =
             div
                 [ HA.title title
                 , HA.class "thinBandButton"
-                , HE.onClick (ThinBarButtonClicked leftBarContent)
+                , HE.onClick (LeftMostBarRadioButtonClicked leftBarContent)
                 ]
                 [ Icons.draw40pxWithColor color icon ]
 
@@ -2527,10 +2550,6 @@ rightBar m =
 --main svg
 
 
-type alias MousePosition =
-    { x : Int, y : Int }
-
-
 mousePosition : Decoder MousePosition
 mousePosition =
     Decode.map2 MousePosition
@@ -2635,10 +2654,10 @@ mainSvg m =
                     case maybeRectAroundVertices of
                         Just { x, y, width, height } ->
                             S.rect
-                                [ SA.x (String.fromFloat (x - 1))
-                                , SA.y (String.fromFloat (y - 1))
-                                , SA.width (String.fromFloat (width + 2))
-                                , SA.height (String.fromFloat (height + 2))
+                                [ SA.x (String.fromFloat (x - 4))
+                                , SA.y (String.fromFloat (y - 4))
+                                , SA.width (String.fromFloat (width + 8))
+                                , SA.height (String.fromFloat (height + 8))
                                 , SA.strokeWidth "1"
                                 , SA.stroke "rgb(40,127,230)"
                                 , SA.fill "none"
@@ -2914,8 +2933,8 @@ mainSvg m =
         , viewPullCenters
         , maybeHighlightsOnSelectedEdges
         , maybeHighlightOnMouseOveredEdge
-        , maybeHighlightOnMouseOveredVertex
         , maybeHighlightsOnSelectedVertices
+        , maybeHighlightOnMouseOveredVertex
         , maybeHighlightOnVerticesOfMouseOveredBag
         , viewEdges m.graph
         , viewVertices m.graph

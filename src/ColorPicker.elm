@@ -12,7 +12,7 @@ import Html.Events as HE
 
 colors : List Color
 colors =
-    Colors.vertexAndEdgeColors 
+    Colors.vertexAndEdgeColors
 
 
 view : Maybe Color -> Html Color
@@ -21,7 +21,7 @@ view maybeSelectedColor =
         dropbtn =
             case maybeSelectedColor of
                 Just color ->
-                    H.button [ HA.class "dropbtn" ]
+                    H.button [ HA.class "color-picker-dropbtn" ]
                         [ H.div
                             [ HA.style "background-color" color
                             , HA.style "width" "100%"
@@ -31,7 +31,7 @@ view maybeSelectedColor =
                         ]
 
                 Nothing ->
-                    H.button [ HA.class "dropbtn" ]
+                    H.button [ HA.class "color-picker-dropbtn" ]
                         [ H.div
                             [ HA.style "background-color" "#454545"
                             , HA.style "width" "100%"
@@ -48,8 +48,8 @@ view maybeSelectedColor =
                 ]
                 []
     in
-    H.div [ HA.class "dropdown" ]
+    H.div [ HA.class "color-picker-dropdown" ]
         [ dropbtn
-        , H.div [ HA.class "dropdown-content" ]
+        , H.div [ HA.class "color-picker-dropdown-content" ]
             (List.map colorBox colors)
         ]

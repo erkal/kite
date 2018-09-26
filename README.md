@@ -8,6 +8,8 @@ This is work in progress, still in **pre-alpha**.
 
 [A **demo** of the latest state can be found here](https://erkal.github.io/kite/).
 
+[Here is a short video](https://youtu.be/LeTDfFwZv3s) showing the basic usage.
+
 Kite is almost entirely written in [Elm](http://elm-lang.org/).
 
 ## For Development

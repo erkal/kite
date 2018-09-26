@@ -15,7 +15,6 @@
     <meta charset="UTF-8">
     <title>Kite</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="style-color-picker.css">
     <!-- See https://github.com/d3/d3-force -->
     <script src="src/third-party-libraries/d3-collection.v1.min.js"></script>
     <script src="src/third-party-libraries/d3-dispatch.v1.min.js"></script>
@@ -82,9 +81,9 @@
 
         let draggedNodes = {};
 
-        app.ports.toD3DragStart.subscribe(([graphData, l]) => {
+        app.ports.toD3DragStart.subscribe(([graphData, startPositionsOfDraggedVertices]) => {
             updateGraphData(graphData);
-            for (var e of l) {
+            for (var e of startPositionsOfDraggedVertices) {
                 node = sim.nodes().find(node => node.id == e.id);
                 draggedNodes[e.id] = node;
                 node.fx = e.x;
@@ -93,8 +92,8 @@
             };
         });
 
-        app.ports.toD3Drag.subscribe(l => {
-            for (var e of l) {
+        app.ports.toD3Drag.subscribe(newPositionsOfDraggedVertices => {
+            for (var e of newPositionsOfDraggedVertices) {
                 node = draggedNodes[e.id];
                 node.fx = e.x;
                 node.fy = e.y;
@@ -102,14 +101,9 @@
         });
 
         app.ports.toD3DragEnd.subscribe(graphData => {
-            for (var id in draggedNodes) {
-                node = draggedNodes[id];
-                // node.fx = null;
-                // node.fy = null;
-            };
-            draggedNodes = {};
             updateGraphData(graphData);
             sim.alphaTarget(0);
+            draggedNodes = {};
         });
 
 
