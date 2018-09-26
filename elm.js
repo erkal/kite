@@ -77,14 +77,14 @@ function A9(fun, a, b, c, d, e, f, g, h, i) {
   return fun.a === 9 ? fun.f(a, b, c, d, e, f, g, h, i) : fun(a)(b)(c)(d)(e)(f)(g)(h)(i);
 }
 
+console.warn('Compiled in DEV mode. Follow the advice at https://elm-lang.org/0.19.0/optimize for better performance and smaller assets.');
 
 
+var _List_Nil_UNUSED = { $: 0 };
+var _List_Nil = { $: '[]' };
 
-var _List_Nil = { $: 0 };
-var _List_Nil_UNUSED = { $: '[]' };
-
-function _List_Cons(hd, tl) { return { $: 1, a: hd, b: tl }; }
-function _List_Cons_UNUSED(hd, tl) { return { $: '::', a: hd, b: tl }; }
+function _List_Cons_UNUSED(hd, tl) { return { $: 1, a: hd, b: tl }; }
+function _List_Cons(hd, tl) { return { $: '::', a: hd, b: tl }; }
 
 
 var _List_cons = F2(_List_Cons);
@@ -194,7 +194,7 @@ function _Utils_eqHelp(x, y, depth, stack)
 		return false;
 	}
 
-	/**_UNUSED/
+	/**/
 	if (x.$ === 'Set_elm_builtin')
 	{
 		x = elm$core$Set$toList(x);
@@ -207,7 +207,7 @@ function _Utils_eqHelp(x, y, depth, stack)
 	}
 	//*/
 
-	/**/
+	/**_UNUSED/
 	if (x.$ < 0)
 	{
 		x = elm$core$Dict$toList(x);
@@ -242,7 +242,7 @@ function _Utils_cmp(x, y, ord)
 		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
 	}
 
-	/**_UNUSED/
+	/**/
 	if (x instanceof String)
 	{
 		var a = x.valueOf();
@@ -251,10 +251,10 @@ function _Utils_cmp(x, y, ord)
 	}
 	//*/
 
-	/**/
+	/**_UNUSED/
 	if (!x.$)
 	//*/
-	/**_UNUSED/
+	/**/
 	if (x.$[0] === '#')
 	//*/
 	{
@@ -284,17 +284,17 @@ var _Utils_compare = F2(function(x, y)
 
 // COMMON VALUES
 
-var _Utils_Tuple0 = 0;
-var _Utils_Tuple0_UNUSED = { $: '#0' };
+var _Utils_Tuple0_UNUSED = 0;
+var _Utils_Tuple0 = { $: '#0' };
 
-function _Utils_Tuple2(a, b) { return { a: a, b: b }; }
-function _Utils_Tuple2_UNUSED(a, b) { return { $: '#2', a: a, b: b }; }
+function _Utils_Tuple2_UNUSED(a, b) { return { a: a, b: b }; }
+function _Utils_Tuple2(a, b) { return { $: '#2', a: a, b: b }; }
 
-function _Utils_Tuple3(a, b, c) { return { a: a, b: b, c: c }; }
-function _Utils_Tuple3_UNUSED(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
+function _Utils_Tuple3_UNUSED(a, b, c) { return { a: a, b: b, c: c }; }
+function _Utils_Tuple3(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
 
-function _Utils_chr(c) { return c; }
-function _Utils_chr_UNUSED(c) { return new String(c); }
+function _Utils_chr_UNUSED(c) { return c; }
+function _Utils_chr(c) { return new String(c); }
 
 
 // RECORDS
@@ -499,12 +499,12 @@ var _JsArray_appendN = F3(function(n, dest, source)
 
 // LOG
 
-var _Debug_log = F2(function(tag, value)
+var _Debug_log_UNUSED = F2(function(tag, value)
 {
 	return value;
 });
 
-var _Debug_log_UNUSED = F2(function(tag, value)
+var _Debug_log = F2(function(tag, value)
 {
 	console.log(tag + ': ' + _Debug_toString(value));
 	return value;
@@ -530,12 +530,12 @@ function _Debug_todoCase(moduleName, region, value)
 
 // TO STRING
 
-function _Debug_toString(value)
+function _Debug_toString_UNUSED(value)
 {
 	return '<internals>';
 }
 
-function _Debug_toString_UNUSED(value)
+function _Debug_toString(value)
 {
 	return _Debug_toAnsiString(false, value);
 }
@@ -706,13 +706,13 @@ function _Debug_internalColor(ansi, string)
 // CRASH
 
 
-function _Debug_crash(identifier)
+function _Debug_crash_UNUSED(identifier)
 {
 	throw new Error('https://github.com/elm/core/blob/1.0.0/hints/' + identifier + '.md');
 }
 
 
-function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
+function _Debug_crash(identifier, fact1, fact2, fact3, fact4)
 {
 	switch(identifier)
 	{
@@ -770,11 +770,11 @@ function _Debug_crash_UNUSED(identifier, fact1, fact2, fact3, fact4)
 
 function _Debug_regionToString(region)
 {
-	if (region.P.Y === region.az.Y)
+	if (region.start.line === region.end.line)
 	{
-		return 'on line ' + region.P.Y;
+		return 'on line ' + region.start.line;
 	}
-	return 'on lines ' + region.P.Y + ' through ' + region.az.Y;
+	return 'on lines ' + region.start.line + ' through ' + region.end.line;
 }
 
 
@@ -1200,7 +1200,7 @@ function _String_fromList(chars)
 
 
 
-/**_UNUSED/
+/**/
 function _Json_errorToString(error)
 {
 	return elm$json$Json$Decode$errorToString(error);
@@ -1600,11 +1600,11 @@ var _Json_encode = F2(function(indentLevel, value)
 	return JSON.stringify(_Json_unwrap(value), null, indentLevel) + '';
 });
 
-function _Json_wrap_UNUSED(value) { return { $: 0, a: value }; }
-function _Json_unwrap_UNUSED(value) { return value.a; }
+function _Json_wrap(value) { return { $: 0, a: value }; }
+function _Json_unwrap(value) { return value.a; }
 
-function _Json_wrap(value) { return value; }
-function _Json_unwrap(value) { return value; }
+function _Json_wrap_UNUSED(value) { return value; }
+function _Json_unwrap_UNUSED(value) { return value; }
 
 function _Json_emptyArray() { return []; }
 function _Json_emptyObject() { return {}; }
@@ -1841,9 +1841,9 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.bg,
-		impl.bA,
-		impl.bw,
+		impl.init,
+		impl.update,
+		impl.subscriptions,
 		function() { return function() {} }
 	);
 });
@@ -1856,7 +1856,7 @@ var _Platform_worker = F4(function(impl, flagDecoder, debugMetadata, args)
 function _Platform_initialize(flagDecoder, args, init, update, subscriptions, stepperBuilder)
 {
 	var result = A2(_Json_run, flagDecoder, _Json_wrap(args ? args['flags'] : undefined));
-	elm$core$Result$isOk(result) || _Debug_crash(2 /**_UNUSED/, _Json_errorToString(result.a) /**/);
+	elm$core$Result$isOk(result) || _Debug_crash(2 /**/, _Json_errorToString(result.a) /**/);
 	var managers = {};
 	result = init(result.a);
 	var model = result.a;
@@ -2255,7 +2255,7 @@ function _Platform_setupIncomingPort(name, sendToApp)
 //
 
 
-function _Platform_export(exports)
+function _Platform_export_UNUSED(exports)
 {
 	scope['Elm']
 		? _Platform_mergeExportsProd(scope['Elm'], exports)
@@ -2276,7 +2276,7 @@ function _Platform_mergeExportsProd(obj, exports)
 }
 
 
-function _Platform_export_UNUSED(exports)
+function _Platform_export(exports)
 {
 	scope['Elm']
 		? _Platform_mergeExportsDebug('Elm', scope['Elm'], exports)
@@ -2316,10 +2316,10 @@ var _VirtualDom_init = F4(function(virtualNode, flagDecoder, debugMetadata, args
 {
 	// NOTE: this function needs _Platform_export available to work
 
-	/**/
+	/**_UNUSED/
 	var node = args['node'];
 	//*/
-	/**_UNUSED/
+	/**/
 	var node = args && args['node'] ? args['node'] : _Debug_crash(0);
 	//*/
 
@@ -2574,24 +2574,24 @@ function _VirtualDom_noInnerHtmlOrFormAction(key)
 	return key == 'innerHTML' || key == 'formAction' ? 'data-' + key : key;
 }
 
-function _VirtualDom_noJavaScriptUri(value)
+function _VirtualDom_noJavaScriptUri_UNUSED(value)
 {
 	return /^javascript:/i.test(value.replace(/\s/g,'')) ? '' : value;
 }
 
-function _VirtualDom_noJavaScriptUri_UNUSED(value)
+function _VirtualDom_noJavaScriptUri(value)
 {
 	return /^javascript:/i.test(value.replace(/\s/g,''))
 		? 'javascript:alert("This is an XSS vector. Please use ports or web components instead.")'
 		: value;
 }
 
-function _VirtualDom_noJavaScriptOrHtmlUri(value)
+function _VirtualDom_noJavaScriptOrHtmlUri_UNUSED(value)
 {
 	return /^\s*(javascript:|data:text\/html)/i.test(value) ? '' : value;
 }
 
-function _VirtualDom_noJavaScriptOrHtmlUri_UNUSED(value)
+function _VirtualDom_noJavaScriptOrHtmlUri(value)
 {
 	return /^\s*(javascript:|data:text\/html)/i.test(value)
 		? 'javascript:alert("This is an XSS vector. Please use ports or web components instead.")'
@@ -2643,9 +2643,9 @@ var _VirtualDom_mapEventTuple = F2(function(func, tuple)
 var _VirtualDom_mapEventRecord = F2(function(func, record)
 {
 	return {
-		z: func(record.z),
-		ar: record.ar,
-		an: record.an
+		message: func(record.message),
+		stopPropagation: record.stopPropagation,
+		preventDefault: record.preventDefault
 	}
 });
 
@@ -2913,11 +2913,11 @@ function _VirtualDom_makeCallback(eventNode, initialHandler)
 		// 3 = Custom
 
 		var value = result.a;
-		var message = !tag ? value : tag < 3 ? value.a : value.z;
-		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.ar;
+		var message = !tag ? value : tag < 3 ? value.a : value.message;
+		var stopPropagation = tag == 1 ? value.b : tag == 3 && value.stopPropagation;
 		var currentEventNode = (
 			stopPropagation && event.stopPropagation(),
-			(tag == 2 ? value.b : tag == 3 && value.an) && event.preventDefault(),
+			(tag == 2 ? value.b : tag == 3 && value.preventDefault) && event.preventDefault(),
 			eventNode
 		);
 		var tagger;
@@ -3863,15 +3863,15 @@ var _Browser_element = _Debugger_element || F4(function(impl, flagDecoder, debug
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.bg,
-		impl.bA,
-		impl.bw,
+		impl.init,
+		impl.update,
+		impl.subscriptions,
 		function(sendToApp, initialModel) {
-			var view = impl.bE;
-			/**/
+			var view = impl.view;
+			/**_UNUSED/
 			var domNode = args['node'];
 			//*/
-			/**_UNUSED/
+			/**/
 			var domNode = args && args['node'] ? args['node'] : _Debug_crash(0);
 			//*/
 			var currNode = _VirtualDom_virtualize(domNode);
@@ -3899,12 +3899,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 	return _Platform_initialize(
 		flagDecoder,
 		args,
-		impl.bg,
-		impl.bA,
-		impl.bw,
+		impl.init,
+		impl.update,
+		impl.subscriptions,
 		function(sendToApp, initialModel) {
-			var divertHrefToApp = impl.aa && impl.aa(sendToApp)
-			var view = impl.bE;
+			var divertHrefToApp = impl.setup && impl.setup(sendToApp)
+			var view = impl.view;
 			var title = _VirtualDom_doc.title;
 			var bodyNode = _VirtualDom_doc.body;
 			var currNode = _VirtualDom_virtualize(bodyNode);
@@ -3912,12 +3912,12 @@ var _Browser_document = _Debugger_document || F4(function(impl, flagDecoder, deb
 			{
 				_VirtualDom_divertHrefToApp = divertHrefToApp;
 				var doc = view(model);
-				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.a2);
+				var nextNode = _VirtualDom_node('body')(_List_Nil)(doc.body);
 				var patches = _VirtualDom_diff(currNode, nextNode);
 				bodyNode = _VirtualDom_applyPatches(bodyNode, currNode, patches, sendToApp);
 				currNode = nextNode;
 				_VirtualDom_divertHrefToApp = 0;
-				(title !== doc.by) && (_VirtualDom_doc.title = title = doc.by);
+				(title !== doc.title) && (_VirtualDom_doc.title = title = doc.title);
 			});
 		}
 	);
@@ -3968,12 +3968,12 @@ function _Browser_makeAnimator(model, draw)
 
 function _Browser_application(impl)
 {
-	var onUrlChange = impl.bl;
-	var onUrlRequest = impl.bm;
+	var onUrlChange = impl.onUrlChange;
+	var onUrlRequest = impl.onUrlRequest;
 	var key = function() { key.a(onUrlChange(_Browser_getUrl())); };
 
 	return _Browser_document({
-		aa: function(sendToApp)
+		setup: function(sendToApp)
 		{
 			key.a = sendToApp;
 			_Browser_window.addEventListener('popstate', key);
@@ -3989,9 +3989,9 @@ function _Browser_application(impl)
 					var next = elm$url$Url$fromString(href).a;
 					sendToApp(onUrlRequest(
 						(next
-							&& curr.aN === next.aN
-							&& curr.aD === next.aD
-							&& curr.aK.a === next.aK.a
+							&& curr.protocol === next.protocol
+							&& curr.host === next.host
+							&& curr.port_.a === next.port_.a
 						)
 							? elm$browser$Browser$Internal(next)
 							: elm$browser$Browser$External(href)
@@ -3999,13 +3999,13 @@ function _Browser_application(impl)
 				}
 			});
 		},
-		bg: function(flags)
+		init: function(flags)
 		{
-			return A3(impl.bg, flags, _Browser_getUrl(), key);
+			return A3(impl.init, flags, _Browser_getUrl(), key);
 		},
-		bE: impl.bE,
-		bA: impl.bA,
-		bw: impl.bw
+		view: impl.view,
+		update: impl.update,
+		subscriptions: impl.subscriptions
 	});
 }
 
@@ -4071,17 +4071,17 @@ var _Browser_decodeEvent = F2(function(decoder, event)
 function _Browser_visibilityInfo()
 {
 	return (typeof _VirtualDom_doc.hidden !== 'undefined')
-		? { bd: 'hidden', U: 'visibilitychange' }
+		? { hidden: 'hidden', change: 'visibilitychange' }
 		:
 	(typeof _VirtualDom_doc.mozHidden !== 'undefined')
-		? { bd: 'mozHidden', U: 'mozvisibilitychange' }
+		? { hidden: 'mozHidden', change: 'mozvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.msHidden !== 'undefined')
-		? { bd: 'msHidden', U: 'msvisibilitychange' }
+		? { hidden: 'msHidden', change: 'msvisibilitychange' }
 		:
 	(typeof _VirtualDom_doc.webkitHidden !== 'undefined')
-		? { bd: 'webkitHidden', U: 'webkitvisibilitychange' }
-		: { bd: 'hidden', U: 'visibilitychange' };
+		? { hidden: 'webkitHidden', change: 'webkitvisibilitychange' }
+		: { hidden: 'hidden', change: 'visibilitychange' };
 }
 
 
@@ -4162,12 +4162,12 @@ var _Browser_call = F2(function(functionName, id)
 function _Browser_getViewport()
 {
 	return {
-		aV: _Browser_getScene(),
-		aZ: {
-			R: _Browser_window.pageXOffset,
-			S: _Browser_window.pageYOffset,
-			a_: _Browser_doc.documentElement.clientWidth,
-			aC: _Browser_doc.documentElement.clientHeight
+		scene: _Browser_getScene(),
+		viewport: {
+			x: _Browser_window.pageXOffset,
+			y: _Browser_window.pageYOffset,
+			width: _Browser_doc.documentElement.clientWidth,
+			height: _Browser_doc.documentElement.clientHeight
 		}
 	};
 }
@@ -4177,8 +4177,8 @@ function _Browser_getScene()
 	var body = _Browser_doc.body;
 	var elem = _Browser_doc.documentElement;
 	return {
-		a_: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
-		aC: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
+		width: Math.max(body.scrollWidth, body.offsetWidth, elem.scrollWidth, elem.offsetWidth, elem.clientWidth),
+		height: Math.max(body.scrollHeight, body.offsetHeight, elem.scrollHeight, elem.offsetHeight, elem.clientHeight)
 	};
 }
 
@@ -4201,15 +4201,15 @@ function _Browser_getViewportOf(id)
 	return _Browser_withNode(id, function(node)
 	{
 		return {
-			aV: {
-				a_: node.scrollWidth,
-				aC: node.scrollHeight
+			scene: {
+				width: node.scrollWidth,
+				height: node.scrollHeight
 			},
-			aZ: {
-				R: node.scrollLeft,
-				S: node.scrollTop,
-				a_: node.clientWidth,
-				aC: node.clientHeight
+			viewport: {
+				x: node.scrollLeft,
+				y: node.scrollTop,
+				width: node.clientWidth,
+				height: node.clientHeight
 			}
 		};
 	});
@@ -4239,18 +4239,18 @@ function _Browser_getElement(id)
 		var x = _Browser_window.pageXOffset;
 		var y = _Browser_window.pageYOffset;
 		return {
-			aV: _Browser_getScene(),
-			aZ: {
-				R: x,
-				S: y,
-				a_: _Browser_doc.documentElement.clientWidth,
-				aC: _Browser_doc.documentElement.clientHeight
+			scene: _Browser_getScene(),
+			viewport: {
+				x: x,
+				y: y,
+				width: _Browser_doc.documentElement.clientWidth,
+				height: _Browser_doc.documentElement.clientHeight
 			},
-			a8: {
-				R: x + rect.left,
-				S: y + rect.top,
-				a_: rect.width,
-				aC: rect.height
+			element: {
+				x: x + rect.left,
+				y: y + rect.top,
+				width: rect.width,
+				height: rect.height
 			}
 		};
 	});
@@ -4286,16 +4286,16 @@ function _Browser_load(url)
 	}));
 }
 var author$project$Main$UpdateWindowSize = function (a) {
-	return {$: 5, a: a};
+	return {$: 'UpdateWindowSize', a: a};
 };
-var elm$core$Basics$EQ = 1;
-var elm$core$Basics$GT = 2;
-var elm$core$Basics$LT = 0;
+var elm$core$Basics$EQ = {$: 'EQ'};
+var elm$core$Basics$GT = {$: 'GT'};
+var elm$core$Basics$LT = {$: 'LT'};
 var elm$core$Dict$foldr = F3(
 	function (func, acc, t) {
 		foldr:
 		while (true) {
-			if (t.$ === -2) {
+			if (t.$ === 'RBEmpty_elm_builtin') {
 				return acc;
 			} else {
 				var key = t.b;
@@ -4341,7 +4341,7 @@ var elm$core$Dict$keys = function (dict) {
 		dict);
 };
 var elm$core$Set$toList = function (_n0) {
-	var dict = _n0;
+	var dict = _n0.a;
 	return elm$core$Dict$keys(dict);
 };
 var elm$core$Elm$JsArray$foldr = _JsArray_foldr;
@@ -4351,7 +4351,7 @@ var elm$core$Array$foldr = F3(
 		var tail = _n0.d;
 		var helper = F2(
 			function (node, acc) {
-				if (!node.$) {
+				if (node.$ === 'SubTree') {
 					var subTree = node.a;
 					return A3(elm$core$Elm$JsArray$foldr, helper, acc, subTree);
 				} else {
@@ -4371,69 +4371,74 @@ var elm$core$Array$toList = function (array) {
 var elm$core$Basics$round = _Basics_round;
 var author$project$Main$getWindowSize = function (viewPort) {
 	return {
-		aC: elm$core$Basics$round(viewPort.aV.aC),
-		a_: elm$core$Basics$round(viewPort.aV.a_)
+		height: elm$core$Basics$round(viewPort.scene.height),
+		width: elm$core$Basics$round(viewPort.scene.width)
 	};
 };
-var author$project$Graph$Graph = elm$core$Basics$identity;
+var author$project$Graph$Graph = function (a) {
+	return {$: 'Graph', a: a};
+};
 var elm$core$Basics$identity = function (x) {
 	return x;
 };
 var elm$core$Basics$negate = function (n) {
 	return -n;
 };
-var elm$core$Dict$RBEmpty_elm_builtin = {$: -2};
+var elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var elm$core$Dict$empty = elm$core$Dict$RBEmpty_elm_builtin;
-var author$project$Graph$empty = {
-	s: elm$core$Dict$empty,
-	n: elm$core$Dict$empty,
-	Z: {ai: 1000, aj: 1, ac: -40, as: 0.9},
-	g: elm$core$Dict$empty
-};
+var author$project$Graph$empty = author$project$Graph$Graph(
+	{
+		bags: elm$core$Dict$empty,
+		edges: elm$core$Dict$empty,
+		manyBody: {distanceMax: 1000, distanceMin: 1, strength: -40, theta: 0.9},
+		vertices: elm$core$Dict$empty
+	});
 var author$project$Main$Draw = function (a) {
-	return {$: 0, a: a};
+	return {$: 'Draw', a: a};
 };
-var author$project$Main$ListsOfBagsVerticesAndEdges = 1;
-var author$project$Main$RectSelector = 0;
-var elm$core$Basics$False = 1;
-var elm$core$Basics$True = 0;
-var elm$core$Maybe$Nothing = {$: 1};
-var elm$core$Set$Set_elm_builtin = elm$core$Basics$identity;
-var elm$core$Set$empty = elm$core$Dict$empty;
+var author$project$Main$ListsOfBagsVerticesAndEdges = {$: 'ListsOfBagsVerticesAndEdges'};
+var author$project$Main$RectSelector = {$: 'RectSelector'};
+var elm$core$Basics$False = {$: 'False'};
+var elm$core$Basics$True = {$: 'True'};
+var elm$core$Maybe$Nothing = {$: 'Nothing'};
+var elm$core$Set$Set_elm_builtin = function (a) {
+	return {$: 'Set_elm_builtin', a: a};
+};
+var elm$core$Set$empty = elm$core$Set$Set_elm_builtin(elm$core$Dict$empty);
 var author$project$Main$initialModel = {
-	D: 0,
-	E: false,
-	e: {a6: false, bc: false, aO: false, ao: 600, aP: 4.0e-2, ap: 300, aQ: 4.0e-2},
-	h: {aw: 'white', ay: 50, ac: 0.5, bx: 2},
-	a: author$project$Graph$empty,
-	K: elm$core$Maybe$Nothing,
-	o: elm$core$Maybe$Nothing,
-	W: elm$core$Maybe$Nothing,
-	v: elm$core$Maybe$Nothing,
-	X: 1,
-	f: elm$core$Maybe$Nothing,
-	d: elm$core$Set$empty,
-	c: elm$core$Set$empty,
-	B: 0,
-	ab: false,
-	b: author$project$Main$Draw(elm$core$Maybe$Nothing),
-	u: true,
-	j: {aw: 'white', V: false, q: elm$core$Set$empty, aq: 5, bC: elm$core$Dict$empty, R: 200, S: 200},
-	ah: {aC: 600, a_: 800}
+	alpha: 0,
+	altIsDown: false,
+	bagPreferences: {draggablePullCenter: false, hasConvexHull: false, pullIsActive: false, pullX: 600, pullXStrength: 4.0e-2, pullY: 300, pullYStrength: 4.0e-2},
+	edgePreferences: {color: 'white', distance: 50, strength: 0.5, thickness: 3},
+	graph: author$project$Graph$empty,
+	highlightingBagOnMouseOver: elm$core$Maybe$Nothing,
+	highlightingEdgeOnMouseOver: elm$core$Maybe$Nothing,
+	highlightingPullCenterOnMouseOver: elm$core$Maybe$Nothing,
+	highlightingVertexOnMouseOver: elm$core$Maybe$Nothing,
+	leftBarContent: author$project$Main$ListsOfBagsVerticesAndEdges,
+	maybeSelectedBag: elm$core$Maybe$Nothing,
+	selectedEdges: elm$core$Set$empty,
+	selectedVertices: elm$core$Set$empty,
+	selector: author$project$Main$RectSelector,
+	shiftIsDown: false,
+	tool: author$project$Main$Draw(elm$core$Maybe$Nothing),
+	vaderIsOn: true,
+	vertexPreferences: {color: 'white', fixed: false, inBags: elm$core$Set$empty, radius: 5, userDefinedProperties: elm$core$Dict$empty, x: 200, y: 200},
+	windowSize: {height: 600, width: 800}
 };
 var author$project$Main$FromD3Tick = function (a) {
-	return {$: 22, a: a};
+	return {$: 'FromD3Tick', a: a};
 };
 var author$project$Main$MouseMove = function (a) {
-	return {$: 10, a: a};
+	return {$: 'MouseMove', a: a};
 };
 var author$project$Main$MouseUp = function (a) {
-	return {$: 11, a: a};
+	return {$: 'MouseUp', a: a};
 };
 var elm$core$Array$branchFactor = 32;
 var elm$core$Array$Array_elm_builtin = F4(
 	function (a, b, c, d) {
-		return {$: 0, a: a, b: b, c: c, d: d};
+		return {$: 'Array_elm_builtin', a: a, b: b, c: c, d: d};
 	});
 var elm$core$Basics$ceiling = _Basics_ceiling;
 var elm$core$Basics$fdiv = _Basics_fdiv;
@@ -4447,10 +4452,10 @@ var elm$core$Array$shiftStep = elm$core$Basics$ceiling(
 var elm$core$Elm$JsArray$empty = _JsArray_empty;
 var elm$core$Array$empty = A4(elm$core$Array$Array_elm_builtin, 0, elm$core$Array$shiftStep, elm$core$Elm$JsArray$empty, elm$core$Elm$JsArray$empty);
 var elm$core$Array$Leaf = function (a) {
-	return {$: 1, a: a};
+	return {$: 'Leaf', a: a};
 };
 var elm$core$Array$SubTree = function (a) {
-	return {$: 0, a: a};
+	return {$: 'SubTree', a: a};
 };
 var elm$core$Elm$JsArray$initializeFromList = _JsArray_initializeFromList;
 var elm$core$List$foldl = F3(
@@ -4538,25 +4543,25 @@ var elm$core$Basics$sub = _Basics_sub;
 var elm$core$Elm$JsArray$length = _JsArray_length;
 var elm$core$Array$builderToArray = F2(
 	function (reverseNodeList, builder) {
-		if (!builder.i) {
+		if (!builder.nodeListSize) {
 			return A4(
 				elm$core$Array$Array_elm_builtin,
-				elm$core$Elm$JsArray$length(builder.l),
+				elm$core$Elm$JsArray$length(builder.tail),
 				elm$core$Array$shiftStep,
 				elm$core$Elm$JsArray$empty,
-				builder.l);
+				builder.tail);
 		} else {
-			var treeLen = builder.i * elm$core$Array$branchFactor;
+			var treeLen = builder.nodeListSize * elm$core$Array$branchFactor;
 			var depth = elm$core$Basics$floor(
 				A2(elm$core$Basics$logBase, elm$core$Array$branchFactor, treeLen - 1));
-			var correctNodeList = reverseNodeList ? elm$core$List$reverse(builder.m) : builder.m;
-			var tree = A2(elm$core$Array$treeFromBuilder, correctNodeList, builder.i);
+			var correctNodeList = reverseNodeList ? elm$core$List$reverse(builder.nodeList) : builder.nodeList;
+			var tree = A2(elm$core$Array$treeFromBuilder, correctNodeList, builder.nodeListSize);
 			return A4(
 				elm$core$Array$Array_elm_builtin,
-				elm$core$Elm$JsArray$length(builder.l) + treeLen,
+				elm$core$Elm$JsArray$length(builder.tail) + treeLen,
 				A2(elm$core$Basics$max, 5, depth * elm$core$Array$shiftStep),
 				tree,
-				builder.l);
+				builder.tail);
 		}
 	});
 var elm$core$Basics$idiv = _Basics_idiv;
@@ -4570,7 +4575,7 @@ var elm$core$Array$initializeHelp = F5(
 				return A2(
 					elm$core$Array$builderToArray,
 					false,
-					{m: nodeList, i: (len / elm$core$Array$branchFactor) | 0, l: tail});
+					{nodeList: nodeList, nodeListSize: (len / elm$core$Array$branchFactor) | 0, tail: tail});
 			} else {
 				var leaf = elm$core$Array$Leaf(
 					A3(elm$core$Elm$JsArray$initialize, elm$core$Array$branchFactor, fromIndex, fn));
@@ -4602,16 +4607,16 @@ var elm$core$Array$initialize = F2(
 		}
 	});
 var elm$core$Maybe$Just = function (a) {
-	return {$: 0, a: a};
+	return {$: 'Just', a: a};
 };
 var elm$core$Result$Err = function (a) {
-	return {$: 1, a: a};
+	return {$: 'Err', a: a};
 };
 var elm$core$Result$Ok = function (a) {
-	return {$: 0, a: a};
+	return {$: 'Ok', a: a};
 };
 var elm$core$Result$isOk = function (result) {
-	if (!result.$) {
+	if (result.$ === 'Ok') {
 		return true;
 	} else {
 		return false;
@@ -4619,18 +4624,18 @@ var elm$core$Result$isOk = function (result) {
 };
 var elm$json$Json$Decode$Failure = F2(
 	function (a, b) {
-		return {$: 3, a: a, b: b};
+		return {$: 'Failure', a: a, b: b};
 	});
 var elm$json$Json$Decode$Field = F2(
 	function (a, b) {
-		return {$: 0, a: a, b: b};
+		return {$: 'Field', a: a, b: b};
 	});
 var elm$json$Json$Decode$Index = F2(
 	function (a, b) {
-		return {$: 1, a: a, b: b};
+		return {$: 'Index', a: a, b: b};
 	});
 var elm$json$Json$Decode$OneOf = function (a) {
-	return {$: 2, a: a};
+	return {$: 'OneOf', a: a};
 };
 var elm$core$Basics$and = _Basics_and;
 var elm$core$Basics$append = _Utils_append;
@@ -4732,12 +4737,12 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 		errorToStringHelp:
 		while (true) {
 			switch (error.$) {
-				case 0:
+				case 'Field':
 					var f = error.a;
 					var err = error.b;
 					var isSimple = function () {
 						var _n1 = elm$core$String$uncons(f);
-						if (_n1.$ === 1) {
+						if (_n1.$ === 'Nothing') {
 							return false;
 						} else {
 							var _n2 = _n1.a;
@@ -4752,7 +4757,7 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 					error = $temp$error;
 					context = $temp$context;
 					continue errorToStringHelp;
-				case 1:
+				case 'Index':
 					var i = error.a;
 					var err = error.b;
 					var indexName = '[' + (elm$core$String$fromInt(i) + ']');
@@ -4761,7 +4766,7 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 					error = $temp$error;
 					context = $temp$context;
 					continue errorToStringHelp;
-				case 2:
+				case 'OneOf':
 					var errors = error.a;
 					if (!errors.b) {
 						return 'Ran into a Json.Decode.oneOf with no possibilities' + function () {
@@ -4837,7 +4842,7 @@ var author$project$Main$fromD3TickData = _Platform_incomingPort(
 				elm$json$Json$Decode$andThen,
 				function (alpha) {
 					return elm$json$Json$Decode$succeed(
-						{D: alpha, al: nodes});
+						{alpha: alpha, nodes: nodes});
 				},
 				A2(elm$json$Json$Decode$field, 'alpha', elm$json$Json$Decode$float));
 		},
@@ -4855,7 +4860,7 @@ var author$project$Main$fromD3TickData = _Platform_incomingPort(
 									elm$json$Json$Decode$andThen,
 									function (id) {
 										return elm$json$Json$Decode$succeed(
-											{be: id, R: x, S: y});
+											{id: id, x: x, y: y});
 									},
 									A2(elm$json$Json$Decode$field, 'id', elm$json$Json$Decode$int));
 							},
@@ -4863,14 +4868,14 @@ var author$project$Main$fromD3TickData = _Platform_incomingPort(
 					},
 					A2(elm$json$Json$Decode$field, 'y', elm$json$Json$Decode$float))))));
 var author$project$Main$Character = function (a) {
-	return {$: 0, a: a};
+	return {$: 'Character', a: a};
 };
 var author$project$Main$Control = function (a) {
-	return {$: 1, a: a};
+	return {$: 'Control', a: a};
 };
 var author$project$Main$toKey = function (string) {
 	var _n0 = elm$core$String$uncons(string);
-	if ((!_n0.$) && (_n0.a.b === '')) {
+	if ((_n0.$ === 'Just') && (_n0.a.b === '')) {
 		var _n1 = _n0.a;
 		var c = _n1.a;
 		return author$project$Main$Character(c);
@@ -4886,7 +4891,7 @@ var author$project$Main$keyDecoder = A2(
 	A2(elm$json$Json$Decode$field, 'key', elm$json$Json$Decode$string));
 var author$project$Main$MousePosition = F2(
 	function (x, y) {
-		return {R: x, S: y};
+		return {x: x, y: y};
 	});
 var elm$json$Json$Decode$map2 = _Json_map2;
 var author$project$Main$mousePosition = A3(
@@ -4894,18 +4899,18 @@ var author$project$Main$mousePosition = A3(
 	author$project$Main$MousePosition,
 	A2(elm$json$Json$Decode$field, 'clientX', elm$json$Json$Decode$int),
 	A2(elm$json$Json$Decode$field, 'clientY', elm$json$Json$Decode$int));
-var author$project$Main$AltKeyDown = {$: 1};
-var author$project$Main$ClickOnVertexTrash = {$: 44};
-var author$project$Main$DrawToolClicked = {$: 6};
-var author$project$Main$NoOp = {$: 0};
-var author$project$Main$SelectToolClicked = {$: 7};
-var author$project$Main$ShiftKeyDown = {$: 3};
-var author$project$Main$VaderClicked = {$: 23};
+var author$project$Main$AltKeyDown = {$: 'AltKeyDown'};
+var author$project$Main$ClickOnVertexTrash = {$: 'ClickOnVertexTrash'};
+var author$project$Main$DrawToolClicked = {$: 'DrawToolClicked'};
+var author$project$Main$NoOp = {$: 'NoOp'};
+var author$project$Main$SelectToolClicked = {$: 'SelectToolClicked'};
+var author$project$Main$ShiftKeyDown = {$: 'ShiftKeyDown'};
+var author$project$Main$VaderClicked = {$: 'VaderClicked'};
 var author$project$Main$toKeyDownMsg = function (key) {
 	_n0$6:
 	while (true) {
-		if (!key.$) {
-			switch (key.a) {
+		if (key.$ === 'Character') {
+			switch (key.a.valueOf()) {
 				case 's':
 					return author$project$Main$SelectToolClicked;
 				case 'd':
@@ -4930,12 +4935,12 @@ var author$project$Main$toKeyDownMsg = function (key) {
 	}
 	return author$project$Main$NoOp;
 };
-var author$project$Main$AltKeyUp = {$: 2};
-var author$project$Main$ShiftKeyUp = {$: 4};
+var author$project$Main$AltKeyUp = {$: 'AltKeyUp'};
+var author$project$Main$ShiftKeyUp = {$: 'ShiftKeyUp'};
 var author$project$Main$toKeyUpMsg = function (key) {
 	_n0$2:
 	while (true) {
-		if (key.$ === 1) {
+		if (key.$ === 'Control') {
 			switch (key.a) {
 				case 'Alt':
 					return author$project$Main$AltKeyUp;
@@ -4950,20 +4955,20 @@ var author$project$Main$toKeyUpMsg = function (key) {
 	}
 	return author$project$Main$NoOp;
 };
-var elm$browser$Browser$Events$Document = 0;
+var elm$browser$Browser$Events$Document = {$: 'Document'};
 var elm$browser$Browser$Events$MySub = F3(
 	function (a, b, c) {
-		return {$: 0, a: a, b: b, c: c};
+		return {$: 'MySub', a: a, b: b, c: c};
 	});
 var elm$browser$Browser$Events$State = F2(
 	function (subs, pids) {
-		return {aJ: pids, aW: subs};
+		return {pids: pids, subs: subs};
 	});
 var elm$core$Task$succeed = _Scheduler_succeed;
 var elm$browser$Browser$Events$init = elm$core$Task$succeed(
 	A2(elm$browser$Browser$Events$State, _List_Nil, elm$core$Dict$empty));
 var elm$browser$Browser$Events$nodeToKey = function (node) {
-	if (!node) {
+	if (node.$ === 'Document') {
 		return 'd_';
 	} else {
 		return 'w_';
@@ -4980,7 +4985,7 @@ var elm$browser$Browser$Events$addKey = function (sub) {
 };
 var elm$browser$Browser$Events$Event = F2(
 	function (key, event) {
-		return {aA: event, aE: key};
+		return {event: event, key: key};
 	});
 var elm$core$Platform$sendToSelf = _Platform_sendToSelf;
 var elm$core$Task$andThen = _Scheduler_andThen;
@@ -4995,23 +5000,27 @@ var elm$core$Task$map = F2(
 			taskA);
 	});
 var elm$browser$Browser$External = function (a) {
-	return {$: 1, a: a};
+	return {$: 'External', a: a};
 };
 var elm$browser$Browser$Internal = function (a) {
-	return {$: 0, a: a};
+	return {$: 'Internal', a: a};
 };
-var elm$browser$Browser$Dom$NotFound = elm$core$Basics$identity;
+var elm$browser$Browser$Dom$NotFound = function (a) {
+	return {$: 'NotFound', a: a};
+};
 var elm$core$Basics$never = function (_n0) {
 	never:
 	while (true) {
-		var nvr = _n0;
+		var nvr = _n0.a;
 		var $temp$_n0 = nvr;
 		_n0 = $temp$_n0;
 		continue never;
 	}
 };
-var elm$core$Task$Perform = elm$core$Basics$identity;
-var elm$core$Task$init = elm$core$Task$succeed(0);
+var elm$core$Task$Perform = function (a) {
+	return {$: 'Perform', a: a};
+};
+var elm$core$Task$init = elm$core$Task$succeed(_Utils_Tuple0);
 var elm$core$List$foldrHelper = F4(
 	function (fn, acc, ctr, ls) {
 		if (!ls.b) {
@@ -5106,7 +5115,7 @@ var elm$core$Task$sequence = function (tasks) {
 var elm$core$Platform$sendToApp = _Platform_sendToApp;
 var elm$core$Task$spawnCmd = F2(
 	function (router, _n0) {
-		var task = _n0;
+		var task = _n0.a;
 		return _Scheduler_spawn(
 			A2(
 				elm$core$Task$andThen,
@@ -5118,7 +5127,7 @@ var elm$core$Task$onEffects = F3(
 		return A2(
 			elm$core$Task$map,
 			function (_n0) {
-				return 0;
+				return _Utils_Tuple0;
 			},
 			elm$core$Task$sequence(
 				A2(
@@ -5128,27 +5137,29 @@ var elm$core$Task$onEffects = F3(
 	});
 var elm$core$Task$onSelfMsg = F3(
 	function (_n0, _n1, _n2) {
-		return elm$core$Task$succeed(0);
+		return elm$core$Task$succeed(_Utils_Tuple0);
 	});
 var elm$core$Task$cmdMap = F2(
 	function (tagger, _n0) {
-		var task = _n0;
-		return A2(elm$core$Task$map, tagger, task);
+		var task = _n0.a;
+		return elm$core$Task$Perform(
+			A2(elm$core$Task$map, tagger, task));
 	});
 _Platform_effectManagers['Task'] = _Platform_createManager(elm$core$Task$init, elm$core$Task$onEffects, elm$core$Task$onSelfMsg, elm$core$Task$cmdMap);
 var elm$core$Task$command = _Platform_leaf('Task');
 var elm$core$Task$perform = F2(
 	function (toMessage, task) {
 		return elm$core$Task$command(
-			A2(elm$core$Task$map, toMessage, task));
+			elm$core$Task$Perform(
+				A2(elm$core$Task$map, toMessage, task)));
 	});
 var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
-		case 0:
+		case 'Normal':
 			return 0;
-		case 1:
+		case 'MayStopPropagation':
 			return 1;
-		case 2:
+		case 'MayPreventDefault':
 			return 2;
 		default:
 			return 3;
@@ -5165,8 +5176,8 @@ var elm$core$String$dropLeft = F2(
 			string);
 	});
 var elm$core$String$startsWith = _String_startsWith;
-var elm$url$Url$Http = 0;
-var elm$url$Url$Https = 1;
+var elm$url$Url$Http = {$: 'Http'};
+var elm$url$Url$Https = {$: 'Https'};
 var elm$core$String$indexes = _String_indexes;
 var elm$core$String$isEmpty = function (string) {
 	return string === '';
@@ -5179,7 +5190,7 @@ var elm$core$String$contains = _String_contains;
 var elm$core$String$toInt = _String_toInt;
 var elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
-		return {aB: fragment, aD: host, aI: path, aK: port_, aN: protocol, aR: query};
+		return {fragment: fragment, host: host, path: path, port_: port_, protocol: protocol, query: query};
 	});
 var elm$url$Url$chompBeforePath = F5(
 	function (protocol, path, params, frag, str) {
@@ -5195,7 +5206,7 @@ var elm$url$Url$chompBeforePath = F5(
 					var i = _n0.a;
 					var _n1 = elm$core$String$toInt(
 						A2(elm$core$String$dropLeft, i + 1, str));
-					if (_n1.$ === 1) {
+					if (_n1.$ === 'Nothing') {
 						return elm$core$Maybe$Nothing;
 					} else {
 						var port_ = _n1;
@@ -5277,10 +5288,10 @@ var elm$url$Url$chompAfterProtocol = F2(
 var elm$url$Url$fromString = function (str) {
 	return A2(elm$core$String$startsWith, 'http://', str) ? A2(
 		elm$url$Url$chompAfterProtocol,
-		0,
+		elm$url$Url$Http,
 		A2(elm$core$String$dropLeft, 7, str)) : (A2(elm$core$String$startsWith, 'https://', str) ? A2(
 		elm$url$Url$chompAfterProtocol,
-		1,
+		elm$url$Url$Https,
 		A2(elm$core$String$dropLeft, 8, str)) : elm$core$Maybe$Nothing);
 };
 var elm$browser$Browser$Events$spawn = F3(
@@ -5288,7 +5299,7 @@ var elm$browser$Browser$Events$spawn = F3(
 		var node = _n0.a;
 		var name = _n0.b;
 		var actualNode = function () {
-			if (!node) {
+			if (node.$ === 'Document') {
 				return _Browser_doc;
 			} else {
 				return _Browser_window;
@@ -5310,22 +5321,22 @@ var elm$browser$Browser$Events$spawn = F3(
 						A2(elm$browser$Browser$Events$Event, key, event));
 				}));
 	});
-var elm$core$Dict$Black = 1;
+var elm$core$Dict$Black = {$: 'Black'};
 var elm$core$Dict$RBNode_elm_builtin = F5(
 	function (a, b, c, d, e) {
-		return {$: -1, a: a, b: b, c: c, d: d, e: e};
+		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
 	});
 var elm$core$Basics$compare = _Utils_compare;
-var elm$core$Dict$Red = 0;
+var elm$core$Dict$Red = {$: 'Red'};
 var elm$core$Dict$balance = F5(
 	function (color, key, value, left, right) {
-		if ((right.$ === -1) && (!right.a)) {
+		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
 			var _n1 = right.a;
 			var rK = right.b;
 			var rV = right.c;
 			var rLeft = right.d;
 			var rRight = right.e;
-			if ((left.$ === -1) && (!left.a)) {
+			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
 				var _n3 = left.a;
 				var lK = left.b;
 				var lV = left.c;
@@ -5333,22 +5344,22 @@ var elm$core$Dict$balance = F5(
 				var lRight = left.e;
 				return A5(
 					elm$core$Dict$RBNode_elm_builtin,
-					0,
+					elm$core$Dict$Red,
 					key,
 					value,
-					A5(elm$core$Dict$RBNode_elm_builtin, 1, lK, lV, lLeft, lRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, 1, rK, rV, rLeft, rRight));
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, lK, lV, lLeft, lRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, rK, rV, rLeft, rRight));
 			} else {
 				return A5(
 					elm$core$Dict$RBNode_elm_builtin,
 					color,
 					rK,
 					rV,
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, key, value, left, rLeft),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, left, rLeft),
 					rRight);
 			}
 		} else {
-			if ((((left.$ === -1) && (!left.a)) && (left.d.$ === -1)) && (!left.d.a)) {
+			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
 				var _n5 = left.a;
 				var lK = left.b;
 				var lV = left.c;
@@ -5361,11 +5372,11 @@ var elm$core$Dict$balance = F5(
 				var lRight = left.e;
 				return A5(
 					elm$core$Dict$RBNode_elm_builtin,
-					0,
+					elm$core$Dict$Red,
 					lK,
 					lV,
-					A5(elm$core$Dict$RBNode_elm_builtin, 1, llK, llV, llLeft, llRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, 1, key, value, lRight, right));
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, llK, llV, llLeft, llRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, key, value, lRight, right));
 			} else {
 				return A5(elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
 			}
@@ -5373,8 +5384,8 @@ var elm$core$Dict$balance = F5(
 	});
 var elm$core$Dict$insertHelp = F3(
 	function (key, value, dict) {
-		if (dict.$ === -2) {
-			return A5(elm$core$Dict$RBNode_elm_builtin, 0, key, value, elm$core$Dict$RBEmpty_elm_builtin, elm$core$Dict$RBEmpty_elm_builtin);
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, elm$core$Dict$RBEmpty_elm_builtin, elm$core$Dict$RBEmpty_elm_builtin);
 		} else {
 			var nColor = dict.a;
 			var nKey = dict.b;
@@ -5382,8 +5393,8 @@ var elm$core$Dict$insertHelp = F3(
 			var nLeft = dict.d;
 			var nRight = dict.e;
 			var _n1 = A2(elm$core$Basics$compare, key, nKey);
-			switch (_n1) {
-				case 0:
+			switch (_n1.$) {
+				case 'LT':
 					return A5(
 						elm$core$Dict$balance,
 						nColor,
@@ -5391,7 +5402,7 @@ var elm$core$Dict$insertHelp = F3(
 						nValue,
 						A3(elm$core$Dict$insertHelp, key, value, nLeft),
 						nRight);
-				case 1:
+				case 'EQ':
 					return A5(elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
 				default:
 					return A5(
@@ -5407,13 +5418,13 @@ var elm$core$Dict$insertHelp = F3(
 var elm$core$Dict$insert = F3(
 	function (key, value, dict) {
 		var _n0 = A3(elm$core$Dict$insertHelp, key, value, dict);
-		if ((_n0.$ === -1) && (!_n0.a)) {
+		if ((_n0.$ === 'RBNode_elm_builtin') && (_n0.a.$ === 'Red')) {
 			var _n1 = _n0.a;
 			var k = _n0.b;
 			var v = _n0.c;
 			var l = _n0.d;
 			var r = _n0.e;
-			return A5(elm$core$Dict$RBNode_elm_builtin, 1, k, v, l, r);
+			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, k, v, l, r);
 		} else {
 			var x = _n0;
 			return x;
@@ -5435,7 +5446,7 @@ var elm$core$Dict$foldl = F3(
 	function (func, acc, dict) {
 		foldl:
 		while (true) {
-			if (dict.$ === -2) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
 				return acc;
 			} else {
 				var key = dict.b;
@@ -5563,7 +5574,7 @@ var elm$browser$Browser$Events$onEffects = F3(
 			stepLeft,
 			stepBoth,
 			stepRight,
-			state.aJ,
+			state.pids,
 			elm$core$Dict$fromList(newSubs),
 			_Utils_Tuple3(_List_Nil, elm$core$Dict$empty, _List_Nil));
 		var deadPids = _n0.a;
@@ -5592,7 +5603,7 @@ var elm$browser$Browser$Events$onEffects = F3(
 var elm$core$List$maybeCons = F3(
 	function (f, mx, xs) {
 		var _n0 = f(mx);
-		if (!_n0.$) {
+		if (_n0.$ === 'Just') {
 			var x = _n0.a;
 			return A2(elm$core$List$cons, x, xs);
 		} else {
@@ -5609,8 +5620,8 @@ var elm$core$List$filterMap = F2(
 	});
 var elm$browser$Browser$Events$onSelfMsg = F3(
 	function (router, _n0, state) {
-		var key = _n0.aE;
-		var event = _n0.aA;
+		var key = _n0.key;
+		var event = _n0.event;
 		var toMessage = function (_n2) {
 			var subKey = _n2.a;
 			var _n3 = _n2.b;
@@ -5619,7 +5630,7 @@ var elm$browser$Browser$Events$onSelfMsg = F3(
 			var decoder = _n3.c;
 			return _Utils_eq(subKey, key) ? A2(_Browser_decodeEvent, decoder, event) : elm$core$Maybe$Nothing;
 		};
-		var messages = A2(elm$core$List$filterMap, toMessage, state.aW);
+		var messages = A2(elm$core$List$filterMap, toMessage, state.subs);
 		return A2(
 			elm$core$Task$andThen,
 			function (_n1) {
@@ -5649,15 +5660,15 @@ var elm$browser$Browser$Events$on = F3(
 		return elm$browser$Browser$Events$subscription(
 			A3(elm$browser$Browser$Events$MySub, node, name, decoder));
 	});
-var elm$browser$Browser$Events$onKeyDown = A2(elm$browser$Browser$Events$on, 0, 'keydown');
-var elm$browser$Browser$Events$onKeyUp = A2(elm$browser$Browser$Events$on, 0, 'keyup');
-var elm$browser$Browser$Events$onMouseMove = A2(elm$browser$Browser$Events$on, 0, 'mousemove');
-var elm$browser$Browser$Events$onMouseUp = A2(elm$browser$Browser$Events$on, 0, 'mouseup');
-var elm$browser$Browser$Events$Window = 1;
+var elm$browser$Browser$Events$onKeyDown = A2(elm$browser$Browser$Events$on, elm$browser$Browser$Events$Document, 'keydown');
+var elm$browser$Browser$Events$onKeyUp = A2(elm$browser$Browser$Events$on, elm$browser$Browser$Events$Document, 'keyup');
+var elm$browser$Browser$Events$onMouseMove = A2(elm$browser$Browser$Events$on, elm$browser$Browser$Events$Document, 'mousemove');
+var elm$browser$Browser$Events$onMouseUp = A2(elm$browser$Browser$Events$on, elm$browser$Browser$Events$Document, 'mouseup');
+var elm$browser$Browser$Events$Window = {$: 'Window'};
 var elm$browser$Browser$Events$onResize = function (func) {
 	return A3(
 		elm$browser$Browser$Events$on,
-		1,
+		elm$browser$Browser$Events$Window,
 		'resize',
 		A2(
 			elm$json$Json$Decode$field,
@@ -5677,7 +5688,7 @@ var author$project$Main$subscriptions = function (_n0) {
 				F2(
 					function (w, h) {
 						return author$project$Main$UpdateWindowSize(
-							{aC: h, a_: w});
+							{height: h, width: w});
 					})),
 				elm$browser$Browser$Events$onMouseMove(
 				A2(elm$json$Json$Decode$map, author$project$Main$MouseMove, author$project$Main$mousePosition)),
@@ -5707,7 +5718,7 @@ var elm$core$List$maximum = function (list) {
 };
 var elm$core$Maybe$withDefault = F2(
 	function (_default, maybe) {
-		if (!maybe.$) {
+		if (maybe.$ === 'Just') {
 			var value = maybe.a;
 			return value;
 		} else {
@@ -5726,7 +5737,7 @@ var author$project$Graph$makeNewId = A2(
 			elm$core$Basics$add(1))));
 var elm$core$Dict$map = F2(
 	function (func, dict) {
-		if (dict.$ === -2) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
 			return elm$core$Dict$RBEmpty_elm_builtin;
 		} else {
 			var color = dict.a;
@@ -5745,14 +5756,15 @@ var elm$core$Dict$map = F2(
 	});
 var elm$core$Set$insert = F2(
 	function (key, _n0) {
-		var dict = _n0;
-		return A3(elm$core$Dict$insert, key, 0, dict);
+		var dict = _n0.a;
+		return elm$core$Set$Set_elm_builtin(
+			A3(elm$core$Dict$insert, key, _Utils_Tuple0, dict));
 	});
 var elm$core$Dict$get = F2(
 	function (targetKey, dict) {
 		get:
 		while (true) {
-			if (dict.$ === -2) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
 				return elm$core$Maybe$Nothing;
 			} else {
 				var key = dict.b;
@@ -5760,14 +5772,14 @@ var elm$core$Dict$get = F2(
 				var left = dict.d;
 				var right = dict.e;
 				var _n1 = A2(elm$core$Basics$compare, targetKey, key);
-				switch (_n1) {
-					case 0:
+				switch (_n1.$) {
+					case 'LT':
 						var $temp$targetKey = targetKey,
 							$temp$dict = left;
 						targetKey = $temp$targetKey;
 						dict = $temp$dict;
 						continue get;
-					case 1:
+					case 'EQ':
 						return elm$core$Maybe$Just(value);
 					default:
 						var $temp$targetKey = targetKey,
@@ -5782,7 +5794,7 @@ var elm$core$Dict$get = F2(
 var elm$core$Dict$member = F2(
 	function (key, dict) {
 		var _n0 = A2(elm$core$Dict$get, key, dict);
-		if (!_n0.$) {
+		if (_n0.$ === 'Just') {
 			return true;
 		} else {
 			return false;
@@ -5790,42 +5802,44 @@ var elm$core$Dict$member = F2(
 	});
 var elm$core$Set$member = F2(
 	function (key, _n0) {
-		var dict = _n0;
+		var dict = _n0.a;
 		return A2(elm$core$Dict$member, key, dict);
 	});
 var author$project$Graph$addBagAndGetNewBagId = F3(
 	function (vertexSet, bag, _n0) {
-		var p = _n0;
-		var idOfTheNewBag = author$project$Graph$makeNewId(p.s);
+		var p = _n0.a;
+		var idOfTheNewBag = author$project$Graph$makeNewId(p.bags);
 		var updateInBags = F2(
 			function (vertexId, v) {
 				return _Utils_update(
 					v,
 					{
-						q: A2(elm$core$Set$member, vertexId, vertexSet) ? A2(elm$core$Set$insert, idOfTheNewBag, v.q) : v.q
+						inBags: A2(elm$core$Set$member, vertexId, vertexSet) ? A2(elm$core$Set$insert, idOfTheNewBag, v.inBags) : v.inBags
 					});
 			});
 		return _Utils_Tuple2(
-			_Utils_update(
-				p,
-				{
-					s: A3(elm$core$Dict$insert, idOfTheNewBag, bag, p.s),
-					g: A2(elm$core$Dict$map, updateInBags, p.g)
-				}),
+			author$project$Graph$Graph(
+				_Utils_update(
+					p,
+					{
+						bags: A3(elm$core$Dict$insert, idOfTheNewBag, bag, p.bags),
+						vertices: A2(elm$core$Dict$map, updateInBags, p.vertices)
+					})),
 			idOfTheNewBag);
 	});
 var author$project$Graph$getVertices = function (_n0) {
-	var vertices = _n0.g;
+	var vertices = _n0.a.vertices;
 	return vertices;
 };
 var author$project$Graph$mapEdges = F2(
 	function (up, _n0) {
-		var p = _n0;
-		return _Utils_update(
-			p,
-			{
-				n: up(p.n)
-			});
+		var p = _n0.a;
+		return author$project$Graph$Graph(
+			_Utils_update(
+				p,
+				{
+					edges: up(p.edges)
+				}));
 	});
 var author$project$Graph$addEdgeBetweenExistingVertices = F3(
 	function (_n0, e, graph) {
@@ -5849,37 +5863,38 @@ var author$project$Graph$addEdgeBetweenExistingVertices = F3(
 	});
 var author$project$Graph$mapVertices = F2(
 	function (up, _n0) {
-		var p = _n0;
-		return _Utils_update(
-			p,
-			{
-				g: up(p.g)
-			});
+		var p = _n0.a;
+		return author$project$Graph$Graph(
+			_Utils_update(
+				p,
+				{
+					vertices: up(p.vertices)
+				}));
 	});
 var author$project$Graph$newVertexId = function (_n0) {
-	var vertices = _n0.g;
+	var vertices = _n0.a.vertices;
 	return author$project$Graph$makeNewId(vertices);
 };
 var author$project$Graph$addNeighbour = F5(
 	function (_n0, sourceId, _n1, e, graph) {
-		var x = _n0.R;
-		var y = _n0.S;
+		var x = _n0.x;
+		var y = _n0.y;
 		var v = _n1.a;
 		var maybeBagId = _n1.b;
 		var targetId = author$project$Graph$newVertexId(graph);
 		var newVertex = _Utils_update(
 			v,
 			{
-				q: function () {
-					if (!maybeBagId.$) {
+				inBags: function () {
+					if (maybeBagId.$ === 'Just') {
 						var bagId = maybeBagId.a;
 						return elm$core$Set$insert(bagId);
 					} else {
 						return elm$core$Basics$identity;
 					}
-				}()(v.q),
-				R: x,
-				S: y
+				}()(v.inBags),
+				x: x,
+				y: y
 			});
 		return A2(
 			author$project$Graph$mapEdges,
@@ -5894,23 +5909,23 @@ var author$project$Graph$addNeighbour = F5(
 	});
 var author$project$Graph$addVertexAndGetTheNewVertexId = F3(
 	function (_n0, _n1, graph) {
-		var x = _n0.R;
-		var y = _n0.S;
+		var x = _n0.x;
+		var y = _n0.y;
 		var v = _n1.a;
 		var maybeBagId = _n1.b;
 		var newVertex = _Utils_update(
 			v,
 			{
-				q: function () {
-					if (!maybeBagId.$) {
+				inBags: function () {
+					if (maybeBagId.$ === 'Just') {
 						var bagId = maybeBagId.a;
 						return elm$core$Set$insert(bagId);
 					} else {
 						return elm$core$Basics$identity;
 					}
-				}()(v.q),
-				R: x,
-				S: y
+				}()(v.inBags),
+				x: x,
+				y: y
 			});
 		var id = author$project$Graph$newVertexId(graph);
 		return _Utils_Tuple2(
@@ -5922,13 +5937,13 @@ var author$project$Graph$addVertexAndGetTheNewVertexId = F3(
 	});
 var author$project$Graph$getEdge = F2(
 	function (edgeId, _n0) {
-		var edges = _n0.n;
+		var edges = _n0.a.edges;
 		return A2(elm$core$Dict$get, edgeId, edges);
 	});
 var elm$core$Dict$getMin = function (dict) {
 	getMin:
 	while (true) {
-		if ((dict.$ === -1) && (dict.d.$ === -1)) {
+		if ((dict.$ === 'RBNode_elm_builtin') && (dict.d.$ === 'RBNode_elm_builtin')) {
 			var left = dict.d;
 			var $temp$dict = left;
 			dict = $temp$dict;
@@ -5939,8 +5954,8 @@ var elm$core$Dict$getMin = function (dict) {
 	}
 };
 var elm$core$Dict$moveRedLeft = function (dict) {
-	if (((dict.$ === -1) && (dict.d.$ === -1)) && (dict.e.$ === -1)) {
-		if ((dict.e.d.$ === -1) && (!dict.e.d.a)) {
+	if (((dict.$ === 'RBNode_elm_builtin') && (dict.d.$ === 'RBNode_elm_builtin')) && (dict.e.$ === 'RBNode_elm_builtin')) {
+		if ((dict.e.d.$ === 'RBNode_elm_builtin') && (dict.e.d.a.$ === 'Red')) {
 			var clr = dict.a;
 			var k = dict.b;
 			var v = dict.c;
@@ -5963,17 +5978,17 @@ var elm$core$Dict$moveRedLeft = function (dict) {
 			var rRight = _n2.e;
 			return A5(
 				elm$core$Dict$RBNode_elm_builtin,
-				0,
+				elm$core$Dict$Red,
 				rlK,
 				rlV,
 				A5(
 					elm$core$Dict$RBNode_elm_builtin,
-					1,
+					elm$core$Dict$Black,
 					k,
 					v,
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, lK, lV, lLeft, lRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, lK, lV, lLeft, lRight),
 					rlL),
-				A5(elm$core$Dict$RBNode_elm_builtin, 1, rK, rV, rlR, rRight));
+				A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, rK, rV, rlR, rRight));
 		} else {
 			var clr = dict.a;
 			var k = dict.b;
@@ -5990,22 +6005,22 @@ var elm$core$Dict$moveRedLeft = function (dict) {
 			var rV = _n5.c;
 			var rLeft = _n5.d;
 			var rRight = _n5.e;
-			if (clr === 1) {
+			if (clr.$ === 'Black') {
 				return A5(
 					elm$core$Dict$RBNode_elm_builtin,
-					1,
+					elm$core$Dict$Black,
 					k,
 					v,
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, lK, lV, lLeft, lRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, rK, rV, rLeft, rRight));
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, lK, lV, lLeft, lRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, rK, rV, rLeft, rRight));
 			} else {
 				return A5(
 					elm$core$Dict$RBNode_elm_builtin,
-					1,
+					elm$core$Dict$Black,
 					k,
 					v,
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, lK, lV, lLeft, lRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, rK, rV, rLeft, rRight));
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, lK, lV, lLeft, lRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, rK, rV, rLeft, rRight));
 			}
 		}
 	} else {
@@ -6013,8 +6028,8 @@ var elm$core$Dict$moveRedLeft = function (dict) {
 	}
 };
 var elm$core$Dict$moveRedRight = function (dict) {
-	if (((dict.$ === -1) && (dict.d.$ === -1)) && (dict.e.$ === -1)) {
-		if ((dict.d.d.$ === -1) && (!dict.d.d.a)) {
+	if (((dict.$ === 'RBNode_elm_builtin') && (dict.d.$ === 'RBNode_elm_builtin')) && (dict.e.$ === 'RBNode_elm_builtin')) {
+		if ((dict.d.d.$ === 'RBNode_elm_builtin') && (dict.d.d.a.$ === 'Red')) {
 			var clr = dict.a;
 			var k = dict.b;
 			var v = dict.c;
@@ -6037,17 +6052,17 @@ var elm$core$Dict$moveRedRight = function (dict) {
 			var rRight = _n4.e;
 			return A5(
 				elm$core$Dict$RBNode_elm_builtin,
-				0,
+				elm$core$Dict$Red,
 				lK,
 				lV,
-				A5(elm$core$Dict$RBNode_elm_builtin, 1, llK, llV, llLeft, llRight),
+				A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, llK, llV, llLeft, llRight),
 				A5(
 					elm$core$Dict$RBNode_elm_builtin,
-					1,
+					elm$core$Dict$Black,
 					k,
 					v,
 					lRight,
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, rK, rV, rLeft, rRight)));
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, rK, rV, rLeft, rRight)));
 		} else {
 			var clr = dict.a;
 			var k = dict.b;
@@ -6064,22 +6079,22 @@ var elm$core$Dict$moveRedRight = function (dict) {
 			var rV = _n6.c;
 			var rLeft = _n6.d;
 			var rRight = _n6.e;
-			if (clr === 1) {
+			if (clr.$ === 'Black') {
 				return A5(
 					elm$core$Dict$RBNode_elm_builtin,
-					1,
+					elm$core$Dict$Black,
 					k,
 					v,
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, lK, lV, lLeft, lRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, rK, rV, rLeft, rRight));
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, lK, lV, lLeft, lRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, rK, rV, rLeft, rRight));
 			} else {
 				return A5(
 					elm$core$Dict$RBNode_elm_builtin,
-					1,
+					elm$core$Dict$Black,
 					k,
 					v,
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, lK, lV, lLeft, lRight),
-					A5(elm$core$Dict$RBNode_elm_builtin, 0, rK, rV, rLeft, rRight));
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, lK, lV, lLeft, lRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, rK, rV, rLeft, rRight));
 			}
 		}
 	} else {
@@ -6088,7 +6103,7 @@ var elm$core$Dict$moveRedRight = function (dict) {
 };
 var elm$core$Dict$removeHelpPrepEQGT = F7(
 	function (targetKey, dict, color, key, value, left, right) {
-		if ((left.$ === -1) && (!left.a)) {
+		if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
 			var _n1 = left.a;
 			var lK = left.b;
 			var lV = left.c;
@@ -6100,13 +6115,13 @@ var elm$core$Dict$removeHelpPrepEQGT = F7(
 				lK,
 				lV,
 				lLeft,
-				A5(elm$core$Dict$RBNode_elm_builtin, 0, key, value, lRight, right));
+				A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, lRight, right));
 		} else {
 			_n2$2:
 			while (true) {
-				if ((right.$ === -1) && (right.a === 1)) {
-					if (right.d.$ === -1) {
-						if (right.d.a === 1) {
+				if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Black')) {
+					if (right.d.$ === 'RBNode_elm_builtin') {
+						if (right.d.a.$ === 'Black') {
 							var _n3 = right.a;
 							var _n4 = right.d;
 							var _n5 = _n4.a;
@@ -6127,7 +6142,7 @@ var elm$core$Dict$removeHelpPrepEQGT = F7(
 		}
 	});
 var elm$core$Dict$removeMin = function (dict) {
-	if ((dict.$ === -1) && (dict.d.$ === -1)) {
+	if ((dict.$ === 'RBNode_elm_builtin') && (dict.d.$ === 'RBNode_elm_builtin')) {
 		var color = dict.a;
 		var key = dict.b;
 		var value = dict.c;
@@ -6135,8 +6150,8 @@ var elm$core$Dict$removeMin = function (dict) {
 		var lColor = left.a;
 		var lLeft = left.d;
 		var right = dict.e;
-		if (lColor === 1) {
-			if ((lLeft.$ === -1) && (!lLeft.a)) {
+		if (lColor.$ === 'Black') {
+			if ((lLeft.$ === 'RBNode_elm_builtin') && (lLeft.a.$ === 'Red')) {
 				var _n3 = lLeft.a;
 				return A5(
 					elm$core$Dict$RBNode_elm_builtin,
@@ -6147,7 +6162,7 @@ var elm$core$Dict$removeMin = function (dict) {
 					right);
 			} else {
 				var _n4 = elm$core$Dict$moveRedLeft(dict);
-				if (_n4.$ === -1) {
+				if (_n4.$ === 'RBNode_elm_builtin') {
 					var nColor = _n4.a;
 					var nKey = _n4.b;
 					var nValue = _n4.c;
@@ -6179,7 +6194,7 @@ var elm$core$Dict$removeMin = function (dict) {
 };
 var elm$core$Dict$removeHelp = F2(
 	function (targetKey, dict) {
-		if (dict.$ === -2) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
 			return elm$core$Dict$RBEmpty_elm_builtin;
 		} else {
 			var color = dict.a;
@@ -6188,10 +6203,10 @@ var elm$core$Dict$removeHelp = F2(
 			var left = dict.d;
 			var right = dict.e;
 			if (_Utils_cmp(targetKey, key) < 0) {
-				if ((left.$ === -1) && (left.a === 1)) {
+				if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Black')) {
 					var _n4 = left.a;
 					var lLeft = left.d;
-					if ((lLeft.$ === -1) && (!lLeft.a)) {
+					if ((lLeft.$ === 'RBNode_elm_builtin') && (lLeft.a.$ === 'Red')) {
 						var _n6 = lLeft.a;
 						return A5(
 							elm$core$Dict$RBNode_elm_builtin,
@@ -6202,7 +6217,7 @@ var elm$core$Dict$removeHelp = F2(
 							right);
 					} else {
 						var _n7 = elm$core$Dict$moveRedLeft(dict);
-						if (_n7.$ === -1) {
+						if (_n7.$ === 'RBNode_elm_builtin') {
 							var nColor = _n7.a;
 							var nKey = _n7.b;
 							var nValue = _n7.c;
@@ -6238,7 +6253,7 @@ var elm$core$Dict$removeHelp = F2(
 	});
 var elm$core$Dict$removeHelpEQGT = F2(
 	function (targetKey, dict) {
-		if (dict.$ === -1) {
+		if (dict.$ === 'RBNode_elm_builtin') {
 			var color = dict.a;
 			var key = dict.b;
 			var value = dict.c;
@@ -6246,7 +6261,7 @@ var elm$core$Dict$removeHelpEQGT = F2(
 			var right = dict.e;
 			if (_Utils_eq(targetKey, key)) {
 				var _n1 = elm$core$Dict$getMin(right);
-				if (_n1.$ === -1) {
+				if (_n1.$ === 'RBNode_elm_builtin') {
 					var minKey = _n1.b;
 					var minValue = _n1.c;
 					return A5(
@@ -6275,13 +6290,13 @@ var elm$core$Dict$removeHelpEQGT = F2(
 var elm$core$Dict$remove = F2(
 	function (key, dict) {
 		var _n0 = A2(elm$core$Dict$removeHelp, key, dict);
-		if ((_n0.$ === -1) && (!_n0.a)) {
+		if ((_n0.$ === 'RBNode_elm_builtin') && (_n0.a.$ === 'Red')) {
 			var _n1 = _n0.a;
 			var k = _n0.b;
 			var v = _n0.c;
 			var l = _n0.d;
 			var r = _n0.e;
-			return A5(elm$core$Dict$RBNode_elm_builtin, 1, k, v, l, r);
+			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, k, v, l, r);
 		} else {
 			var x = _n0;
 			return x;
@@ -6289,7 +6304,7 @@ var elm$core$Dict$remove = F2(
 	});
 var elm$core$Set$foldr = F3(
 	function (func, initialState, _n0) {
-		var dict = _n0;
+		var dict = _n0.a;
 		return A3(
 			elm$core$Dict$foldr,
 			F3(
@@ -6307,10 +6322,11 @@ var author$project$Graph$removeEdges = function (l) {
 };
 var elm$core$Dict$singleton = F2(
 	function (key, value) {
-		return A5(elm$core$Dict$RBNode_elm_builtin, 1, key, value, elm$core$Dict$RBEmpty_elm_builtin, elm$core$Dict$RBEmpty_elm_builtin);
+		return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, key, value, elm$core$Dict$RBEmpty_elm_builtin, elm$core$Dict$RBEmpty_elm_builtin);
 	});
 var elm$core$Set$singleton = function (key) {
-	return A2(elm$core$Dict$singleton, key, 0);
+	return elm$core$Set$Set_elm_builtin(
+		A2(elm$core$Dict$singleton, key, _Utils_Tuple0));
 };
 var author$project$Graph$devideEdge = F4(
 	function (pos, _n0, _n1, graph) {
@@ -6330,7 +6346,7 @@ var author$project$Graph$devideEdge = F4(
 				author$project$Graph$getEdge,
 				_Utils_Tuple2(s, t),
 				graph);
-			if (!_n3.$) {
+			if (_n3.$ === 'Just') {
 				var e = _n3.a;
 				return A3(
 					author$project$Graph$addEdgeBetweenExistingVertices,
@@ -6384,7 +6400,7 @@ var elm$core$Dict$filter = F2(
 	});
 var author$project$Graph$incomingEdges = F2(
 	function (vertexId, _n0) {
-		var edges = _n0.n;
+		var edges = _n0.a.edges;
 		return A2(
 			elm$core$Dict$filter,
 			F2(
@@ -6397,7 +6413,7 @@ var author$project$Graph$incomingEdges = F2(
 	});
 var author$project$Graph$outgoingEdges = F2(
 	function (vertexId, _n0) {
-		var edges = _n0.n;
+		var edges = _n0.a.edges;
 		return A2(
 			elm$core$Dict$filter,
 			F2(
@@ -6435,19 +6451,19 @@ var author$project$Graph$contractEdge = F3(
 	function (_n0, v, graph) {
 		var s = _n0.a;
 		var t = _n0.b;
-		var vertices = graph.g;
+		var vertices = graph.a.vertices;
 		var ot = A2(author$project$Graph$outgoingEdges, t, graph);
 		var os = A2(author$project$Graph$outgoingEdges, s, graph);
 		var newVertex = function () {
 			var _n17 = _Utils_Tuple2(
 				A2(elm$core$Dict$get, s, vertices),
 				A2(elm$core$Dict$get, t, vertices));
-			if ((!_n17.a.$) && (!_n17.b.$)) {
+			if ((_n17.a.$ === 'Just') && (_n17.b.$ === 'Just')) {
 				var w = _n17.a.a;
 				var z = _n17.b.a;
 				return _Utils_update(
 					v,
-					{R: (w.R + z.R) / 2, S: (w.S + z.S) / 2});
+					{x: (w.x + z.x) / 2, y: (w.y + z.y) / 2});
 			} else {
 				return v;
 			}
@@ -6581,7 +6597,7 @@ var author$project$Graph$disjointUnion = F2(
 	function (_n0, graph) {
 		var verts = _n0.a;
 		var edgs = _n0.b;
-		var p = graph;
+		var p = graph.a;
 		var n = author$project$Graph$newVertexId(graph);
 		var dictForTheAddedVertices = elm$core$Dict$fromList(
 			A2(
@@ -6603,7 +6619,7 @@ var author$project$Graph$disjointUnion = F2(
 					var v = _n7.b;
 					return A2(elm$core$Dict$insert, newId, v);
 				}),
-			p.g,
+			p.vertices,
 			dictForTheAddedVertices);
 		var addedEdges = elm$core$Dict$fromList(
 			A2(
@@ -6616,7 +6632,7 @@ var author$project$Graph$disjointUnion = F2(
 					var _n3 = _Utils_Tuple2(
 						A2(elm$core$Dict$get, oldSourceId, dictForTheAddedVertices),
 						A2(elm$core$Dict$get, oldTargetId, dictForTheAddedVertices));
-					if ((!_n3.a.$) && (!_n3.b.$)) {
+					if ((_n3.a.$ === 'Just') && (_n3.b.$ === 'Just')) {
 						var _n4 = _n3.a.a;
 						var newSourceId = _n4.a;
 						var _n5 = _n3.b.a;
@@ -6631,11 +6647,12 @@ var author$project$Graph$disjointUnion = F2(
 					}
 				},
 				elm$core$Dict$toList(edgs)));
-		var newEdges = A2(elm$core$Dict$union, addedEdges, p.n);
+		var newEdges = A2(elm$core$Dict$union, addedEdges, p.edges);
 		return _Utils_Tuple3(
-			_Utils_update(
-				p,
-				{n: newEdges, g: newVertices}),
+			author$project$Graph$Graph(
+				_Utils_update(
+					p,
+					{edges: newEdges, vertices: newVertices})),
 			elm$core$Set$fromList(
 				A2(
 					elm$core$List$map,
@@ -6645,7 +6662,7 @@ var author$project$Graph$disjointUnion = F2(
 				elm$core$Dict$keys(addedEdges)));
 	});
 var author$project$Graph$getEdges = function (_n0) {
-	var edges = _n0.n;
+	var edges = _n0.a.edges;
 	return edges;
 };
 var author$project$Graph$duplicateSubgraphAndGetTheDuplicate = F3(
@@ -6681,15 +6698,15 @@ var elm$json$Json$Encode$object = function (pairs) {
 					var v = _n0.b;
 					return A3(_Json_addField, k, v, obj);
 				}),
-			_Json_emptyObject(0),
+			_Json_emptyObject(_Utils_Tuple0),
 			pairs));
 };
 var author$project$Graph$encodeEdgeforD3 = F2(
 	function (_n0, _n1) {
 		var source = _n0.a;
 		var target = _n0.b;
-		var distance = _n1.ay;
-		var strength = _n1.ac;
+		var distance = _n1.distance;
+		var strength = _n1.strength;
 		return elm$json$Json$Encode$object(
 			_List_fromArray(
 				[
@@ -6713,7 +6730,7 @@ var elm$json$Json$Encode$list = F2(
 			A3(
 				elm$core$List$foldl,
 				_Json_addEntry(func),
-				_Json_emptyArray(0),
+				_Json_emptyArray(_Utils_Tuple0),
 				entries));
 	});
 var author$project$Graph$encodeEdgesForD3 = function (edges) {
@@ -6724,10 +6741,10 @@ var author$project$Graph$encodeEdgesForD3 = function (edges) {
 			A2(elm$core$Dict$map, author$project$Graph$encodeEdgeforD3, edges)));
 };
 var author$project$Graph$encodeManyBody = function (_n0) {
-	var strength = _n0.ac;
-	var theta = _n0.as;
-	var distanceMin = _n0.aj;
-	var distanceMax = _n0.ai;
+	var strength = _n0.strength;
+	var theta = _n0.theta;
+	var distanceMin = _n0.distanceMin;
+	var distanceMax = _n0.distanceMax;
 	return elm$json$Json$Encode$object(
 		_List_fromArray(
 			[
@@ -6746,10 +6763,10 @@ var author$project$Graph$encodeManyBody = function (_n0) {
 			]));
 };
 var author$project$Graph$encodePullData = function (_n0) {
-	var pullX = _n0.ao;
-	var pullY = _n0.ap;
-	var pullXStrength = _n0.aP;
-	var pullYStrength = _n0.aQ;
+	var pullX = _n0.pullX;
+	var pullY = _n0.pullY;
+	var pullXStrength = _n0.pullXStrength;
+	var pullYStrength = _n0.pullYStrength;
 	return elm$json$Json$Encode$object(
 		_List_fromArray(
 			[
@@ -6775,7 +6792,7 @@ var author$project$Graph$encodePullCenters = F2(
 			A2(
 				elm$core$List$filter,
 				function ($) {
-					return $.aO;
+					return $.pullIsActive;
 				},
 				A2(
 					elm$core$List$filterMap,
@@ -6788,10 +6805,10 @@ var elm$json$Json$Encode$null = _Json_encodeNull;
 var author$project$Graph$encodeVertexForD3 = F2(
 	function (bags, _n0) {
 		var vertexId = _n0.a;
-		var x = _n0.b.R;
-		var y = _n0.b.S;
-		var fixed = _n0.b.V;
-		var inBags = _n0.b.q;
+		var x = _n0.b.x;
+		var y = _n0.b.y;
+		var fixed = _n0.b.fixed;
+		var inBags = _n0.b.inBags;
 		return elm$json$Json$Encode$object(
 			_List_fromArray(
 				[
@@ -6819,16 +6836,16 @@ var author$project$Graph$encodeVertexForD3 = F2(
 				]));
 	});
 var author$project$Graph$encodeVerticesForD3 = function (_n0) {
-	var vertices = _n0.g;
-	var bags = _n0.s;
+	var vertices = _n0.a.vertices;
+	var bags = _n0.a.bags;
 	return A2(
 		elm$json$Json$Encode$list,
 		author$project$Graph$encodeVertexForD3(bags),
 		elm$core$Dict$toList(vertices));
 };
 var author$project$Graph$encodeForD3 = function (graph) {
-	var edges = graph.n;
-	var manyBody = graph.Z;
+	var edges = graph.a.edges;
+	var manyBody = graph.a.manyBody;
 	return elm$json$Json$Encode$object(
 		_List_fromArray(
 			[
@@ -6845,11 +6862,11 @@ var author$project$Graph$encodeForD3 = function (graph) {
 };
 var author$project$Graph$getBag = F2(
 	function (bagId, _n0) {
-		var bags = _n0.s;
+		var bags = _n0.a.bags;
 		return A2(elm$core$Dict$get, bagId, bags);
 	});
 var author$project$Graph$getBags = function (_n0) {
-	var bags = _n0.s;
+	var bags = _n0.a.bags;
 	return bags;
 };
 var elm$core$List$sum = function (numbers) {
@@ -6857,7 +6874,7 @@ var elm$core$List$sum = function (numbers) {
 };
 var author$project$Graph$getCenter = F2(
 	function (l, _n0) {
-		var vertices = _n0.g;
+		var vertices = _n0.a.vertices;
 		var selectedVertices = elm$core$Dict$values(
 			A2(
 				elm$core$Dict$filter,
@@ -6869,20 +6886,20 @@ var author$project$Graph$getCenter = F2(
 		var xValues = A2(
 			elm$core$List$map,
 			function ($) {
-				return $.R;
+				return $.x;
 			},
 			selectedVertices);
 		var yValues = A2(
 			elm$core$List$map,
 			function ($) {
-				return $.S;
+				return $.y;
 			},
 			selectedVertices);
 		var n = elm$core$List$length(selectedVertices);
 		return (!n) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(
 			{
-				R: elm$core$List$sum(xValues) / n,
-				S: elm$core$List$sum(yValues) / n
+				x: elm$core$List$sum(xValues) / n,
+				y: elm$core$List$sum(yValues) / n
 			});
 	});
 var author$project$Colision$ccw = F3(
@@ -6909,23 +6926,23 @@ var author$project$Colision$collideLineSegments = F2(
 	});
 var author$project$Graph$getEdgeIdsIntersectingLineSegment = F2(
 	function (lineSegment, _n0) {
-		var vertices = _n0.g;
-		var edges = _n0.n;
+		var vertices = _n0.a.vertices;
+		var edges = _n0.a.edges;
 		var intersecting = function (_n2) {
 			var s = _n2.a;
 			var t = _n2.b;
 			var _n1 = _Utils_Tuple2(
 				A2(elm$core$Dict$get, s, vertices),
 				A2(elm$core$Dict$get, t, vertices));
-			if ((!_n1.a.$) && (!_n1.b.$)) {
+			if ((_n1.a.$ === 'Just') && (_n1.b.$ === 'Just')) {
 				var v = _n1.a.a;
 				var w = _n1.b.a;
 				return A2(
 					author$project$Colision$collideLineSegments,
 					lineSegment,
 					_Utils_Tuple2(
-						_Utils_Tuple2(v.R, v.S),
-						_Utils_Tuple2(w.R, w.S)));
+						_Utils_Tuple2(v.x, v.y),
+						_Utils_Tuple2(w.x, w.y)));
 			} else {
 				return false;
 			}
@@ -6937,12 +6954,12 @@ var author$project$Graph$getEdgeIdsIntersectingLineSegment = F2(
 				elm$core$Dict$keys(edges)));
 	});
 var author$project$Graph$getManyBody = function (_n0) {
-	var manyBody = _n0.Z;
+	var manyBody = _n0.a.manyBody;
 	return manyBody;
 };
 var elm$core$Maybe$map = F2(
 	function (f, maybe) {
-		if (!maybe.$) {
+		if (maybe.$ === 'Just') {
 			var value = maybe.a;
 			return elm$core$Maybe$Just(
 				f(value));
@@ -6952,15 +6969,15 @@ var elm$core$Maybe$map = F2(
 	});
 var author$project$Graph$getRoundedVertexPosition = F2(
 	function (vertexId, _n0) {
-		var vertices = _n0.g;
+		var vertices = _n0.a.vertices;
 		return A2(
 			elm$core$Maybe$map,
 			function (_n1) {
-				var x = _n1.R;
-				var y = _n1.S;
+				var x = _n1.x;
+				var y = _n1.y;
 				return {
-					R: elm$core$Basics$round(x),
-					S: elm$core$Basics$round(y)
+					x: elm$core$Basics$round(x),
+					y: elm$core$Basics$round(y)
 				};
 			},
 			A2(elm$core$Dict$get, vertexId, vertices));
@@ -6972,27 +6989,27 @@ var elm$core$Basics$min = F2(
 var author$project$Colision$collideRectWithCircle = F2(
 	function (rect, circle) {
 		var _n0 = _Utils_Tuple2(
-			circle.R - A2(
+			circle.x - A2(
 				elm$core$Basics$max,
-				rect.R,
-				A2(elm$core$Basics$min, circle.R, rect.R + rect.a_)),
-			circle.S - A2(
+				rect.x,
+				A2(elm$core$Basics$min, circle.x, rect.x + rect.width)),
+			circle.y - A2(
 				elm$core$Basics$max,
-				rect.S,
-				A2(elm$core$Basics$min, circle.S, rect.S + rect.aC)));
+				rect.y,
+				A2(elm$core$Basics$min, circle.y, rect.y + rect.height)));
 		var deltaX = _n0.a;
 		var deltaY = _n0.b;
-		return _Utils_cmp((deltaX * deltaX) + (deltaY * deltaY), circle.aq * circle.aq) < 0;
+		return _Utils_cmp((deltaX * deltaX) + (deltaY * deltaY), circle.radius * circle.radius) < 0;
 	});
 var author$project$Graph$getVertexIdsInRect = F2(
 	function (rect, _n0) {
-		var vertices = _n0.g;
+		var vertices = _n0.a.vertices;
 		var inRect = F2(
 			function (_n1, v) {
 				return A2(
 					author$project$Colision$collideRectWithCircle,
 					rect,
-					{aq: v.aq, R: v.R, S: v.S});
+					{radius: v.radius, x: v.x, y: v.y});
 			});
 		return elm$core$Set$fromList(
 			elm$core$Dict$keys(
@@ -7000,7 +7017,7 @@ var author$project$Graph$getVertexIdsInRect = F2(
 	});
 var author$project$Graph$getVerticesIn = F2(
 	function (vertexIds, _n0) {
-		var vertices = _n0.g;
+		var vertices = _n0.a.vertices;
 		return A2(
 			elm$core$Dict$filter,
 			F2(
@@ -7011,20 +7028,20 @@ var author$project$Graph$getVerticesIn = F2(
 	});
 var author$project$Graph$getVerticesInBag = F2(
 	function (bagId, _n0) {
-		var vertices = _n0.g;
+		var vertices = _n0.a.vertices;
 		return elm$core$Set$fromList(
 			elm$core$Dict$keys(
 				A2(
 					elm$core$Dict$filter,
 					F2(
 						function (_n1, v) {
-							return A2(elm$core$Set$member, bagId, v.q);
+							return A2(elm$core$Set$member, bagId, v.inBags);
 						}),
 					vertices)));
 	});
 var author$project$Graph$inducedEdges = F2(
 	function (vs, _n0) {
-		var edges = _n0.n;
+		var edges = _n0.a.edges;
 		return elm$core$Set$fromList(
 			A2(
 				elm$core$List$filter,
@@ -7053,7 +7070,7 @@ var elm$core$List$concatMap = F2(
 	});
 var author$project$Graph$inducedVertices = F2(
 	function (es, _n0) {
-		var vertices = _n0.g;
+		var vertices = _n0.a.vertices;
 		return elm$core$Set$fromList(
 			A2(
 				elm$core$List$concatMap,
@@ -7069,7 +7086,7 @@ var elm$core$Dict$update = F3(
 	function (targetKey, alter, dictionary) {
 		var _n0 = alter(
 			A2(elm$core$Dict$get, targetKey, dictionary));
-		if (!_n0.$) {
+		if (_n0.$ === 'Just') {
 			var value = _n0.a;
 			return A3(elm$core$Dict$insert, targetKey, value, dictionary);
 		} else {
@@ -7078,15 +7095,15 @@ var elm$core$Dict$update = F3(
 	});
 var author$project$Graph$moveCenterX = F3(
 	function (l, x, graph) {
-		var p = graph;
-		var vertices = p.g;
+		var p = graph.a;
+		var vertices = p.vertices;
 		var centerX = A2(
 			elm$core$Maybe$withDefault,
 			0,
 			A2(
 				elm$core$Maybe$map,
 				function ($) {
-					return $.R;
+					return $.x;
 				},
 				A2(author$project$Graph$getCenter, l, graph)));
 		var move = function (id) {
@@ -7097,26 +7114,27 @@ var author$project$Graph$moveCenterX = F3(
 					function (v) {
 						return _Utils_update(
 							v,
-							{R: (x + v.R) - centerX});
+							{x: (x + v.x) - centerX});
 					}));
 		};
-		return _Utils_update(
-			p,
-			{
-				g: A3(elm$core$Set$foldr, move, vertices, l)
-			});
+		return author$project$Graph$Graph(
+			_Utils_update(
+				p,
+				{
+					vertices: A3(elm$core$Set$foldr, move, vertices, l)
+				}));
 	});
 var author$project$Graph$moveCenterY = F3(
 	function (l, y, graph) {
-		var p = graph;
-		var vertices = p.g;
+		var p = graph.a;
+		var vertices = p.vertices;
 		var centerY = A2(
 			elm$core$Maybe$withDefault,
 			0,
 			A2(
 				elm$core$Maybe$map,
 				function ($) {
-					return $.S;
+					return $.y;
 				},
 				A2(author$project$Graph$getCenter, l, graph)));
 		var move = function (id) {
@@ -7127,45 +7145,47 @@ var author$project$Graph$moveCenterY = F3(
 					function (v) {
 						return _Utils_update(
 							v,
-							{S: (y + v.S) - centerY});
+							{y: (y + v.y) - centerY});
 					}));
 		};
-		return _Utils_update(
-			p,
-			{
-				g: A3(elm$core$Set$foldr, move, vertices, l)
-			});
+		return author$project$Graph$Graph(
+			_Utils_update(
+				p,
+				{
+					vertices: A3(elm$core$Set$foldr, move, vertices, l)
+				}));
 	});
 var author$project$Graph$updateBag = F3(
 	function (bagId, up, _n0) {
-		var p = _n0;
-		return _Utils_update(
-			p,
-			{
-				s: A3(
-					elm$core$Dict$update,
-					bagId,
-					elm$core$Maybe$map(up),
-					p.s)
-			});
+		var p = _n0.a;
+		return author$project$Graph$Graph(
+			_Utils_update(
+				p,
+				{
+					bags: A3(
+						elm$core$Dict$update,
+						bagId,
+						elm$core$Maybe$map(up),
+						p.bags)
+				}));
 	});
 var author$project$Graph$movePullCenterToCenter = F2(
 	function (maybeBagId, graph) {
-		if (maybeBagId.$ === 1) {
+		if (maybeBagId.$ === 'Nothing') {
 			return graph;
 		} else {
 			var bagId = maybeBagId.a;
 			var vs = A2(author$project$Graph$getVerticesInBag, bagId, graph);
 			var maybeCenter = A2(author$project$Graph$getCenter, vs, graph);
 			var up = function (bag) {
-				if (maybeCenter.$ === 1) {
+				if (maybeCenter.$ === 'Nothing') {
 					return bag;
 				} else {
-					var x = maybeCenter.a.R;
-					var y = maybeCenter.a.S;
+					var x = maybeCenter.a.x;
+					var y = maybeCenter.a.y;
 					return _Utils_update(
 						bag,
-						{ao: x, ap: y});
+						{pullX: x, pullY: y});
 				}
 			};
 			return A3(author$project$Graph$updateBag, bagId, up, graph);
@@ -7173,9 +7193,9 @@ var author$project$Graph$movePullCenterToCenter = F2(
 	});
 var author$project$Graph$moveVertices = function (l) {
 	var move = function (_n0) {
-		var id = _n0.be;
-		var x = _n0.R;
-		var y = _n0.S;
+		var id = _n0.id;
+		var x = _n0.x;
+		var y = _n0.y;
 		return A2(
 			elm$core$Dict$update,
 			id,
@@ -7183,7 +7203,7 @@ var author$project$Graph$moveVertices = function (l) {
 				function (v) {
 					return _Utils_update(
 						v,
-						{R: x, S: y});
+						{x: x, y: y});
 				}));
 	};
 	return author$project$Graph$mapVertices(
@@ -7193,28 +7213,30 @@ var author$project$Graph$moveVertices = function (l) {
 };
 var elm$core$Set$remove = F2(
 	function (key, _n0) {
-		var dict = _n0;
-		return A2(elm$core$Dict$remove, key, dict);
+		var dict = _n0.a;
+		return elm$core$Set$Set_elm_builtin(
+			A2(elm$core$Dict$remove, key, dict));
 	});
 var author$project$Graph$removeBag = F2(
 	function (bagId, _n0) {
-		var p = _n0;
-		return _Utils_update(
-			p,
-			{
-				s: A2(elm$core$Dict$remove, bagId, p.s),
-				g: A2(
-					elm$core$Dict$map,
-					F2(
-						function (_n1, v) {
-							return _Utils_update(
-								v,
-								{
-									q: A2(elm$core$Set$remove, bagId, v.q)
-								});
-						}),
-					p.g)
-			});
+		var p = _n0.a;
+		return author$project$Graph$Graph(
+			_Utils_update(
+				p,
+				{
+					bags: A2(elm$core$Dict$remove, bagId, p.bags),
+					vertices: A2(
+						elm$core$Dict$map,
+						F2(
+							function (_n1, v) {
+								return _Utils_update(
+									v,
+									{
+										inBags: A2(elm$core$Set$remove, bagId, v.inBags)
+									});
+							}),
+						p.vertices)
+				}));
 	});
 var elm$core$Basics$not = _Basics_not;
 var author$project$Graph$removeVertices = function (l) {
@@ -7251,12 +7273,13 @@ var author$project$Graph$updateEdges = F2(
 	});
 var author$project$Graph$updateManyBody = F2(
 	function (up, _n0) {
-		var p = _n0;
-		return _Utils_update(
-			p,
-			{
-				Z: up(p.Z)
-			});
+		var p = _n0.a;
+		return author$project$Graph$Graph(
+			_Utils_update(
+				p,
+				{
+					manyBody: up(p.manyBody)
+				}));
 	});
 var author$project$Graph$updateVertices = F2(
 	function (l, up) {
@@ -7276,27 +7299,27 @@ var author$project$Graph$updateVertices = F2(
 	});
 var author$project$Main$Brush = F2(
 	function (start, mousePos) {
-		return {_: mousePos, P: start};
+		return {mousePos: mousePos, start: start};
 	});
 var author$project$Main$BrushingForSelection = function (a) {
-	return {$: 1, a: a};
+	return {$: 'BrushingForSelection', a: a};
 };
 var author$project$Main$DraggingPullCenter = F3(
 	function (a, b, c) {
-		return {$: 3, a: a, b: b, c: c};
+		return {$: 'DraggingPullCenter', a: a, b: b, c: c};
 	});
 var author$project$Main$DraggingSelection = F2(
 	function (a, b) {
-		return {$: 2, a: a, b: b};
+		return {$: 'DraggingSelection', a: a, b: b};
 	});
 var author$project$Main$EdgeBrush = F2(
 	function (sourceId, mousePos) {
-		return {_: mousePos, O: sourceId};
+		return {mousePos: mousePos, sourceId: sourceId};
 	});
-var author$project$Main$Idle = {$: 0};
-var author$project$Main$LineSelector = 1;
+var author$project$Main$Idle = {$: 'Idle'};
+var author$project$Main$LineSelector = {$: 'LineSelector'};
 var author$project$Main$Select = function (a) {
-	return {$: 1, a: a};
+	return {$: 'Select', a: a};
 };
 var author$project$Main$toD3Drag = _Platform_outgoingPort(
 	'toD3Drag',
@@ -7307,20 +7330,16 @@ var author$project$Main$toD3Drag = _Platform_outgoingPort(
 					[
 						_Utils_Tuple2(
 						'id',
-						elm$json$Json$Encode$int($.be)),
+						elm$json$Json$Encode$int($.id)),
 						_Utils_Tuple2(
 						'x',
-						elm$json$Json$Encode$float($.R)),
+						elm$json$Json$Encode$float($.x)),
 						_Utils_Tuple2(
 						'y',
-						elm$json$Json$Encode$float($.S))
+						elm$json$Json$Encode$float($.y))
 					]));
 		}));
-var author$project$Main$toD3DragEnd = _Platform_outgoingPort(
-	'toD3DragEnd',
-	function ($) {
-		return elm$json$Json$Encode$null;
-	});
+var author$project$Main$toD3DragEnd = _Platform_outgoingPort('toD3DragEnd', elm$core$Basics$identity);
 var author$project$Main$toD3DragStart = _Platform_outgoingPort(
 	'toD3DragStart',
 	function ($) {
@@ -7339,13 +7358,13 @@ var author$project$Main$toD3DragStart = _Platform_outgoingPort(
 								[
 									_Utils_Tuple2(
 									'id',
-									elm$json$Json$Encode$int($.be)),
+									elm$json$Json$Encode$int($.id)),
 									_Utils_Tuple2(
 									'x',
-									elm$json$Json$Encode$float($.R)),
+									elm$json$Json$Encode$float($.x)),
 									_Utils_Tuple2(
 									'y',
-									elm$json$Json$Encode$float($.S))
+									elm$json$Json$Encode$float($.y))
 								]));
 					})(b)
 				]));
@@ -7364,14 +7383,14 @@ var elm$core$Basics$clamp = F3(
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var elm$core$Dict$isEmpty = function (dict) {
-	if (dict.$ === -2) {
+	if (dict.$ === 'RBEmpty_elm_builtin') {
 		return true;
 	} else {
 		return false;
 	}
 };
 var elm$core$Set$isEmpty = function (_n0) {
-	var dict = _n0;
+	var dict = _n0.a;
 	return elm$core$Dict$isEmpty(dict);
 };
 var elm$core$String$toFloat = _String_toFloat;
@@ -7381,90 +7400,90 @@ var author$project$Main$update = F2(
 			return author$project$Main$toD3GraphData(
 				author$project$Graph$encodeForD3(graph));
 		};
-		var reheatSimulationIfVaderIsOn = m.u ? author$project$Main$toD3RestartWithAlpha(0.6) : elm$core$Platform$Cmd$none;
+		var reheatSimulationIfVaderIsOn = m.vaderIsOn ? author$project$Main$toD3RestartWithAlpha(0.6) : elm$core$Platform$Cmd$none;
 		switch (msg.$) {
-			case 0:
+			case 'NoOp':
 				return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
-			case 1:
+			case 'AltKeyDown':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{E: true}),
+						{altIsDown: true}),
 					elm$core$Platform$Cmd$none);
-			case 2:
+			case 'AltKeyUp':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{E: false}),
+						{altIsDown: false}),
 					elm$core$Platform$Cmd$none);
-			case 3:
+			case 'ShiftKeyDown':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{ab: true}),
+						{shiftIsDown: true}),
 					elm$core$Platform$Cmd$none);
-			case 4:
+			case 'ShiftKeyUp':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{ab: false}),
+						{shiftIsDown: false}),
 					elm$core$Platform$Cmd$none);
-			case 5:
+			case 'UpdateWindowSize':
 				var wS = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{ah: wS}),
+						{windowSize: wS}),
 					elm$core$Platform$Cmd$none);
-			case 6:
+			case 'DrawToolClicked':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							d: elm$core$Set$empty,
-							c: elm$core$Set$empty,
-							b: author$project$Main$Draw(elm$core$Maybe$Nothing)
+							selectedEdges: elm$core$Set$empty,
+							selectedVertices: elm$core$Set$empty,
+							tool: author$project$Main$Draw(elm$core$Maybe$Nothing)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 7:
+			case 'SelectToolClicked':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							b: author$project$Main$Select(author$project$Main$Idle)
+							tool: author$project$Main$Select(author$project$Main$Idle)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 8:
+			case 'RectSelectorClicked':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							B: 0,
-							b: author$project$Main$Select(author$project$Main$Idle)
+							selector: author$project$Main$RectSelector,
+							tool: author$project$Main$Select(author$project$Main$Idle)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 9:
+			case 'LineSelectorClicked':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							B: 1,
-							b: author$project$Main$Select(author$project$Main$Idle)
+							selector: author$project$Main$LineSelector,
+							tool: author$project$Main$Select(author$project$Main$Idle)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 10:
+			case 'MouseMove':
 				var mousePos = msg.a;
-				var _n1 = m.b;
+				var _n1 = m.tool;
 				_n1$4:
 				while (true) {
-					if (!_n1.$) {
-						if (!_n1.a.$) {
-							var sourceId = _n1.a.a.O;
+					if (_n1.$ === 'Draw') {
+						if (_n1.a.$ === 'Just') {
+							var sourceId = _n1.a.a.sourceId;
 							return _Utils_Tuple2(
 								_Utils_update(
 									m,
 									{
-										b: author$project$Main$Draw(
+										tool: author$project$Main$Draw(
 											elm$core$Maybe$Just(
 												A2(author$project$Main$EdgeBrush, sourceId, mousePos)))
 									}),
@@ -7474,31 +7493,31 @@ var author$project$Main$update = F2(
 						}
 					} else {
 						switch (_n1.a.$) {
-							case 1:
-								var start = _n1.a.a.P;
+							case 'BrushingForSelection':
+								var start = _n1.a.a.start;
 								var _n2 = function () {
-									var _n3 = m.B;
-									if (!_n3) {
-										var miny = A2(elm$core$Basics$min, start.S, mousePos.S);
-										var minx = A2(elm$core$Basics$min, start.R, mousePos.R);
-										var maxy = A2(elm$core$Basics$max, start.S, mousePos.S);
-										var maxx = A2(elm$core$Basics$max, start.R, mousePos.R);
+									var _n3 = m.selector;
+									if (_n3.$ === 'RectSelector') {
+										var miny = A2(elm$core$Basics$min, start.y, mousePos.y);
+										var minx = A2(elm$core$Basics$min, start.x, mousePos.x);
+										var maxy = A2(elm$core$Basics$max, start.y, mousePos.y);
+										var maxx = A2(elm$core$Basics$max, start.x, mousePos.x);
 										var newSelectedVertices_ = A2(
 											author$project$Graph$getVertexIdsInRect,
-											{aC: maxy - miny, a_: maxx - minx, R: minx, S: miny},
-											m.a);
+											{height: maxy - miny, width: maxx - minx, x: minx, y: miny},
+											m.graph);
 										return _Utils_Tuple2(
 											newSelectedVertices_,
-											A2(author$project$Graph$inducedEdges, newSelectedVertices_, m.a));
+											A2(author$project$Graph$inducedEdges, newSelectedVertices_, m.graph));
 									} else {
 										var newSelectedEdges_ = A2(
 											author$project$Graph$getEdgeIdsIntersectingLineSegment,
 											_Utils_Tuple2(
-												_Utils_Tuple2(start.R, start.S),
-												_Utils_Tuple2(mousePos.R, mousePos.S)),
-											m.a);
+												_Utils_Tuple2(start.x, start.y),
+												_Utils_Tuple2(mousePos.x, mousePos.y)),
+											m.graph);
 										return _Utils_Tuple2(
-											A2(author$project$Graph$inducedVertices, newSelectedEdges_, m.a),
+											A2(author$project$Graph$inducedVertices, newSelectedEdges_, m.graph),
 											newSelectedEdges_);
 									}
 								}();
@@ -7508,58 +7527,58 @@ var author$project$Main$update = F2(
 									_Utils_update(
 										m,
 										{
-											d: newSelectedEdges,
-											c: newSelectedVertices,
-											b: author$project$Main$Select(
+											selectedEdges: newSelectedEdges,
+											selectedVertices: newSelectedVertices,
+											tool: author$project$Main$Select(
 												author$project$Main$BrushingForSelection(
 													A2(author$project$Main$Brush, start, mousePos)))
 										}),
 									elm$core$Platform$Cmd$none);
-							case 2:
+							case 'DraggingSelection':
 								var _n4 = _n1.a;
 								var startPositionsOfVertices = _n4.a;
-								var start = _n4.b.P;
+								var start = _n4.b.start;
 								var move = function (_n5) {
-									var id = _n5.be;
-									var x = _n5.R;
-									var y = _n5.S;
-									return {be: id, R: x + (mousePos.R - start.R), S: y + (mousePos.S - start.S)};
+									var id = _n5.id;
+									var x = _n5.x;
+									var y = _n5.y;
+									return {id: id, x: x + (mousePos.x - start.x), y: y + (mousePos.y - start.y)};
 								};
 								var newPositions = A2(elm$core$List$map, move, startPositionsOfVertices);
 								return _Utils_Tuple2(
 									_Utils_update(
 										m,
 										{
-											a: A2(author$project$Graph$moveVertices, newPositions, m.a),
-											b: author$project$Main$Select(
+											graph: A2(author$project$Graph$moveVertices, newPositions, m.graph),
+											tool: author$project$Main$Select(
 												A2(
 													author$project$Main$DraggingSelection,
 													startPositionsOfVertices,
 													A2(author$project$Main$Brush, start, mousePos)))
 										}),
-									m.u ? author$project$Main$toD3Drag(newPositions) : elm$core$Platform$Cmd$none);
-							case 3:
+									m.vaderIsOn ? author$project$Main$toD3Drag(newPositions) : elm$core$Platform$Cmd$none);
+							case 'DraggingPullCenter':
 								var _n6 = _n1.a;
 								var bagId = _n6.a;
 								var startPositionOfThePullCenter = _n6.b;
-								var start = _n6.c.P;
+								var start = _n6.c.start;
 								var newGraph = function () {
 									var _n7 = startPositionOfThePullCenter;
-									var x = _n7.R;
-									var y = _n7.S;
+									var x = _n7.x;
+									var y = _n7.y;
 									var move = function (bag) {
 										return _Utils_update(
 											bag,
-											{ao: x + (mousePos.R - start.R), ap: y + (mousePos.S - start.S)});
+											{pullX: x + (mousePos.x - start.x), pullY: y + (mousePos.y - start.y)});
 									};
-									return A3(author$project$Graph$updateBag, bagId, move, m.a);
+									return A3(author$project$Graph$updateBag, bagId, move, m.graph);
 								}();
 								return _Utils_Tuple2(
 									_Utils_update(
 										m,
 										{
-											a: newGraph,
-											b: author$project$Main$Select(
+											graph: newGraph,
+											tool: author$project$Main$Select(
 												A3(
 													author$project$Main$DraggingPullCenter,
 													bagId,
@@ -7578,45 +7597,41 @@ var author$project$Main$update = F2(
 					}
 				}
 				return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
-			case 11:
-				var _n8 = m.b;
+			case 'MouseUp':
+				var _n8 = m.tool;
 				_n8$3:
 				while (true) {
-					if (_n8.$ === 1) {
+					if (_n8.$ === 'Select') {
 						switch (_n8.a.$) {
-							case 1:
-								var start = _n8.a.a.P;
-								var mousePos = _n8.a.a._;
+							case 'BrushingForSelection':
+								var start = _n8.a.a.start;
+								var mousePos = _n8.a.a.mousePos;
 								return _Utils_Tuple2(
 									_Utils_update(
 										m,
 										{
-											d: _Utils_eq(start, mousePos) ? elm$core$Set$empty : m.d,
-											c: _Utils_eq(start, mousePos) ? elm$core$Set$empty : m.c,
-											b: author$project$Main$Select(author$project$Main$Idle)
+											selectedEdges: _Utils_eq(start, mousePos) ? elm$core$Set$empty : m.selectedEdges,
+											selectedVertices: _Utils_eq(start, mousePos) ? elm$core$Set$empty : m.selectedVertices,
+											tool: author$project$Main$Select(author$project$Main$Idle)
 										}),
 									elm$core$Platform$Cmd$none);
-							case 2:
+							case 'DraggingSelection':
 								var _n9 = _n8.a;
 								return _Utils_Tuple2(
 									_Utils_update(
 										m,
 										{
-											b: author$project$Main$Select(author$project$Main$Idle)
+											tool: author$project$Main$Select(author$project$Main$Idle)
 										}),
-									elm$core$Platform$Cmd$batch(
-										_List_fromArray(
-											[
-												m.u ? author$project$Main$toD3DragEnd(0) : elm$core$Platform$Cmd$none,
-												sendGraphData(m.a)
-											])));
-							case 3:
+									m.vaderIsOn ? author$project$Main$toD3DragEnd(
+										author$project$Graph$encodeForD3(m.graph)) : elm$core$Platform$Cmd$none);
+							case 'DraggingPullCenter':
 								var _n10 = _n8.a;
 								return _Utils_Tuple2(
 									_Utils_update(
 										m,
 										{
-											b: author$project$Main$Select(author$project$Main$Idle)
+											tool: author$project$Main$Select(author$project$Main$Idle)
 										}),
 									elm$core$Platform$Cmd$none);
 							default:
@@ -7627,30 +7642,30 @@ var author$project$Main$update = F2(
 					}
 				}
 				return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
-			case 12:
+			case 'MouseDownOnTransparentInteractionRect':
 				var mousePos = msg.a;
-				var x = mousePos.R;
-				var y = mousePos.S;
-				var _n11 = m.b;
+				var x = mousePos.x;
+				var y = mousePos.y;
+				var _n11 = m.tool;
 				_n11$2:
 				while (true) {
-					if (!_n11.$) {
-						if (_n11.a.$ === 1) {
+					if (_n11.$ === 'Draw') {
+						if (_n11.a.$ === 'Nothing') {
 							var _n12 = _n11.a;
 							var _n13 = A3(
 								author$project$Graph$addVertexAndGetTheNewVertexId,
 								mousePos,
-								_Utils_Tuple2(m.j, m.f),
-								m.a);
+								_Utils_Tuple2(m.vertexPreferences, m.maybeSelectedBag),
+								m.graph);
 							var upGraph = _n13.a;
 							var newId = _n13.b;
-							var newGraph = A2(author$project$Graph$movePullCenterToCenter, m.f, upGraph);
+							var newGraph = A2(author$project$Graph$movePullCenterToCenter, m.maybeSelectedBag, upGraph);
 							return _Utils_Tuple2(
 								_Utils_update(
 									m,
 									{
-										a: newGraph,
-										b: author$project$Main$Draw(
+										graph: newGraph,
+										tool: author$project$Main$Draw(
 											elm$core$Maybe$Just(
 												A2(author$project$Main$EdgeBrush, newId, mousePos)))
 									}),
@@ -7659,13 +7674,13 @@ var author$project$Main$update = F2(
 							break _n11$2;
 						}
 					} else {
-						if (!_n11.a.$) {
+						if (_n11.a.$ === 'Idle') {
 							var _n14 = _n11.a;
 							return _Utils_Tuple2(
 								_Utils_update(
 									m,
 									{
-										b: author$project$Main$Select(
+										tool: author$project$Main$Select(
 											author$project$Main$BrushingForSelection(
 												A2(author$project$Main$Brush, mousePos, mousePos)))
 									}),
@@ -7676,24 +7691,24 @@ var author$project$Main$update = F2(
 					}
 				}
 				return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
-			case 13:
+			case 'MouseUpOnTransparentInteractionRect':
 				var pos = msg.a;
-				var _n15 = m.b;
-				if ((!_n15.$) && (!_n15.a.$)) {
-					var sourceId = _n15.a.a.O;
+				var _n15 = m.tool;
+				if ((_n15.$ === 'Draw') && (_n15.a.$ === 'Just')) {
+					var sourceId = _n15.a.a.sourceId;
 					var newGraph = A5(
 						author$project$Graph$addNeighbour,
 						pos,
 						sourceId,
-						_Utils_Tuple2(m.j, m.f),
-						m.h,
-						m.a);
+						_Utils_Tuple2(m.vertexPreferences, m.maybeSelectedBag),
+						m.edgePreferences,
+						m.graph);
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
 							{
-								a: newGraph,
-								b: author$project$Main$Draw(elm$core$Maybe$Nothing)
+								graph: newGraph,
+								tool: author$project$Main$Draw(elm$core$Maybe$Nothing)
 							}),
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
@@ -7704,52 +7719,52 @@ var author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
 				}
-			case 16:
+			case 'MouseOverVertex':
 				var id = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							v: elm$core$Maybe$Just(id)
+							highlightingVertexOnMouseOver: elm$core$Maybe$Just(id)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 17:
+			case 'MouseOverEdge':
 				var edgeId = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							o: elm$core$Maybe$Just(edgeId)
+							highlightingEdgeOnMouseOver: elm$core$Maybe$Just(edgeId)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 18:
+			case 'MouseOutVertex':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{v: elm$core$Maybe$Nothing}),
+						{highlightingVertexOnMouseOver: elm$core$Maybe$Nothing}),
 					elm$core$Platform$Cmd$none);
-			case 19:
+			case 'MouseOutEdge':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{o: elm$core$Maybe$Nothing}),
+						{highlightingEdgeOnMouseOver: elm$core$Maybe$Nothing}),
 					elm$core$Platform$Cmd$none);
-			case 14:
+			case 'MouseDownOnVertex':
 				var id = msg.a;
 				var mousePos = msg.b;
-				var _n16 = m.b;
+				var _n16 = m.tool;
 				_n16$2:
 				while (true) {
-					if (!_n16.$) {
-						if (_n16.a.$ === 1) {
+					if (_n16.$ === 'Draw') {
+						if (_n16.a.$ === 'Nothing') {
 							var _n17 = _n16.a;
 							return _Utils_Tuple2(
 								_Utils_update(
 									m,
 									{
-										b: function () {
-											var _n18 = A2(author$project$Graph$getRoundedVertexPosition, id, m.a);
-											if (!_n18.$) {
+										tool: function () {
+											var _n18 = A2(author$project$Graph$getRoundedVertexPosition, id, m.graph);
+											if (_n18.$ === 'Just') {
 												var pos = _n18.a;
 												return author$project$Main$Draw(
 													elm$core$Maybe$Just(
@@ -7764,16 +7779,16 @@ var author$project$Main$update = F2(
 							break _n16$2;
 						}
 					} else {
-						if (!_n16.a.$) {
+						if (_n16.a.$ === 'Idle') {
 							var _n19 = _n16.a;
 							var idAndPosition = F2(
 								function (vertexId, _n21) {
-									var x = _n21.R;
-									var y = _n21.S;
-									return {be: vertexId, R: x, S: y};
+									var x = _n21.x;
+									var y = _n21.y;
+									return {id: vertexId, x: x, y: y};
 								});
-							var _n20 = A2(elm$core$Set$member, id, m.c) ? (m.E ? A3(author$project$Graph$duplicateSubgraphAndGetTheDuplicate, m.c, m.d, m.a) : _Utils_Tuple3(m.a, m.c, m.d)) : _Utils_Tuple3(
-								m.a,
+							var _n20 = A2(elm$core$Set$member, id, m.selectedVertices) ? (m.altIsDown ? A3(author$project$Graph$duplicateSubgraphAndGetTheDuplicate, m.selectedVertices, m.selectedEdges, m.graph) : _Utils_Tuple3(m.graph, m.selectedVertices, m.selectedEdges)) : _Utils_Tuple3(
+								m.graph,
 								elm$core$Set$singleton(id),
 								elm$core$Set$empty);
 							var newGraph = _n20.a;
@@ -7788,16 +7803,16 @@ var author$project$Main$update = F2(
 								_Utils_update(
 									m,
 									{
-										a: newGraph,
-										d: newSelectedEdges,
-										c: newSelectedVertices,
-										b: author$project$Main$Select(
+										graph: newGraph,
+										selectedEdges: newSelectedEdges,
+										selectedVertices: newSelectedVertices,
+										tool: author$project$Main$Select(
 											A2(
 												author$project$Main$DraggingSelection,
 												startPositionsOfVertices,
 												A2(author$project$Main$Brush, mousePos, mousePos)))
 									}),
-								m.u ? author$project$Main$toD3DragStart(
+								m.vaderIsOn ? author$project$Main$toD3DragStart(
 									_Utils_Tuple2(
 										author$project$Graph$encodeForD3(newGraph),
 										startPositionsOfVertices)) : elm$core$Platform$Cmd$none);
@@ -7807,32 +7822,32 @@ var author$project$Main$update = F2(
 					}
 				}
 				return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
-			case 15:
+			case 'MouseDownOnEdge':
 				var _n22 = msg.a;
 				var s = _n22.a;
 				var t = _n22.b;
 				var mousePos = msg.b;
-				var _n23 = m.b;
+				var _n23 = m.tool;
 				_n23$2:
 				while (true) {
-					if (!_n23.$) {
-						if (_n23.a.$ === 1) {
+					if (_n23.$ === 'Draw') {
+						if (_n23.a.$ === 'Nothing') {
 							var _n24 = _n23.a;
 							var _n25 = A4(
 								author$project$Graph$devideEdge,
 								mousePos,
 								_Utils_Tuple2(s, t),
-								_Utils_Tuple2(m.j, m.f),
-								m.a);
+								_Utils_Tuple2(m.vertexPreferences, m.maybeSelectedBag),
+								m.graph);
 							var newGraph = _n25.a;
 							var idOfTheNewVertex = _n25.b;
 							return _Utils_Tuple2(
 								_Utils_update(
 									m,
 									{
-										a: newGraph,
-										o: elm$core$Maybe$Nothing,
-										b: author$project$Main$Draw(
+										graph: newGraph,
+										highlightingEdgeOnMouseOver: elm$core$Maybe$Nothing,
+										tool: author$project$Main$Draw(
 											elm$core$Maybe$Just(
 												A2(author$project$Main$EdgeBrush, idOfTheNewVertex, mousePos)))
 									}),
@@ -7841,19 +7856,19 @@ var author$project$Main$update = F2(
 							break _n23$2;
 						}
 					} else {
-						if (!_n23.a.$) {
+						if (_n23.a.$ === 'Idle') {
 							var _n26 = _n23.a;
 							var idAndPosition = F2(
 								function (vertexId, _n28) {
-									var x = _n28.R;
-									var y = _n28.S;
-									return {be: vertexId, R: x, S: y};
+									var x = _n28.x;
+									var y = _n28.y;
+									return {id: vertexId, x: x, y: y};
 								});
 							var _n27 = A2(
 								elm$core$Set$member,
 								_Utils_Tuple2(s, t),
-								m.d) ? (m.E ? A3(author$project$Graph$duplicateSubgraphAndGetTheDuplicate, m.c, m.d, m.a) : _Utils_Tuple3(m.a, m.c, m.d)) : _Utils_Tuple3(
-								m.a,
+								m.selectedEdges) ? (m.altIsDown ? A3(author$project$Graph$duplicateSubgraphAndGetTheDuplicate, m.selectedVertices, m.selectedEdges, m.graph) : _Utils_Tuple3(m.graph, m.selectedVertices, m.selectedEdges)) : _Utils_Tuple3(
+								m.graph,
 								elm$core$Set$fromList(
 									_List_fromArray(
 										[s, t])),
@@ -7871,16 +7886,16 @@ var author$project$Main$update = F2(
 								_Utils_update(
 									m,
 									{
-										a: newGraph,
-										d: newSelectedEdges,
-										c: newSelectedVertices,
-										b: author$project$Main$Select(
+										graph: newGraph,
+										selectedEdges: newSelectedEdges,
+										selectedVertices: newSelectedVertices,
+										tool: author$project$Main$Select(
 											A2(
 												author$project$Main$DraggingSelection,
 												startPositionsOfVertices,
 												A2(author$project$Main$Brush, mousePos, mousePos)))
 									}),
-								m.u ? author$project$Main$toD3DragStart(
+								m.vaderIsOn ? author$project$Main$toD3DragStart(
 									_Utils_Tuple2(
 										author$project$Graph$encodeForD3(newGraph),
 										startPositionsOfVertices)) : elm$core$Platform$Cmd$none);
@@ -7890,22 +7905,22 @@ var author$project$Main$update = F2(
 					}
 				}
 				return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
-			case 20:
+			case 'MouseUpOnVertex':
 				var id = msg.a;
-				var _n29 = m.b;
-				if ((!_n29.$) && (!_n29.a.$)) {
-					var sourceId = _n29.a.a.O;
-					var newGraph = _Utils_eq(sourceId, id) ? m.a : A3(
+				var _n29 = m.tool;
+				if ((_n29.$ === 'Draw') && (_n29.a.$ === 'Just')) {
+					var sourceId = _n29.a.a.sourceId;
+					var newGraph = _Utils_eq(sourceId, id) ? m.graph : A3(
 						author$project$Graph$addEdgeBetweenExistingVertices,
 						_Utils_Tuple2(sourceId, id),
-						m.h,
-						m.a);
+						m.edgePreferences,
+						m.graph);
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
 							{
-								a: newGraph,
-								b: author$project$Main$Draw(elm$core$Maybe$Nothing)
+								graph: newGraph,
+								tool: author$project$Main$Draw(elm$core$Maybe$Nothing)
 							}),
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
@@ -7916,27 +7931,27 @@ var author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
 				}
-			case 21:
+			case 'MouseUpOnEdge':
 				var edgeId = msg.a;
 				var pos = msg.b;
-				var _n30 = m.b;
-				if ((!_n30.$) && (!_n30.a.$)) {
-					var sourceId = _n30.a.a.O;
+				var _n30 = m.tool;
+				if ((_n30.$ === 'Draw') && (_n30.a.$ === 'Just')) {
+					var sourceId = _n30.a.a.sourceId;
 					var newGraph = A6(
 						author$project$Graph$addNeighbourDevidingEdge,
 						sourceId,
 						pos,
 						edgeId,
-						_Utils_Tuple2(m.j, m.f),
-						m.h,
-						m.a);
+						_Utils_Tuple2(m.vertexPreferences, m.maybeSelectedBag),
+						m.edgePreferences,
+						m.graph);
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
 							{
-								a: newGraph,
-								o: elm$core$Maybe$Nothing,
-								b: author$project$Main$Draw(elm$core$Maybe$Nothing)
+								graph: newGraph,
+								highlightingEdgeOnMouseOver: elm$core$Maybe$Nothing,
+								tool: author$project$Main$Draw(elm$core$Maybe$Nothing)
 							}),
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
@@ -7947,42 +7962,42 @@ var author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
 				}
-			case 22:
-				var alpha = msg.a.D;
-				var nodes = msg.a.al;
+			case 'FromD3Tick':
+				var alpha = msg.a.alpha;
+				var nodes = msg.a.nodes;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							D: alpha,
-							a: A2(author$project$Graph$moveVertices, nodes, m.a)
+							alpha: alpha,
+							graph: A2(author$project$Graph$moveVertices, nodes, m.graph)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 23:
-				var newVaderIsOn = !m.u;
+			case 'VaderClicked':
+				var newVaderIsOn = !m.vaderIsOn;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{u: newVaderIsOn}),
-					newVaderIsOn ? author$project$Main$toD3RestartWithAlpha(1) : author$project$Main$toD3StopSimulation(0));
-			case 27:
+						{vaderIsOn: newVaderIsOn}),
+					newVaderIsOn ? author$project$Main$toD3RestartWithAlpha(1) : author$project$Main$toD3StopSimulation(_Utils_Tuple0));
+			case 'FromConvexHullCheckBox':
 				var b = msg.a;
 				var updateCH = function (bag) {
 					return _Utils_update(
 						bag,
-						{bc: b});
+						{hasConvexHull: b});
 				};
 				var _n31 = function () {
-					var _n32 = m.f;
-					if (!_n32.$) {
+					var _n32 = m.maybeSelectedBag;
+					if (_n32.$ === 'Just') {
 						var bagId = _n32.a;
 						return _Utils_Tuple2(
-							A3(author$project$Graph$updateBag, bagId, updateCH, m.a),
-							m.e);
+							A3(author$project$Graph$updateBag, bagId, updateCH, m.graph),
+							m.bagPreferences);
 					} else {
 						return _Utils_Tuple2(
-							m.a,
-							updateCH(m.e));
+							m.graph,
+							updateCH(m.bagPreferences));
 					}
 				}();
 				var newGraph = _n31.a;
@@ -7990,26 +8005,26 @@ var author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{e: newBagPreferences, a: newGraph}),
+						{bagPreferences: newBagPreferences, graph: newGraph}),
 					elm$core$Platform$Cmd$none);
-			case 28:
+			case 'FromPullIsActiveCheckBox':
 				var b = msg.a;
 				var updatePullIsActive = function (bag) {
 					return _Utils_update(
 						bag,
-						{aO: b});
+						{pullIsActive: b});
 				};
 				var _n33 = function () {
-					var _n34 = m.f;
-					if (!_n34.$) {
+					var _n34 = m.maybeSelectedBag;
+					if (_n34.$ === 'Just') {
 						var bagId = _n34.a;
 						return _Utils_Tuple2(
-							A3(author$project$Graph$updateBag, bagId, updatePullIsActive, m.a),
-							m.e);
+							A3(author$project$Graph$updateBag, bagId, updatePullIsActive, m.graph),
+							m.bagPreferences);
 					} else {
 						return _Utils_Tuple2(
-							m.a,
-							updatePullIsActive(m.e));
+							m.graph,
+							updatePullIsActive(m.bagPreferences));
 					}
 				}();
 				var newGraph = _n33.a;
@@ -8017,31 +8032,31 @@ var author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{e: newBagPreferences, a: newGraph}),
+						{bagPreferences: newBagPreferences, graph: newGraph}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 29:
+			case 'FromDraggableCenterCheckBox':
 				var b = msg.a;
 				var updateDraggablePullCenter = function (bag) {
 					return _Utils_update(
 						bag,
-						{a6: b});
+						{draggablePullCenter: b});
 				};
 				var _n35 = function () {
-					var _n36 = m.f;
-					if (!_n36.$) {
+					var _n36 = m.maybeSelectedBag;
+					if (_n36.$ === 'Just') {
 						var bagId = _n36.a;
 						return _Utils_Tuple2(
-							A3(author$project$Graph$updateBag, bagId, updateDraggablePullCenter, m.a),
-							m.e);
+							A3(author$project$Graph$updateBag, bagId, updateDraggablePullCenter, m.graph),
+							m.bagPreferences);
 					} else {
 						return _Utils_Tuple2(
-							m.a,
-							updateDraggablePullCenter(m.e));
+							m.graph,
+							updateDraggablePullCenter(m.bagPreferences));
 					}
 				}();
 				var newGraph = _n35.a;
@@ -8049,12 +8064,12 @@ var author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{e: newBagPreferences, a: newGraph}),
+						{bagPreferences: newBagPreferences, graph: newGraph}),
 					elm$core$Platform$Cmd$none);
-			case 30:
+			case 'FromPullXStrengthInput':
 				var str = msg.a;
-				var _n37 = m.f;
-				if (!_n37.$) {
+				var _n37 = m.maybeSelectedBag;
+				if (_n37.$ === 'Just') {
 					var bagId = _n37.a;
 					var oldPullXStrength = A3(
 						elm$core$Basics$clamp,
@@ -8066,12 +8081,12 @@ var author$project$Main$update = F2(
 							A2(
 								elm$core$Maybe$map,
 								function ($) {
-									return $.aP;
+									return $.pullXStrength;
 								},
 								A2(
 									elm$core$Dict$get,
 									bagId,
-									author$project$Graph$getBags(m.a)))));
+									author$project$Graph$getBags(m.graph)))));
 					var newPullXStrength = A2(
 						elm$core$Maybe$withDefault,
 						oldPullXStrength,
@@ -8082,13 +8097,13 @@ var author$project$Main$update = F2(
 						function (bag) {
 							return _Utils_update(
 								bag,
-								{aP: newPullXStrength});
+								{pullXStrength: newPullXStrength});
 						},
-						m.a);
+						m.graph);
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
-							{a: newGraph}),
+							{graph: newGraph}),
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
@@ -8096,30 +8111,30 @@ var author$project$Main$update = F2(
 									reheatSimulationIfVaderIsOn
 								])));
 				} else {
-					var oldCashedBag = m.e;
+					var oldCashedBag = m.bagPreferences;
 					var newPullXStrength = A2(
 						elm$core$Maybe$withDefault,
-						m.e.aP,
+						m.bagPreferences.pullXStrength,
 						elm$core$String$toFloat(str));
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
 							{
-								e: _Utils_update(
+								bagPreferences: _Utils_update(
 									oldCashedBag,
-									{aP: newPullXStrength})
+									{pullXStrength: newPullXStrength})
 							}),
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
-									sendGraphData(m.a),
+									sendGraphData(m.graph),
 									reheatSimulationIfVaderIsOn
 								])));
 				}
-			case 31:
+			case 'FromPullYStrengthInput':
 				var str = msg.a;
-				var _n38 = m.f;
-				if (!_n38.$) {
+				var _n38 = m.maybeSelectedBag;
+				if (_n38.$ === 'Just') {
 					var bagId = _n38.a;
 					var oldPullYStrength = A2(
 						elm$core$Maybe$withDefault,
@@ -8127,12 +8142,12 @@ var author$project$Main$update = F2(
 						A2(
 							elm$core$Maybe$map,
 							function ($) {
-								return $.aQ;
+								return $.pullYStrength;
 							},
 							A2(
 								elm$core$Dict$get,
 								bagId,
-								author$project$Graph$getBags(m.a))));
+								author$project$Graph$getBags(m.graph))));
 					var newPullYStrength = A3(
 						elm$core$Basics$clamp,
 						0,
@@ -8147,13 +8162,13 @@ var author$project$Main$update = F2(
 						function (bag) {
 							return _Utils_update(
 								bag,
-								{aQ: newPullYStrength});
+								{pullYStrength: newPullYStrength});
 						},
-						m.a);
+						m.graph);
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
-							{a: newGraph}),
+							{graph: newGraph}),
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
@@ -8161,49 +8176,49 @@ var author$project$Main$update = F2(
 									reheatSimulationIfVaderIsOn
 								])));
 				} else {
-					var oldCashedBag = m.e;
+					var oldCashedBag = m.bagPreferences;
 					var newPullYStrength = A2(
 						elm$core$Maybe$withDefault,
-						m.e.aQ,
+						m.bagPreferences.pullYStrength,
 						elm$core$String$toFloat(str));
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
 							{
-								e: _Utils_update(
+								bagPreferences: _Utils_update(
 									oldCashedBag,
-									{aQ: newPullYStrength})
+									{pullYStrength: newPullYStrength})
 							}),
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
-									sendGraphData(m.a),
+									sendGraphData(m.graph),
 									reheatSimulationIfVaderIsOn
 								])));
 				}
-			case 32:
+			case 'FromPullXInput':
 				var str = msg.a;
 				var updatePullX = function (bag) {
 					return _Utils_update(
 						bag,
 						{
-							ao: A2(
+							pullX: A2(
 								elm$core$Maybe$withDefault,
 								0,
 								elm$core$String$toFloat(str))
 						});
 				};
 				var _n39 = function () {
-					var _n40 = m.f;
-					if (!_n40.$) {
+					var _n40 = m.maybeSelectedBag;
+					if (_n40.$ === 'Just') {
 						var bagId = _n40.a;
 						return _Utils_Tuple2(
-							A3(author$project$Graph$updateBag, bagId, updatePullX, m.a),
-							m.e);
+							A3(author$project$Graph$updateBag, bagId, updatePullX, m.graph),
+							m.bagPreferences);
 					} else {
 						return _Utils_Tuple2(
-							m.a,
-							updatePullX(m.e));
+							m.graph,
+							updatePullX(m.bagPreferences));
 					}
 				}();
 				var newGraph = _n39.a;
@@ -8211,36 +8226,36 @@ var author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{e: newBagPreferences, a: newGraph}),
+						{bagPreferences: newBagPreferences, graph: newGraph}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 33:
+			case 'FromPullYInput':
 				var str = msg.a;
 				var updatePullY = function (bag) {
 					return _Utils_update(
 						bag,
 						{
-							ap: A2(
+							pullY: A2(
 								elm$core$Maybe$withDefault,
 								0,
 								elm$core$String$toFloat(str))
 						});
 				};
 				var _n41 = function () {
-					var _n42 = m.f;
-					if (!_n42.$) {
+					var _n42 = m.maybeSelectedBag;
+					if (_n42.$ === 'Just') {
 						var bagId = _n42.a;
 						return _Utils_Tuple2(
-							A3(author$project$Graph$updateBag, bagId, updatePullY, m.a),
-							m.e);
+							A3(author$project$Graph$updateBag, bagId, updatePullY, m.graph),
+							m.bagPreferences);
 					} else {
 						return _Utils_Tuple2(
-							m.a,
-							updatePullY(m.e));
+							m.graph,
+							updatePullY(m.bagPreferences));
 					}
 				}();
 				var newGraph = _n41.a;
@@ -8248,60 +8263,60 @@ var author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{e: newBagPreferences, a: newGraph}),
+						{bagPreferences: newBagPreferences, graph: newGraph}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 24:
+			case 'FromVertexColorPicker':
 				var newColor = msg.a;
 				var updateColor = function (v) {
 					return _Utils_update(
 						v,
-						{aw: newColor});
+						{color: newColor});
 				};
-				var newVertexPreferences = elm$core$Set$isEmpty(m.c) ? updateColor(m.j) : m.j;
-				var newGraph = A3(author$project$Graph$updateVertices, m.c, updateColor, m.a);
+				var newVertexPreferences = elm$core$Set$isEmpty(m.selectedVertices) ? updateColor(m.vertexPreferences) : m.vertexPreferences;
+				var newGraph = A3(author$project$Graph$updateVertices, m.selectedVertices, updateColor, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{a: newGraph, j: newVertexPreferences}),
+						{graph: newGraph, vertexPreferences: newVertexPreferences}),
 					elm$core$Platform$Cmd$none);
-			case 25:
+			case 'FromEdgeColorPicker':
 				var newColor = msg.a;
 				var updateColor = function (e) {
 					return _Utils_update(
 						e,
-						{aw: newColor});
+						{color: newColor});
 				};
-				var newGraph = A3(author$project$Graph$updateEdges, m.d, updateColor, m.a);
-				var newEdgePreferences = elm$core$Set$isEmpty(m.d) ? updateColor(m.h) : m.h;
+				var newGraph = A3(author$project$Graph$updateEdges, m.selectedEdges, updateColor, m.graph);
+				var newEdgePreferences = elm$core$Set$isEmpty(m.selectedEdges) ? updateColor(m.edgePreferences) : m.edgePreferences;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{h: newEdgePreferences, a: newGraph}),
+						{edgePreferences: newEdgePreferences, graph: newGraph}),
 					elm$core$Platform$Cmd$none);
-			case 26:
+			case 'FromFixedCheckBox':
 				var b = msg.a;
 				var updateFixed = function (v) {
 					return _Utils_update(
 						v,
-						{V: b});
+						{fixed: b});
 				};
-				var newVertexPreferences = elm$core$Set$isEmpty(m.c) ? updateFixed(m.j) : m.j;
-				var newGraph = A3(author$project$Graph$updateVertices, m.c, updateFixed, m.a);
+				var newVertexPreferences = elm$core$Set$isEmpty(m.selectedVertices) ? updateFixed(m.vertexPreferences) : m.vertexPreferences;
+				var newGraph = A3(author$project$Graph$updateVertices, m.selectedVertices, updateFixed, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{a: newGraph, j: newVertexPreferences}),
+						{graph: newGraph, vertexPreferences: newVertexPreferences}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph)
 							])));
-			case 34:
+			case 'FromRadiusInput':
 				var str = msg.a;
 				var newRadius = A3(
 					elm$core$Basics$clamp,
@@ -8314,16 +8329,16 @@ var author$project$Main$update = F2(
 				var updateRadius = function (v) {
 					return _Utils_update(
 						v,
-						{aq: newRadius});
+						{radius: newRadius});
 				};
-				var newVertexPreferences = elm$core$Set$isEmpty(m.c) ? updateRadius(m.j) : m.j;
-				var newGraph = A3(author$project$Graph$updateVertices, m.c, updateRadius, m.a);
+				var newVertexPreferences = elm$core$Set$isEmpty(m.selectedVertices) ? updateRadius(m.vertexPreferences) : m.vertexPreferences;
+				var newGraph = A3(author$project$Graph$updateVertices, m.selectedVertices, updateRadius, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{a: newGraph, j: newVertexPreferences}),
+						{graph: newGraph, vertexPreferences: newVertexPreferences}),
 					elm$core$Platform$Cmd$none);
-			case 35:
+			case 'FromThicknessInput':
 				var str = msg.a;
 				var newThickness = A3(
 					elm$core$Basics$clamp,
@@ -8336,16 +8351,16 @@ var author$project$Main$update = F2(
 				var updateThickness = function (e) {
 					return _Utils_update(
 						e,
-						{bx: newThickness});
+						{thickness: newThickness});
 				};
-				var newGraph = A3(author$project$Graph$updateEdges, m.d, updateThickness, m.a);
-				var newEdgePreferences = elm$core$Set$isEmpty(m.d) ? updateThickness(m.h) : m.h;
+				var newGraph = A3(author$project$Graph$updateEdges, m.selectedEdges, updateThickness, m.graph);
+				var newEdgePreferences = elm$core$Set$isEmpty(m.selectedEdges) ? updateThickness(m.edgePreferences) : m.edgePreferences;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{h: newEdgePreferences, a: newGraph}),
+						{edgePreferences: newEdgePreferences, graph: newGraph}),
 					elm$core$Platform$Cmd$none);
-			case 36:
+			case 'FromDistanceInput':
 				var str = msg.a;
 				var newDistance = A3(
 					elm$core$Basics$clamp,
@@ -8358,21 +8373,21 @@ var author$project$Main$update = F2(
 				var updateDistance = function (e) {
 					return _Utils_update(
 						e,
-						{ay: newDistance});
+						{distance: newDistance});
 				};
-				var newEdgePreferences = elm$core$Set$isEmpty(m.d) ? updateDistance(m.h) : m.h;
-				var newGraph = A3(author$project$Graph$updateEdges, m.d, updateDistance, m.a);
+				var newEdgePreferences = elm$core$Set$isEmpty(m.selectedEdges) ? updateDistance(m.edgePreferences) : m.edgePreferences;
+				var newGraph = A3(author$project$Graph$updateEdges, m.selectedEdges, updateDistance, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{h: newEdgePreferences, a: newGraph}),
+						{edgePreferences: newEdgePreferences, graph: newGraph}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 37:
+			case 'FromStrengthInput':
 				var str = msg.a;
 				var newStrength = A3(
 					elm$core$Basics$clamp,
@@ -8385,23 +8400,23 @@ var author$project$Main$update = F2(
 				var updateStrength = function (e) {
 					return _Utils_update(
 						e,
-						{ac: newStrength});
+						{strength: newStrength});
 				};
-				var newGraph = A3(author$project$Graph$updateEdges, m.d, updateStrength, m.a);
-				var newEdgePreferences = elm$core$Set$isEmpty(m.d) ? updateStrength(m.h) : m.h;
+				var newGraph = A3(author$project$Graph$updateEdges, m.selectedEdges, updateStrength, m.graph);
+				var newEdgePreferences = elm$core$Set$isEmpty(m.selectedEdges) ? updateStrength(m.edgePreferences) : m.edgePreferences;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{h: newEdgePreferences, a: newGraph}),
+						{edgePreferences: newEdgePreferences, graph: newGraph}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 38:
+			case 'FromManyBodyStrengthInput':
 				var str = msg.a;
-				var currentStrength = author$project$Graph$getManyBody(m.a).ac;
+				var currentStrength = author$project$Graph$getManyBody(m.graph).strength;
 				var newStrength = A2(
 					elm$core$Maybe$withDefault,
 					currentStrength,
@@ -8409,22 +8424,22 @@ var author$project$Main$update = F2(
 				var up = function (mB) {
 					return _Utils_update(
 						mB,
-						{ac: newStrength});
+						{strength: newStrength});
 				};
-				var newGraph = A2(author$project$Graph$updateManyBody, up, m.a);
+				var newGraph = A2(author$project$Graph$updateManyBody, up, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{a: newGraph}),
+						{graph: newGraph}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 39:
+			case 'FromManyBodyThetaInput':
 				var str = msg.a;
-				var currentTheta = author$project$Graph$getManyBody(m.a).as;
+				var currentTheta = author$project$Graph$getManyBody(m.graph).theta;
 				var newTheta = A2(
 					elm$core$Maybe$withDefault,
 					currentTheta,
@@ -8432,22 +8447,22 @@ var author$project$Main$update = F2(
 				var up = function (mB) {
 					return _Utils_update(
 						mB,
-						{as: newTheta});
+						{theta: newTheta});
 				};
-				var newGraph = A2(author$project$Graph$updateManyBody, up, m.a);
+				var newGraph = A2(author$project$Graph$updateManyBody, up, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{a: newGraph}),
+						{graph: newGraph}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 40:
+			case 'FromManyBodyMinDistanceInput':
 				var str = msg.a;
-				var currentDistanceMin = author$project$Graph$getManyBody(m.a).aj;
+				var currentDistanceMin = author$project$Graph$getManyBody(m.graph).distanceMin;
 				var newDistanceMin = A2(
 					elm$core$Maybe$withDefault,
 					currentDistanceMin,
@@ -8455,22 +8470,22 @@ var author$project$Main$update = F2(
 				var up = function (mB) {
 					return _Utils_update(
 						mB,
-						{aj: newDistanceMin});
+						{distanceMin: newDistanceMin});
 				};
-				var newGraph = A2(author$project$Graph$updateManyBody, up, m.a);
+				var newGraph = A2(author$project$Graph$updateManyBody, up, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{a: newGraph}),
+						{graph: newGraph}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 41:
+			case 'FromManyBodyMaxDistanceInput':
 				var str = msg.a;
-				var currentDistanceMax = author$project$Graph$getManyBody(m.a).ai;
+				var currentDistanceMax = author$project$Graph$getManyBody(m.graph).distanceMax;
 				var newDistanceMax = A2(
 					elm$core$Maybe$withDefault,
 					currentDistanceMax,
@@ -8478,32 +8493,32 @@ var author$project$Main$update = F2(
 				var up = function (mB) {
 					return _Utils_update(
 						mB,
-						{ai: newDistanceMax});
+						{distanceMax: newDistanceMax});
 				};
-				var newGraph = A2(author$project$Graph$updateManyBody, up, m.a);
+				var newGraph = A2(author$project$Graph$updateManyBody, up, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{a: newGraph}),
+						{graph: newGraph}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 42:
+			case 'FromYInput':
 				var str = msg.a;
-				var _n43 = m.b;
-				if (_n43.$ === 1) {
+				var _n43 = m.tool;
+				if (_n43.$ === 'Select') {
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
 							{
-								a: function () {
+								graph: function () {
 									var oldCenterY = function () {
-										var _n44 = A2(author$project$Graph$getCenter, m.c, m.a);
-										if (!_n44.$) {
-											var y = _n44.a.S;
+										var _n44 = A2(author$project$Graph$getCenter, m.selectedVertices, m.graph);
+										if (_n44.$ === 'Just') {
+											var y = _n44.a.y;
 											return y;
 										} else {
 											return 0;
@@ -8513,26 +8528,26 @@ var author$project$Main$update = F2(
 										elm$core$Maybe$withDefault,
 										oldCenterY,
 										elm$core$String$toFloat(str));
-									return A3(author$project$Graph$moveCenterY, m.c, newY, m.a);
+									return A3(author$project$Graph$moveCenterY, m.selectedVertices, newY, m.graph);
 								}()
 							}),
 						elm$core$Platform$Cmd$none);
 				} else {
 					return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
 				}
-			case 43:
+			case 'FromXInput':
 				var str = msg.a;
-				var _n45 = m.b;
-				if (_n45.$ === 1) {
+				var _n45 = m.tool;
+				if (_n45.$ === 'Select') {
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
 							{
-								a: function () {
+								graph: function () {
 									var oldCenterX = function () {
-										var _n46 = A2(author$project$Graph$getCenter, m.c, m.a);
-										if (!_n46.$) {
-											var x = _n46.a.R;
+										var _n46 = A2(author$project$Graph$getCenter, m.selectedVertices, m.graph);
+										if (_n46.$ === 'Just') {
+											var x = _n46.a.x;
 											return x;
 										} else {
 											return 0;
@@ -8542,46 +8557,46 @@ var author$project$Main$update = F2(
 										elm$core$Maybe$withDefault,
 										oldCenterX,
 										elm$core$String$toFloat(str));
-									return A3(author$project$Graph$moveCenterX, m.c, newX, m.a);
+									return A3(author$project$Graph$moveCenterX, m.selectedVertices, newX, m.graph);
 								}()
 							}),
 						elm$core$Platform$Cmd$none);
 				} else {
 					return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
 				}
-			case 44:
-				var newGraph = A2(author$project$Graph$removeVertices, m.c, m.a);
+			case 'ClickOnVertexTrash':
+				var newGraph = A2(author$project$Graph$removeVertices, m.selectedVertices, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{a: newGraph, o: elm$core$Maybe$Nothing, v: elm$core$Maybe$Nothing, d: elm$core$Set$empty, c: elm$core$Set$empty}),
+						{graph: newGraph, highlightingEdgeOnMouseOver: elm$core$Maybe$Nothing, highlightingVertexOnMouseOver: elm$core$Maybe$Nothing, selectedEdges: elm$core$Set$empty, selectedVertices: elm$core$Set$empty}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 46:
-				var newGraph = A2(author$project$Graph$removeEdges, m.d, m.a);
+			case 'ClickOnEdgeTrash':
+				var newGraph = A2(author$project$Graph$removeEdges, m.selectedEdges, m.graph);
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{a: newGraph, o: elm$core$Maybe$Nothing, d: elm$core$Set$empty}),
+						{graph: newGraph, highlightingEdgeOnMouseOver: elm$core$Maybe$Nothing, selectedEdges: elm$core$Set$empty}),
 					elm$core$Platform$Cmd$batch(
 						_List_fromArray(
 							[
 								sendGraphData(newGraph),
 								reheatSimulationIfVaderIsOn
 							])));
-			case 47:
-				var _n47 = elm$core$Set$toList(m.d);
+			case 'ClickOnEdgeContract':
+				var _n47 = elm$core$Set$toList(m.selectedEdges);
 				if (_n47.b && (!_n47.b.b)) {
 					var selectedEdge = _n47.a;
-					var newGraph = A3(author$project$Graph$contractEdge, selectedEdge, m.j, m.a);
+					var newGraph = A3(author$project$Graph$contractEdge, selectedEdge, m.vertexPreferences, m.graph);
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
-							{a: newGraph, o: elm$core$Maybe$Nothing, d: elm$core$Set$empty}),
+							{graph: newGraph, highlightingEdgeOnMouseOver: elm$core$Maybe$Nothing, selectedEdges: elm$core$Set$empty}),
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
@@ -8591,15 +8606,15 @@ var author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
 				}
-			case 45:
-				var _n48 = m.f;
-				if (!_n48.$) {
+			case 'ClickOnBagTrash':
+				var _n48 = m.maybeSelectedBag;
+				if (_n48.$ === 'Just') {
 					var bagId = _n48.a;
-					var newGraph = A2(author$project$Graph$removeBag, bagId, m.a);
+					var newGraph = A2(author$project$Graph$removeBag, bagId, m.graph);
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
-							{a: newGraph, f: elm$core$Maybe$Nothing}),
+							{graph: newGraph, maybeSelectedBag: elm$core$Maybe$Nothing}),
 						elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
@@ -8609,8 +8624,8 @@ var author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(m, elm$core$Platform$Cmd$none);
 				}
-			case 48:
-				var _n49 = A3(author$project$Graph$addBagAndGetNewBagId, m.c, m.e, m.a);
+			case 'ClickOnBagPlus':
+				var _n49 = A3(author$project$Graph$addBagAndGetNewBagId, m.selectedVertices, m.bagPreferences, m.graph);
 				var newGraph_ = _n49.a;
 				var idOfTheNewBag = _n49.b;
 				var newGraph = A2(
@@ -8621,43 +8636,43 @@ var author$project$Main$update = F2(
 					_Utils_update(
 						m,
 						{
-							a: newGraph,
-							f: elm$core$Maybe$Just(idOfTheNewBag)
+							graph: newGraph,
+							maybeSelectedBag: elm$core$Maybe$Just(idOfTheNewBag)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 49:
+			case 'MouseOverVertexItem':
 				var vertexId = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							v: elm$core$Maybe$Just(vertexId)
+							highlightingVertexOnMouseOver: elm$core$Maybe$Just(vertexId)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 53:
+			case 'MouseOutVertexItem':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{v: elm$core$Maybe$Nothing}),
+						{highlightingVertexOnMouseOver: elm$core$Maybe$Nothing}),
 					elm$core$Platform$Cmd$none);
-			case 54:
+			case 'MouseOutEdgeItem':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{o: elm$core$Maybe$Nothing}),
+						{highlightingEdgeOnMouseOver: elm$core$Maybe$Nothing}),
 					elm$core$Platform$Cmd$none);
-			case 57:
+			case 'ClickOnVertexItem':
 				var vertexId = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							d: elm$core$Set$empty,
-							c: elm$core$Set$singleton(vertexId),
-							b: author$project$Main$Select(author$project$Main$Idle)
+							selectedEdges: elm$core$Set$empty,
+							selectedVertices: elm$core$Set$singleton(vertexId),
+							tool: author$project$Main$Select(author$project$Main$Idle)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 58:
+			case 'ClickOnEdgeItem':
 				var _n50 = msg.a;
 				var sourceId = _n50.a;
 				var targetId = _n50.b;
@@ -8665,93 +8680,93 @@ var author$project$Main$update = F2(
 					_Utils_update(
 						m,
 						{
-							d: elm$core$Set$singleton(
+							selectedEdges: elm$core$Set$singleton(
 								_Utils_Tuple2(sourceId, targetId)),
-							c: elm$core$Set$fromList(
+							selectedVertices: elm$core$Set$fromList(
 								_List_fromArray(
 									[sourceId, targetId])),
-							b: author$project$Main$Select(author$project$Main$Idle)
+							tool: author$project$Main$Select(author$project$Main$Idle)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 51:
+			case 'MouseOverBagItem':
 				var bagId = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							K: elm$core$Maybe$Just(bagId)
+							highlightingBagOnMouseOver: elm$core$Maybe$Just(bagId)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 50:
+			case 'MouseOverEdgeItem':
 				var edgeId = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							o: elm$core$Maybe$Just(edgeId)
+							highlightingEdgeOnMouseOver: elm$core$Maybe$Just(edgeId)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 52:
+			case 'MouseOverPullCenter':
 				var bagId = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							W: elm$core$Maybe$Just(bagId)
+							highlightingPullCenterOnMouseOver: elm$core$Maybe$Just(bagId)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 55:
+			case 'MouseOutBagItem':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{K: elm$core$Maybe$Nothing}),
+						{highlightingBagOnMouseOver: elm$core$Maybe$Nothing}),
 					elm$core$Platform$Cmd$none);
-			case 56:
+			case 'MouseOutPullCenter':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{W: elm$core$Maybe$Nothing}),
+						{highlightingPullCenterOnMouseOver: elm$core$Maybe$Nothing}),
 					elm$core$Platform$Cmd$none);
-			case 59:
+			case 'ClickOnBagItem':
 				var bagId = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							f: _Utils_eq(
-								m.f,
+							maybeSelectedBag: _Utils_eq(
+								m.maybeSelectedBag,
 								elm$core$Maybe$Just(bagId)) ? elm$core$Maybe$Nothing : elm$core$Maybe$Just(bagId),
-							c: _Utils_eq(
-								m.f,
-								elm$core$Maybe$Just(bagId)) ? elm$core$Set$empty : A2(author$project$Graph$getVerticesInBag, bagId, m.a),
-							b: author$project$Main$Select(author$project$Main$Idle)
+							selectedVertices: _Utils_eq(
+								m.maybeSelectedBag,
+								elm$core$Maybe$Just(bagId)) ? elm$core$Set$empty : A2(author$project$Graph$getVerticesInBag, bagId, m.graph),
+							tool: author$project$Main$Select(author$project$Main$Idle)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 60:
+			case 'ClickOnPullCenter':
 				var bagId = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{
-							f: elm$core$Maybe$Just(bagId),
-							c: A2(author$project$Graph$getVerticesInBag, bagId, m.a)
+							maybeSelectedBag: elm$core$Maybe$Just(bagId),
+							selectedVertices: A2(author$project$Graph$getVerticesInBag, bagId, m.graph)
 						}),
 					elm$core$Platform$Cmd$none);
-			case 61:
+			case 'MouseDownOnPullCenter':
 				var bagId = msg.a;
 				var mousePos = msg.b;
-				var _n51 = A2(author$project$Graph$getBag, bagId, m.a);
-				if (!_n51.$) {
+				var _n51 = A2(author$project$Graph$getBag, bagId, m.graph);
+				if (_n51.$ === 'Just') {
 					var bag = _n51.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							m,
 							{
-								b: author$project$Main$Select(
+								tool: author$project$Main$Select(
 									A3(
 										author$project$Main$DraggingPullCenter,
 										bagId,
-										{R: bag.ao, S: bag.ap},
+										{x: bag.pullX, y: bag.pullY},
 										A2(author$project$Main$Brush, mousePos, mousePos)))
 							}),
 						elm$core$Platform$Cmd$none);
@@ -8763,7 +8778,7 @@ var author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{X: leftBarContent}),
+						{leftBarContent: leftBarContent}),
 					elm$core$Platform$Cmd$none);
 		}
 	});
@@ -8781,7 +8796,7 @@ var elm$html$Html$Attributes$stringProperty = F2(
 var elm$html$Html$Attributes$id = elm$html$Html$Attributes$stringProperty('id');
 var author$project$Main$forDebugging = function (m) {
 	var toShow = function () {
-		var _n0 = _Utils_Tuple2(m.ab, m.E);
+		var _n0 = _Utils_Tuple2(m.shiftIsDown, m.altIsDown);
 		if (_n0.a) {
 			if (_n0.b) {
 				return 'Shift + Alt';
@@ -8840,15 +8855,15 @@ var author$project$Icons$draw40pxWithColor = F2(
 					_List_Nil)
 				]));
 	});
-var author$project$Icons$icons = {a0: 'M50,15A35,35,0,1,0,85,50,35,35,0,0,0,50,15ZM38.17,70.94V29.06L70.21,50Z', a4: 'M30.93,75.32h.21v-.74a1.73,1.73,0,0,1,1.72-1.73h.81a9.51,9.51,0,0,0-.07-3c-.93-4.19-2.07-8.35-3.37-12.44C28.08,50.71,26.79,44,28.92,37c2.38-7.8,7.1-13.34,15.13-15.75a2.87,2.87,0,0,0,1.44-1.19A17.19,17.19,0,0,1,50,15c.1.91.21,1.49.21,2.07,0,.86,0,1.73-.1,2.58-.11,1.2.26,1.92,1.58,2a14.15,14.15,0,0,1,2.16.51c0,2.68,0,2.68,2.43,3.67a17.8,17.8,0,0,1,2.38,1,6.72,6.72,0,0,1,1.57,1.4A46.81,46.81,0,0,0,63.31,32c2.35,2.18,4.81,4.26,7.3,6.28,1.08.88,1.9,1.67,1.36,3.21A3.22,3.22,0,0,0,72.13,43a5.74,5.74,0,0,1-2.53,5c-3.46,1.68-6.19,1.21-8.93-1.56a4,4,0,0,0-4.55-1.2,13.89,13.89,0,0,1-8.09.81l1.3,1.37A60.33,60.33,0,0,1,58.6,58.76c2,3.37,3.64,6.92,3.57,10.93a26.11,26.11,0,0,1-.28,3.16h.34A1.72,1.72,0,0,1,64,74.58v.74h.2a2,2,0,0,1,2,2V85H29V77.27A2,2,0,0,1,30.93,75.32Z', a5: 'M87.92,35.61C86.93,24.4,79,15,68,15A19.91,19.91,0,0,0,49.77,27.37C46.7,20.09,40.14,15,32,15c-11,0-18.91,9.4-19.9,20.61,0,0-.54,2.78.64,7.79a34.43,34.43,0,0,0,10.5,17.5L49.77,85l27-24.1a34.43,34.43,0,0,0,10.5-17.5C88.46,38.39,87.92,35.61,87.92,35.61ZM59.86,65.17a11,11,0,0,1-5.73,3.67,1.62,1.62,0,0,0-1.39,1.83c0,1,0,2,0,3a1.25,1.25,0,0,1-1.35,1.41c-1.08,0-2.18,0-3.27,0a1.32,1.32,0,0,1-1.42-1.5c0-.74,0-1.48,0-2.22,0-1.64-.07-1.7-1.64-2a20.4,20.4,0,0,1-5.83-1.67c-1.45-.71-1.61-1.07-1.19-2.58.31-1.13.62-2.26,1-3.38.41-1.29.76-1.45,2-.83a18.84,18.84,0,0,0,6.47,1.93,7.91,7.91,0,0,0,4.25-.55,3.31,3.31,0,0,0,.78-5.8A9.53,9.53,0,0,0,50,55.16a59.52,59.52,0,0,1-6.62-3c-3.39-2-5.55-4.82-5.29-9,.28-4.67,2.92-7.58,7.2-9.14,1.77-.64,1.78-.61,1.79-2.46,0-.63,0-1.25,0-1.87,0-1.39.27-1.64,1.65-1.67.43,0,.85,0,1.28,0,3,0,3,0,3,2.94,0,2.09,0,2.1,2.09,2.42a18.32,18.32,0,0,1,4.58,1.37,1.34,1.34,0,0,1,.87,1.78c-.38,1.27-.72,2.56-1.13,3.82s-.77,1.37-1.91.82a14.64,14.64,0,0,0-7.27-1.44,5.42,5.42,0,0,0-1.94.4,2.75,2.75,0,0,0-.68,4.89,12.86,12.86,0,0,0,3.16,1.76,58.4,58.4,0,0,1,5.76,2.61C62.44,52.72,64,60.11,59.86,65.17Z', a7: 'M81.61,34.77a11.59,11.59,0,0,1-14.19,1.71l-6.34,6.34,4.36,4.37-11.6,2.42-5.06,5.06q-1.22,5.8-2.42,11.6L42,61.91l-5.51,5.51a11.6,11.6,0,1,1-3.88-3.88L38.11,58c-1.45-1.47-2.9-3-4.36-4.42L44.84,51.3l5.63-5.63,2.31-11.08,4.41,4.35,6.35-6.34a11.58,11.58,0,1,1,18.07,2.17Z', bb: 'M85.89,50.89a35.89,35.89,0,0,1-24.52,34c-1.83.35-2.47-.76-2.47-1.72,0-1.18,0-5,0-9.85,0-3.34-1.15-5.53-2.43-6.64,8-.89,16.38-3.92,16.38-17.71a13.85,13.85,0,0,0-3.69-9.63,12.89,12.89,0,0,0-.36-9.5s-3-1-9.85,3.68a34,34,0,0,0-18,0c-6.86-4.64-9.87-3.68-9.87-3.68a12.92,12.92,0,0,0-.35,9.5A13.86,13.86,0,0,0,27.1,49c0,13.75,8.38,16.83,16.35,17.74a7.62,7.62,0,0,0-2.28,4.79c-2,.92-7.24,2.51-10.44-3,0,0-1.9-3.44-5.5-3.7,0,0-3.5,0-.25,2.19,0,0,2.36,1.1,4,5.24,0,0,2.11,7,12.09,4.82,0,3,0,5.25,0,6.1s-.66,2.06-2.45,1.73a35.89,35.89,0,1,1,47.23-34Z', bh: 'M43.11,51.72H31.64L45.41,15H63.77Q58.61,27.63,53.44,40.25H70.66L29.34,85Z', bi: 'M35.33,34.38H19a4,4,0,0,1-4-4V19a4,4,0,0,1,4-4H35.33a4,4,0,0,1,4,4V30.38A4,4,0,0,1,35.33,34.38Zm49.67-4V19a4,4,0,0,0-4-4H47.38a4,4,0,0,0-4,4V30.38a4,4,0,0,0,4,4H81A4,4,0,0,0,85,30.38Zm0,25.31V44.31a4,4,0,0,0-4-4H47.38a4,4,0,0,0-4,4V55.69a4,4,0,0,0,4,4H81A4,4,0,0,0,85,55.69ZM85,81V69.62a4,4,0,0,0-4-4H47.38a4,4,0,0,0-4,4V81a4,4,0,0,0,4,4H81A4,4,0,0,0,85,81ZM39.33,55.69V44.31a4,4,0,0,0-4-4H19a4,4,0,0,0-4,4V55.69a4,4,0,0,0,4,4H35.33A4,4,0,0,0,39.33,55.69Zm0,25.31V69.62a4,4,0,0,0-4-4H19a4,4,0,0,0-4,4V81a4,4,0,0,0,4,4H35.33A4,4,0,0,0,39.33,81Z', bj: 'M64.51,24.52,15,74.19,25.78,85,75.29,35.33ZM56.45,48.39l-5-5L63.35,31.54l4.95,5ZM35.74,25.74,38.38,15l3.95,10.74,7.79,3.1-7.19,3.93L38.21,41l-2.47-9.62L26.64,28Zm35,30.83,3.43-3.52v6l5,2-6.31,2.85-.5,7.18-3.59-8.25-6.94-.5,6.31-3-2.53-6.26Zm7.79-38.43,2.64-2.7V20L85,21.58l-4.84,2.19.44,6.69L77,23l-5.33-.39,4.84-2.31-1.93-4.81Z', bo: 'M29,64.23l13.16,10-13.88,10a3.59,3.59,0,0,1-5-5Zm3.35-4.78L45.48,69l22-30.62-13.16-10Q43.32,43.89,32.32,59.45Zm25.2-34.73L70.2,34.77l7.18-8.85c.05-.36.68-5.3-3.11-8.61A9.65,9.65,0,0,0,64,15.87Z', bp: 'M85,43.9V56.1a3.23,3.23,0,0,1-3.23,3.23H60.22V81.77A3.24,3.24,0,0,1,57,85H44.79a3.24,3.24,0,0,1-3.24-3.23V59.33H18.23A3.23,3.23,0,0,1,15,56.1V43.9a3.23,3.23,0,0,1,3.23-3.23H41.55V18.23A3.24,3.24,0,0,1,44.79,15H57a3.24,3.24,0,0,1,3.23,3.23V40.67H81.77A3.23,3.23,0,0,1,85,43.9Z', bq: 'M69.51,51.72,52.3,52.87,67.21,79.26,56.89,85,43.11,57.46,30.49,68.93V15Z', br: 'M83.91,45.62c-.57-.35-5-3-6.74-3.8L75,36.57c.65-1.74,1.88-6.61,2.07-7.45A2.33,2.33,0,0,0,76.45,27l-3.4-3.4a2.33,2.33,0,0,0-2.17-.62c-.64.14-5.64,1.4-7.45,2.07l-5.25-2.17c-.77-1.68-3.33-6-3.8-6.74a2.33,2.33,0,0,0-2-1.09H47.6a2.33,2.33,0,0,0-2,1.09c-.35.57-3,5-3.8,6.74L36.57,25c-1.74-.65-6.6-1.88-7.45-2.07a2.33,2.33,0,0,0-2.17.62L23.55,27a2.33,2.33,0,0,0-.62,2.17c.14.64,1.4,5.64,2.07,7.45l-2.17,5.25c-1.68.77-6,3.33-6.74,3.8a2.33,2.33,0,0,0-1.09,2v4.8a2.33,2.33,0,0,0,1.09,2c.57.35,5,3,6.74,3.8L25,63.43c-.65,1.74-1.88,6.6-2.07,7.45a2.33,2.33,0,0,0,.62,2.17l3.4,3.4a2.33,2.33,0,0,0,2.17.62c.64-.14,5.64-1.4,7.45-2.07l5.25,2.17c.77,1.68,3.33,6,3.8,6.74a2.33,2.33,0,0,0,2,1.09h4.8a2.33,2.33,0,0,0,2-1.09c.35-.57,3-5,3.8-6.74L63.43,75c1.74.65,6.6,1.88,7.45,2.07a2.33,2.33,0,0,0,2.17-.62l3.4-3.4a2.33,2.33,0,0,0,.62-2.17c-.14-.64-1.4-5.64-2.07-7.45l2.17-5.25c1.68-.77,6-3.33,6.74-3.8a2.33,2.33,0,0,0,1.09-2V47.6A2.33,2.33,0,0,0,83.91,45.62ZM50,65.26A15.26,15.26,0,1,1,65.26,50,15.28,15.28,0,0,1,50,65.26Z', bs: 'M47.12,69.3a30.75,30.75,0,0,1-10.87-1.82,21.22,21.22,0,0,1-8.16-5.37A23.92,23.92,0,0,1,23,53.33a37.44,37.44,0,0,1-1.78-12.11,28.56,28.56,0,0,1,1.93-10.71,24.35,24.35,0,0,1,5.38-8.28,24.09,24.09,0,0,1,8.23-5.34A28.68,28.68,0,0,1,47.35,15a27.69,27.69,0,0,1,10.37,1.89,24.11,24.11,0,0,1,8.12,5.3,23.86,23.86,0,0,1,5.3,8.24A29,29,0,0,1,73,41.07q0,9.43-3.63,15.74a24.06,24.06,0,0,1-9.6,9.47l.24.47q5.1,10.59,10.05,10.59a9,9,0,0,0,2.28-.23A4.28,4.28,0,0,0,74,76.34a6,6,0,0,0,1.27-1.4c.39-.56.82-1.23,1.28-2a.84.84,0,0,1,.7-.5,1.39,1.39,0,0,1,.85.19,1.7,1.7,0,0,1,.62.7,1,1,0,0,1,0,.93A33.27,33.27,0,0,1,77,77.57a20.05,20.05,0,0,1-2.51,3.52,13.51,13.51,0,0,1-3.44,2.79A8.67,8.67,0,0,1,66.69,85,7.5,7.5,0,0,1,62,83.3a19.37,19.37,0,0,1-3.91-4.22,33.54,33.54,0,0,1-3-5.33q-1.27-2.84-2.13-5.07A28.26,28.26,0,0,1,47.12,69.3ZM45,53.13a12.54,12.54,0,0,1,6.11,1.78q3.18,1.79,6,6.58A23.47,23.47,0,0,0,61.54,53a35.87,35.87,0,0,0,1.59-10.79,47.92,47.92,0,0,0-.81-8.82,25.55,25.55,0,0,0-2.67-7.7A15.17,15.17,0,0,0,54.7,20.3a13.39,13.39,0,0,0-7.58-2.05,12.41,12.41,0,0,0-7.23,2.09,16.36,16.36,0,0,0-5,5.45A26.23,26.23,0,0,0,32,33.45a41,41,0,0,0-.93,8.7A52.68,52.68,0,0,0,32,51.78a21.5,21.5,0,0,0,3.09,8,11.85,11.85,0,0,1,1.28-2.43,9.2,9.2,0,0,1,2-2.13,10.24,10.24,0,0,1,2.82-1.51A11.48,11.48,0,0,1,45,53.13Zm2.48,12.92a12.5,12.5,0,0,0,4.17-.7,42.2,42.2,0,0,0-4.06-6.84,5.37,5.37,0,0,0-4.37-2.36,4.16,4.16,0,0,0-2.39.73,8.59,8.59,0,0,0-1.86,1.67,7.24,7.24,0,0,0-1.16,1.85,4.29,4.29,0,0,0-.39,1.24c0,.26.3.63.89,1.12a13,13,0,0,0,2.32,1.47,19.7,19.7,0,0,0,3.21,1.28A12.49,12.49,0,0,0,47.43,66.05Z', bu: 'M24.32,85,15,76.79,23.67,68,33,76.17ZM41.65,67.35l-9.31-8.22L41,50.31l9.31,8.21ZM59,49.69l-9.31-8.21,8.67-8.83,9.31,8.22ZM76.33,32,67,23.83,75.68,15,85,23.21Z', bv: 'M84.75,25.37h-10V15h10Zm-19.93,0h-10V15h10Zm-19.93,0h-10V15h10ZM25,25.37H15V15H25ZM84.75,85h-10V74.63h10ZM64.82,85h-10V74.63h10ZM44.89,85h-10V74.63h10ZM25,85H15V74.63H25Zm0-19.61H15V55H25Zm0-20.74H15V34.28H25ZM85,65.39H75V55H85Zm0-20.74H75V34.28H85Z', bz: 'M25,29.26V24.07H37.5c-.52-3.1.34-6.13,2.27-7.77A5.54,5.54,0,0,1,43.18,15H58a5.84,5.84,0,0,1,2.28,1.3c2.8,2.6,2.33,7.3,2.27,7.77H75v5.19H70.45v48a9.17,9.17,0,0,1-1.13,3.89A7.94,7.94,0,0,1,63.64,85H37.5a8.19,8.19,0,0,1-6.82-3.89,9,9,0,0,1-1.13-3.89v-48Zm17-5.19H58a4.88,4.88,0,0,0,0-3.88,3.42,3.42,0,0,0-1.13-1.3H43.18a3.42,3.42,0,0,0-1.13,1.3A4.88,4.88,0,0,0,42.05,24.07ZM39.77,35.74V72h3.41V35.74Zm9.09,0V72h3.41V35.74Zm9.09,0V72h3.41V35.74Z', bD: 'M65,20c9,5.84,13.54,17.52,12,30l9,34H83c-.93-2.69-2.43-7.25-4-13-4.24-15.56-4.26-22.76-10-26-2.7-1.53-6.06-1.83-8-2a27.14,27.14,0,0,0-10,1V16A26,26,0,0,1,65,20ZM53,48V60H72a14.12,14.12,0,0,0-4-9A14.68,14.68,0,0,0,53,48ZM33,51a14.12,14.12,0,0,0-4,9H48V48A14.68,14.68,0,0,0,33,51ZM66.55,82Q69.27,72,72,62H52ZM49,62H29q2.73,10,5.45,20Zm2,18H61L51,66ZM50,66,40,80H50Z'};
-var author$project$Main$AlgorithmVisualizations = 5;
-var author$project$Main$GamesOnGraphs = 6;
-var author$project$Main$GraphGenerators = 4;
-var author$project$Main$GraphOperations = 2;
-var author$project$Main$GraphQueries = 3;
-var author$project$Main$Preferences = 0;
+var author$project$Icons$icons = {algoVizPlay: 'M50,15A35,35,0,1,0,85,50,35,35,0,0,0,50,15ZM38.17,70.94V29.06L70.21,50Z', chessHorse: 'M30.93,75.32h.21v-.74a1.73,1.73,0,0,1,1.72-1.73h.81a9.51,9.51,0,0,0-.07-3c-.93-4.19-2.07-8.35-3.37-12.44C28.08,50.71,26.79,44,28.92,37c2.38-7.8,7.1-13.34,15.13-15.75a2.87,2.87,0,0,0,1.44-1.19A17.19,17.19,0,0,1,50,15c.1.91.21,1.49.21,2.07,0,.86,0,1.73-.1,2.58-.11,1.2.26,1.92,1.58,2a14.15,14.15,0,0,1,2.16.51c0,2.68,0,2.68,2.43,3.67a17.8,17.8,0,0,1,2.38,1,6.72,6.72,0,0,1,1.57,1.4A46.81,46.81,0,0,0,63.31,32c2.35,2.18,4.81,4.26,7.3,6.28,1.08.88,1.9,1.67,1.36,3.21A3.22,3.22,0,0,0,72.13,43a5.74,5.74,0,0,1-2.53,5c-3.46,1.68-6.19,1.21-8.93-1.56a4,4,0,0,0-4.55-1.2,13.89,13.89,0,0,1-8.09.81l1.3,1.37A60.33,60.33,0,0,1,58.6,58.76c2,3.37,3.64,6.92,3.57,10.93a26.11,26.11,0,0,1-.28,3.16h.34A1.72,1.72,0,0,1,64,74.58v.74h.2a2,2,0,0,1,2,2V85H29V77.27A2,2,0,0,1,30.93,75.32Z', donateHeart: 'M87.92,35.61C86.93,24.4,79,15,68,15A19.91,19.91,0,0,0,49.77,27.37C46.7,20.09,40.14,15,32,15c-11,0-18.91,9.4-19.9,20.61,0,0-.54,2.78.64,7.79a34.43,34.43,0,0,0,10.5,17.5L49.77,85l27-24.1a34.43,34.43,0,0,0,10.5-17.5C88.46,38.39,87.92,35.61,87.92,35.61ZM59.86,65.17a11,11,0,0,1-5.73,3.67,1.62,1.62,0,0,0-1.39,1.83c0,1,0,2,0,3a1.25,1.25,0,0,1-1.35,1.41c-1.08,0-2.18,0-3.27,0a1.32,1.32,0,0,1-1.42-1.5c0-.74,0-1.48,0-2.22,0-1.64-.07-1.7-1.64-2a20.4,20.4,0,0,1-5.83-1.67c-1.45-.71-1.61-1.07-1.19-2.58.31-1.13.62-2.26,1-3.38.41-1.29.76-1.45,2-.83a18.84,18.84,0,0,0,6.47,1.93,7.91,7.91,0,0,0,4.25-.55,3.31,3.31,0,0,0,.78-5.8A9.53,9.53,0,0,0,50,55.16a59.52,59.52,0,0,1-6.62-3c-3.39-2-5.55-4.82-5.29-9,.28-4.67,2.92-7.58,7.2-9.14,1.77-.64,1.78-.61,1.79-2.46,0-.63,0-1.25,0-1.87,0-1.39.27-1.64,1.65-1.67.43,0,.85,0,1.28,0,3,0,3,0,3,2.94,0,2.09,0,2.1,2.09,2.42a18.32,18.32,0,0,1,4.58,1.37,1.34,1.34,0,0,1,.87,1.78c-.38,1.27-.72,2.56-1.13,3.82s-.77,1.37-1.91.82a14.64,14.64,0,0,0-7.27-1.44,5.42,5.42,0,0,0-1.94.4,2.75,2.75,0,0,0-.68,4.89,12.86,12.86,0,0,0,3.16,1.76,58.4,58.4,0,0,1,5.76,2.61C62.44,52.72,64,60.11,59.86,65.17Z', edgeContract: 'M81.61,34.77a11.59,11.59,0,0,1-14.19,1.71l-6.34,6.34,4.36,4.37-11.6,2.42-5.06,5.06q-1.22,5.8-2.42,11.6L42,61.91l-5.51,5.51a11.6,11.6,0,1,1-3.88-3.88L38.11,58c-1.45-1.47-2.9-3-4.36-4.42L44.84,51.3l5.63-5.63,2.31-11.08,4.41,4.35,6.35-6.34a11.58,11.58,0,1,1,18.07,2.17Z', githubCat: 'M85.89,50.89a35.89,35.89,0,0,1-24.52,34c-1.83.35-2.47-.76-2.47-1.72,0-1.18,0-5,0-9.85,0-3.34-1.15-5.53-2.43-6.64,8-.89,16.38-3.92,16.38-17.71a13.85,13.85,0,0,0-3.69-9.63,12.89,12.89,0,0,0-.36-9.5s-3-1-9.85,3.68a34,34,0,0,0-18,0c-6.86-4.64-9.87-3.68-9.87-3.68a12.92,12.92,0,0,0-.35,9.5A13.86,13.86,0,0,0,27.1,49c0,13.75,8.38,16.83,16.35,17.74a7.62,7.62,0,0,0-2.28,4.79c-2,.92-7.24,2.51-10.44-3,0,0-1.9-3.44-5.5-3.7,0,0-3.5,0-.25,2.19,0,0,2.36,1.1,4,5.24,0,0,2.11,7,12.09,4.82,0,3,0,5.25,0,6.1s-.66,2.06-2.45,1.73a35.89,35.89,0,1,1,47.23-34Z', lightning: 'M43.11,51.72H31.64L45.41,15H63.77Q58.61,27.63,53.44,40.25H70.66L29.34,85Z', listOfThree: 'M35.33,34.38H19a4,4,0,0,1-4-4V19a4,4,0,0,1,4-4H35.33a4,4,0,0,1,4,4V30.38A4,4,0,0,1,35.33,34.38Zm49.67-4V19a4,4,0,0,0-4-4H47.38a4,4,0,0,0-4,4V30.38a4,4,0,0,0,4,4H81A4,4,0,0,0,85,30.38Zm0,25.31V44.31a4,4,0,0,0-4-4H47.38a4,4,0,0,0-4,4V55.69a4,4,0,0,0,4,4H81A4,4,0,0,0,85,55.69ZM85,81V69.62a4,4,0,0,0-4-4H47.38a4,4,0,0,0-4,4V81a4,4,0,0,0,4,4H81A4,4,0,0,0,85,81ZM39.33,55.69V44.31a4,4,0,0,0-4-4H19a4,4,0,0,0-4,4V55.69a4,4,0,0,0,4,4H35.33A4,4,0,0,0,39.33,55.69Zm0,25.31V69.62a4,4,0,0,0-4-4H19a4,4,0,0,0-4,4V81a4,4,0,0,0,4,4H35.33A4,4,0,0,0,39.33,81Z', magicStick: 'M64.51,24.52,15,74.19,25.78,85,75.29,35.33ZM56.45,48.39l-5-5L63.35,31.54l4.95,5ZM35.74,25.74,38.38,15l3.95,10.74,7.79,3.1-7.19,3.93L38.21,41l-2.47-9.62L26.64,28Zm35,30.83,3.43-3.52v6l5,2-6.31,2.85-.5,7.18-3.59-8.25-6.94-.5,6.31-3-2.53-6.26Zm7.79-38.43,2.64-2.7V20L85,21.58l-4.84,2.19.44,6.69L77,23l-5.33-.39,4.84-2.31-1.93-4.81Z', pen: 'M29,64.23l13.16,10-13.88,10a3.59,3.59,0,0,1-5-5Zm3.35-4.78L45.48,69l22-30.62-13.16-10Q43.32,43.89,32.32,59.45Zm25.2-34.73L70.2,34.77l7.18-8.85c.05-.36.68-5.3-3.11-8.61A9.65,9.65,0,0,0,64,15.87Z', plus: 'M85,43.9V56.1a3.23,3.23,0,0,1-3.23,3.23H60.22V81.77A3.24,3.24,0,0,1,57,85H44.79a3.24,3.24,0,0,1-3.24-3.23V59.33H18.23A3.23,3.23,0,0,1,15,56.1V43.9a3.23,3.23,0,0,1,3.23-3.23H41.55V18.23A3.24,3.24,0,0,1,44.79,15H57a3.24,3.24,0,0,1,3.23,3.23V40.67H81.77A3.23,3.23,0,0,1,85,43.9Z', pointer: 'M69.51,51.72,52.3,52.87,67.21,79.26,56.89,85,43.11,57.46,30.49,68.93V15Z', preferencesGear: 'M83.91,45.62c-.57-.35-5-3-6.74-3.8L75,36.57c.65-1.74,1.88-6.61,2.07-7.45A2.33,2.33,0,0,0,76.45,27l-3.4-3.4a2.33,2.33,0,0,0-2.17-.62c-.64.14-5.64,1.4-7.45,2.07l-5.25-2.17c-.77-1.68-3.33-6-3.8-6.74a2.33,2.33,0,0,0-2-1.09H47.6a2.33,2.33,0,0,0-2,1.09c-.35.57-3,5-3.8,6.74L36.57,25c-1.74-.65-6.6-1.88-7.45-2.07a2.33,2.33,0,0,0-2.17.62L23.55,27a2.33,2.33,0,0,0-.62,2.17c.14.64,1.4,5.64,2.07,7.45l-2.17,5.25c-1.68.77-6,3.33-6.74,3.8a2.33,2.33,0,0,0-1.09,2v4.8a2.33,2.33,0,0,0,1.09,2c.57.35,5,3,6.74,3.8L25,63.43c-.65,1.74-1.88,6.6-2.07,7.45a2.33,2.33,0,0,0,.62,2.17l3.4,3.4a2.33,2.33,0,0,0,2.17.62c.64-.14,5.64-1.4,7.45-2.07l5.25,2.17c.77,1.68,3.33,6,3.8,6.74a2.33,2.33,0,0,0,2,1.09h4.8a2.33,2.33,0,0,0,2-1.09c.35-.57,3-5,3.8-6.74L63.43,75c1.74.65,6.6,1.88,7.45,2.07a2.33,2.33,0,0,0,2.17-.62l3.4-3.4a2.33,2.33,0,0,0,.62-2.17c-.14-.64-1.4-5.64-2.07-7.45l2.17-5.25c1.68-.77,6-3.33,6.74-3.8a2.33,2.33,0,0,0,1.09-2V47.6A2.33,2.33,0,0,0,83.91,45.62ZM50,65.26A15.26,15.26,0,1,1,65.26,50,15.28,15.28,0,0,1,50,65.26Z', qForQuery: 'M47.12,69.3a30.75,30.75,0,0,1-10.87-1.82,21.22,21.22,0,0,1-8.16-5.37A23.92,23.92,0,0,1,23,53.33a37.44,37.44,0,0,1-1.78-12.11,28.56,28.56,0,0,1,1.93-10.71,24.35,24.35,0,0,1,5.38-8.28,24.09,24.09,0,0,1,8.23-5.34A28.68,28.68,0,0,1,47.35,15a27.69,27.69,0,0,1,10.37,1.89,24.11,24.11,0,0,1,8.12,5.3,23.86,23.86,0,0,1,5.3,8.24A29,29,0,0,1,73,41.07q0,9.43-3.63,15.74a24.06,24.06,0,0,1-9.6,9.47l.24.47q5.1,10.59,10.05,10.59a9,9,0,0,0,2.28-.23A4.28,4.28,0,0,0,74,76.34a6,6,0,0,0,1.27-1.4c.39-.56.82-1.23,1.28-2a.84.84,0,0,1,.7-.5,1.39,1.39,0,0,1,.85.19,1.7,1.7,0,0,1,.62.7,1,1,0,0,1,0,.93A33.27,33.27,0,0,1,77,77.57a20.05,20.05,0,0,1-2.51,3.52,13.51,13.51,0,0,1-3.44,2.79A8.67,8.67,0,0,1,66.69,85,7.5,7.5,0,0,1,62,83.3a19.37,19.37,0,0,1-3.91-4.22,33.54,33.54,0,0,1-3-5.33q-1.27-2.84-2.13-5.07A28.26,28.26,0,0,1,47.12,69.3ZM45,53.13a12.54,12.54,0,0,1,6.11,1.78q3.18,1.79,6,6.58A23.47,23.47,0,0,0,61.54,53a35.87,35.87,0,0,0,1.59-10.79,47.92,47.92,0,0,0-.81-8.82,25.55,25.55,0,0,0-2.67-7.7A15.17,15.17,0,0,0,54.7,20.3a13.39,13.39,0,0,0-7.58-2.05,12.41,12.41,0,0,0-7.23,2.09,16.36,16.36,0,0,0-5,5.45A26.23,26.23,0,0,0,32,33.45a41,41,0,0,0-.93,8.7A52.68,52.68,0,0,0,32,51.78a21.5,21.5,0,0,0,3.09,8,11.85,11.85,0,0,1,1.28-2.43,9.2,9.2,0,0,1,2-2.13,10.24,10.24,0,0,1,2.82-1.51A11.48,11.48,0,0,1,45,53.13Zm2.48,12.92a12.5,12.5,0,0,0,4.17-.7,42.2,42.2,0,0,0-4.06-6.84,5.37,5.37,0,0,0-4.37-2.36,4.16,4.16,0,0,0-2.39.73,8.59,8.59,0,0,0-1.86,1.67,7.24,7.24,0,0,0-1.16,1.85,4.29,4.29,0,0,0-.39,1.24c0,.26.3.63.89,1.12a13,13,0,0,0,2.32,1.47,19.7,19.7,0,0,0,3.21,1.28A12.49,12.49,0,0,0,47.43,66.05Z', selectionLine: 'M24.32,85,15,76.79,23.67,68,33,76.17ZM41.65,67.35l-9.31-8.22L41,50.31l9.31,8.21ZM59,49.69l-9.31-8.21,8.67-8.83,9.31,8.22ZM76.33,32,67,23.83,75.68,15,85,23.21Z', selectionRect: 'M84.75,25.37h-10V15h10Zm-19.93,0h-10V15h10Zm-19.93,0h-10V15h10ZM25,25.37H15V15H25ZM84.75,85h-10V74.63h10ZM64.82,85h-10V74.63h10ZM44.89,85h-10V74.63h10ZM25,85H15V74.63H25Zm0-19.61H15V55H25Zm0-20.74H15V34.28H25ZM85,65.39H75V55H85Zm0-20.74H75V34.28H85Z', trash: 'M25,29.26V24.07H37.5c-.52-3.1.34-6.13,2.27-7.77A5.54,5.54,0,0,1,43.18,15H58a5.84,5.84,0,0,1,2.28,1.3c2.8,2.6,2.33,7.3,2.27,7.77H75v5.19H70.45v48a9.17,9.17,0,0,1-1.13,3.89A7.94,7.94,0,0,1,63.64,85H37.5a8.19,8.19,0,0,1-6.82-3.89,9,9,0,0,1-1.13-3.89v-48Zm17-5.19H58a4.88,4.88,0,0,0,0-3.88,3.42,3.42,0,0,0-1.13-1.3H43.18a3.42,3.42,0,0,0-1.13,1.3A4.88,4.88,0,0,0,42.05,24.07ZM39.77,35.74V72h3.41V35.74Zm9.09,0V72h3.41V35.74Zm9.09,0V72h3.41V35.74Z', vader: 'M65,20c9,5.84,13.54,17.52,12,30l9,34H83c-.93-2.69-2.43-7.25-4-13-4.24-15.56-4.26-22.76-10-26-2.7-1.53-6.06-1.83-8-2a27.14,27.14,0,0,0-10,1V16A26,26,0,0,1,65,20ZM53,48V60H72a14.12,14.12,0,0,0-4-9A14.68,14.68,0,0,0,53,48ZM33,51a14.12,14.12,0,0,0-4,9H48V48A14.68,14.68,0,0,0,33,51ZM66.55,82Q69.27,72,72,62H52ZM49,62H29q2.73,10,5.45,20Zm2,18H61L51,66ZM50,66,40,80H50Z'};
+var author$project$Main$AlgorithmVisualizations = {$: 'AlgorithmVisualizations'};
+var author$project$Main$GamesOnGraphs = {$: 'GamesOnGraphs'};
+var author$project$Main$GraphGenerators = {$: 'GraphGenerators'};
+var author$project$Main$GraphOperations = {$: 'GraphOperations'};
+var author$project$Main$GraphQueries = {$: 'GraphQueries'};
+var author$project$Main$Preferences = {$: 'Preferences'};
 var author$project$Main$ThinBarButtonClicked = function (a) {
-	return {$: 62, a: a};
+	return {$: 'ThinBarButtonClicked', a: a};
 };
 var author$project$Main$leftBarHeaderSize = 38;
 var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
@@ -8929,6 +8944,7 @@ var author$project$Main$leftBarContentForGraphQueries = function (m) {
 				]))
 		]);
 };
+var author$project$Colors$highlightColorForMouseOver = 'rgb(255, 47, 146)';
 var elm$core$String$concat = function (strings) {
 	return A2(elm$core$String$join, '', strings);
 };
@@ -8977,41 +8993,41 @@ var author$project$Icons$draw = F2(
 	});
 var author$project$Icons$draw24px = author$project$Icons$draw(24);
 var author$project$Main$ClickOnBagItem = function (a) {
-	return {$: 59, a: a};
+	return {$: 'ClickOnBagItem', a: a};
 };
-var author$project$Main$ClickOnBagPlus = {$: 48};
-var author$project$Main$ClickOnBagTrash = {$: 45};
-var author$project$Main$ClickOnEdgeContract = {$: 47};
+var author$project$Main$ClickOnBagPlus = {$: 'ClickOnBagPlus'};
+var author$project$Main$ClickOnBagTrash = {$: 'ClickOnBagTrash'};
+var author$project$Main$ClickOnEdgeContract = {$: 'ClickOnEdgeContract'};
 var author$project$Main$ClickOnEdgeItem = function (a) {
-	return {$: 58, a: a};
+	return {$: 'ClickOnEdgeItem', a: a};
 };
-var author$project$Main$ClickOnEdgeTrash = {$: 46};
+var author$project$Main$ClickOnEdgeTrash = {$: 'ClickOnEdgeTrash'};
 var author$project$Main$ClickOnVertexItem = function (a) {
-	return {$: 57, a: a};
+	return {$: 'ClickOnVertexItem', a: a};
 };
 var author$project$Main$MouseOutBagItem = function (a) {
-	return {$: 55, a: a};
+	return {$: 'MouseOutBagItem', a: a};
 };
 var author$project$Main$MouseOutEdgeItem = function (a) {
-	return {$: 54, a: a};
+	return {$: 'MouseOutEdgeItem', a: a};
 };
 var author$project$Main$MouseOutVertexItem = function (a) {
-	return {$: 53, a: a};
+	return {$: 'MouseOutVertexItem', a: a};
 };
 var author$project$Main$MouseOverBagItem = function (a) {
-	return {$: 51, a: a};
+	return {$: 'MouseOverBagItem', a: a};
 };
 var author$project$Main$MouseOverEdgeItem = function (a) {
-	return {$: 50, a: a};
+	return {$: 'MouseOverEdgeItem', a: a};
 };
 var author$project$Main$MouseOverVertexItem = function (a) {
-	return {$: 49, a: a};
+	return {$: 'MouseOverVertexItem', a: a};
 };
 var elm$core$Dict$sizeHelp = F2(
 	function (n, dict) {
 		sizeHelp:
 		while (true) {
-			if (dict.$ === -2) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
 				return n;
 			} else {
 				var left = dict.d;
@@ -9028,13 +9044,13 @@ var elm$core$Dict$size = function (dict) {
 	return A2(elm$core$Dict$sizeHelp, 0, dict);
 };
 var elm$core$Set$size = function (_n0) {
-	var dict = _n0;
+	var dict = _n0.a;
 	return elm$core$Dict$size(dict);
 };
 var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
 var elm$html$Html$Attributes$title = elm$html$Html$Attributes$stringProperty('title');
 var elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 0, a: a};
+	return {$: 'Normal', a: a};
 };
 var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var elm$html$Html$Events$on = F2(
@@ -9077,7 +9093,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 					]),
 				_List_fromArray(
 					[
-						author$project$Icons$draw24px(author$project$Icons$icons.bz)
+						author$project$Icons$draw24px(author$project$Icons$icons.trash)
 					]))
 			]));
 	var vertexItem = F2(
@@ -9088,10 +9104,10 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 					[
 						A2(elm$html$Html$Attributes$style, 'padding', '4px 20px 4px 20px'),
 						elm$html$Html$Attributes$class(
-						A2(elm$core$Set$member, vertexId, m.c) ? 'leftBarContent-item-selected' : 'leftBarContent-item'),
+						A2(elm$core$Set$member, vertexId, m.selectedVertices) ? 'leftBarContent-item-selected' : 'leftBarContent-item'),
 						_Utils_eq(
-						m.v,
-						elm$core$Maybe$Just(vertexId)) ? A2(elm$html$Html$Attributes$style, 'border-right', '6px solid rgb(197, 18, 98)') : A2(elm$html$Html$Attributes$style, '', ''),
+						m.highlightingVertexOnMouseOver,
+						elm$core$Maybe$Just(vertexId)) ? A2(elm$html$Html$Attributes$style, 'border-right', '6px solid ' + author$project$Colors$highlightColorForMouseOver) : A2(elm$html$Html$Attributes$style, '', ''),
 						elm$html$Html$Events$onMouseOver(
 						author$project$Main$MouseOverVertexItem(vertexId)),
 						elm$html$Html$Events$onMouseOut(
@@ -9105,7 +9121,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 						elm$core$String$fromInt(vertexId))
 					]));
 		});
-	var maybeEdgeContractButton = (elm$core$Set$size(m.d) === 1) ? A2(
+	var maybeEdgeContractButton = (elm$core$Set$size(m.selectedEdges) === 1) ? A2(
 		elm$html$Html$div,
 		_List_fromArray(
 			[
@@ -9115,7 +9131,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 			]),
 		_List_fromArray(
 			[
-				author$project$Icons$draw24px(author$project$Icons$icons.a7)
+				author$project$Icons$draw24px(author$project$Icons$icons.edgeContract)
 			])) : A2(elm$html$Html$div, _List_Nil, _List_Nil);
 	var listOfVertices = A2(
 		elm$html$Html$div,
@@ -9125,7 +9141,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 				A2(
 					elm$core$Dict$map,
 					vertexItem,
-					author$project$Graph$getVertices(m.a)))));
+					author$project$Graph$getVertices(m.graph)))));
 	var viewVertexList = A2(
 		elm$html$Html$div,
 		_List_Nil,
@@ -9145,7 +9161,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 					]),
 				_List_fromArray(
 					[
-						author$project$Icons$draw24px(author$project$Icons$icons.bz)
+						author$project$Icons$draw24px(author$project$Icons$icons.trash)
 					])),
 				maybeEdgeContractButton
 			]));
@@ -9162,10 +9178,10 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 					[
 						A2(elm$html$Html$Attributes$style, 'padding', '4px 20px 4px 20px'),
 						elm$html$Html$Attributes$class(
-						A2(elm$core$Set$member, edgeId, m.d) ? 'leftBarContent-item-selected' : 'leftBarContent-item'),
+						A2(elm$core$Set$member, edgeId, m.selectedEdges) ? 'leftBarContent-item-selected' : 'leftBarContent-item'),
 						_Utils_eq(
-						m.o,
-						elm$core$Maybe$Just(edgeId)) ? A2(elm$html$Html$Attributes$style, 'border-right', '6px solid rgb(197, 18, 98)') : A2(elm$html$Html$Attributes$style, '', ''),
+						m.highlightingEdgeOnMouseOver,
+						elm$core$Maybe$Just(edgeId)) ? A2(elm$html$Html$Attributes$style, 'border-right', '6px solid ' + author$project$Colors$highlightColorForMouseOver) : A2(elm$html$Html$Attributes$style, '', ''),
 						elm$html$Html$Events$onMouseOver(
 						author$project$Main$MouseOverEdgeItem(edgeId)),
 						elm$html$Html$Events$onMouseOut(
@@ -9187,7 +9203,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 				A2(
 					elm$core$Dict$map,
 					edgeItem,
-					author$project$Graph$getEdges(m.a)))));
+					author$project$Graph$getEdges(m.graph)))));
 	var viewEdgeList = A2(
 		elm$html$Html$div,
 		_List_Nil,
@@ -9207,7 +9223,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 					]),
 				_List_fromArray(
 					[
-						author$project$Icons$draw24px(author$project$Icons$icons.bz)
+						author$project$Icons$draw24px(author$project$Icons$icons.trash)
 					])),
 				A2(
 				elm$html$Html$div,
@@ -9219,7 +9235,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 					]),
 				_List_fromArray(
 					[
-						author$project$Icons$draw24px(author$project$Icons$icons.bp)
+						author$project$Icons$draw24px(author$project$Icons$icons.plus)
 					]))
 			]));
 	var bagItem = F2(
@@ -9232,10 +9248,10 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 						elm$html$Html$Attributes$class(
 						_Utils_eq(
 							elm$core$Maybe$Just(bagId),
-							m.f) ? 'leftBarContent-item-selected' : 'leftBarContent-item'),
+							m.maybeSelectedBag) ? 'leftBarContent-item-selected' : 'leftBarContent-item'),
 						_Utils_eq(
-						m.K,
-						elm$core$Maybe$Just(bagId)) ? A2(elm$html$Html$Attributes$style, 'border-right', '6px solid rgb(197, 18, 98)') : A2(elm$html$Html$Attributes$style, '', ''),
+						m.highlightingBagOnMouseOver,
+						elm$core$Maybe$Just(bagId)) ? A2(elm$html$Html$Attributes$style, 'border-right', '6px solid ' + author$project$Colors$highlightColorForMouseOver) : A2(elm$html$Html$Attributes$style, '', ''),
 						elm$html$Html$Events$onMouseOver(
 						author$project$Main$MouseOverBagItem(bagId)),
 						elm$html$Html$Events$onMouseOut(
@@ -9246,7 +9262,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 				_List_fromArray(
 					[
 						elm$html$Html$text(
-						A2(author$project$Graph$bagElementsInCurlyBraces, bagId, m.a))
+						A2(author$project$Graph$bagElementsInCurlyBraces, bagId, m.graph))
 					]));
 		});
 	var listOfBags = A2(
@@ -9257,7 +9273,7 @@ var author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges = function 
 				A2(
 					elm$core$Dict$map,
 					bagItem,
-					author$project$Graph$getBags(m.a)))));
+					author$project$Graph$getBags(m.graph)))));
 	var viewBagList = A2(
 		elm$html$Html$div,
 		_List_Nil,
@@ -9289,7 +9305,7 @@ var author$project$Main$leftBar = function (m) {
 	var thinBandWidth = 40;
 	var thinBandButton = F3(
 		function (title, leftBarContent, icon) {
-			var color = _Utils_eq(leftBarContent, m.X) ? 'white' : 'rgb(46, 46, 46)';
+			var color = _Utils_eq(leftBarContent, m.leftBarContent) ? 'white' : 'rgb(46, 46, 46)';
 			return A2(
 				elm$html$Html$div,
 				_List_fromArray(
@@ -9312,13 +9328,13 @@ var author$project$Main$leftBar = function (m) {
 			]),
 		_List_fromArray(
 			[
-				A3(thinBandButton, 'Preferences', 0, author$project$Icons$icons.br),
-				A3(thinBandButton, 'Lists of Bags, Vertices and Edges', 1, author$project$Icons$icons.bi),
-				A3(thinBandButton, 'Graph Operations', 2, author$project$Icons$icons.bj),
-				A3(thinBandButton, 'Graph Queries', 3, author$project$Icons$icons.bs),
-				A3(thinBandButton, 'Graph Generators', 4, author$project$Icons$icons.bh),
-				A3(thinBandButton, 'Algorithm Visualizations', 5, author$project$Icons$icons.a0),
-				A3(thinBandButton, 'Games on Graphs', 6, author$project$Icons$icons.a4)
+				A3(thinBandButton, 'Preferences', author$project$Main$Preferences, author$project$Icons$icons.preferencesGear),
+				A3(thinBandButton, 'Lists of Bags, Vertices and Edges', author$project$Main$ListsOfBagsVerticesAndEdges, author$project$Icons$icons.listOfThree),
+				A3(thinBandButton, 'Graph Operations', author$project$Main$GraphOperations, author$project$Icons$icons.magicStick),
+				A3(thinBandButton, 'Graph Queries', author$project$Main$GraphQueries, author$project$Icons$icons.qForQuery),
+				A3(thinBandButton, 'Graph Generators', author$project$Main$GraphGenerators, author$project$Icons$icons.lightning),
+				A3(thinBandButton, 'Algorithm Visualizations', author$project$Main$AlgorithmVisualizations, author$project$Icons$icons.algoVizPlay),
+				A3(thinBandButton, 'Games on Graphs', author$project$Main$GamesOnGraphs, author$project$Icons$icons.chessHorse)
 			]));
 	var githubButton = A2(
 		elm$html$Html$a,
@@ -9330,7 +9346,7 @@ var author$project$Main$leftBar = function (m) {
 			]),
 		_List_fromArray(
 			[
-				A2(author$project$Icons$draw40pxWithColor, 'yellow', author$project$Icons$icons.bb)
+				A2(author$project$Icons$draw40pxWithColor, 'yellow', author$project$Icons$icons.githubCat)
 			]));
 	var thinBand = A2(
 		elm$html$Html$div,
@@ -9355,7 +9371,7 @@ var author$project$Main$leftBar = function (m) {
 			]),
 		_List_fromArray(
 			[
-				A2(author$project$Icons$draw40pxWithColor, 'orchid', author$project$Icons$icons.a5)
+				A2(author$project$Icons$draw40pxWithColor, 'orchid', author$project$Icons$icons.donateHeart)
 			]));
 	var content = A2(
 		elm$html$Html$div,
@@ -9375,19 +9391,19 @@ var author$project$Main$leftBar = function (m) {
 				A2(elm$html$Html$Attributes$style, 'overflow', 'scroll')
 			]),
 		function () {
-			var _n0 = m.X;
-			switch (_n0) {
-				case 0:
+			var _n0 = m.leftBarContent;
+			switch (_n0.$) {
+				case 'Preferences':
 					return author$project$Main$leftBarContentForPreferences(m);
-				case 1:
+				case 'ListsOfBagsVerticesAndEdges':
 					return author$project$Main$leftBarContentForListsOfBagsVerticesAndEdges(m);
-				case 2:
+				case 'GraphOperations':
 					return author$project$Main$leftBarContentForGraphOperations(m);
-				case 3:
+				case 'GraphQueries':
 					return author$project$Main$leftBarContentForGraphQueries(m);
-				case 4:
+				case 'GraphGenerators':
 					return author$project$Main$leftBarContentForGraphGenerators(m);
-				case 5:
+				case 'AlgorithmVisualizations':
 					return author$project$Main$leftBarContentForAlgorithmVisualizations(m);
 				default:
 					return author$project$Main$leftBarContentForGamesOnGraphs(m);
@@ -9399,6 +9415,7 @@ var author$project$Main$leftBar = function (m) {
 		_List_fromArray(
 			[thinBand, content]));
 };
+var author$project$Colors$colorHighlightForSelection = 'rgb(0, 150, 255)';
 var elm$core$List$minimum = function (list) {
 	if (list.b) {
 		var x = list.a;
@@ -9414,10 +9431,10 @@ var author$project$Graph$getMaybeRectAroundVertices = F2(
 		var extremes = A2(
 			elm$core$List$map,
 			function (_n5) {
-				var x = _n5.R;
-				var y = _n5.S;
-				var radius = _n5.aq;
-				return {au: y + radius, aF: x - radius, aU: x + radius, aY: y - radius};
+				var x = _n5.x;
+				var y = _n5.y;
+				var radius = _n5.radius;
+				return {bottom: y + radius, left: x - radius, right: x + radius, top: y - radius};
 			},
 			elm$core$Dict$values(
 				A2(author$project$Graph$getVerticesIn, vertexIds, graph)));
@@ -9426,14 +9443,14 @@ var author$project$Graph$getMaybeRectAroundVertices = F2(
 				A2(
 					elm$core$List$map,
 					function ($) {
-						return $.aF;
+						return $.left;
 					},
 					extremes)),
 			elm$core$List$minimum(
 				A2(
 					elm$core$List$map,
 					function ($) {
-						return $.aY;
+						return $.top;
 					},
 					extremes)));
 		var maybeMinx = _n0.a;
@@ -9443,14 +9460,14 @@ var author$project$Graph$getMaybeRectAroundVertices = F2(
 				A2(
 					elm$core$List$map,
 					function ($) {
-						return $.aU;
+						return $.right;
 					},
 					extremes)),
 			elm$core$List$maximum(
 				A2(
 					elm$core$List$map,
 					function ($) {
-						return $.au;
+						return $.bottom;
 					},
 					extremes)));
 		var maybeMaxx = _n1.a;
@@ -9458,7 +9475,7 @@ var author$project$Graph$getMaybeRectAroundVertices = F2(
 		var _n2 = _Utils_Tuple2(
 			_Utils_Tuple2(maybeMinx, maybeMiny),
 			_Utils_Tuple2(maybeMaxx, maybeMaxy));
-		if ((((!_n2.a.a.$) && (!_n2.a.b.$)) && (!_n2.b.a.$)) && (!_n2.b.b.$)) {
+		if ((((_n2.a.a.$ === 'Just') && (_n2.a.b.$ === 'Just')) && (_n2.b.a.$ === 'Just')) && (_n2.b.b.$ === 'Just')) {
 			var _n3 = _n2.a;
 			var minx = _n3.a.a;
 			var miny = _n3.b.a;
@@ -9466,34 +9483,34 @@ var author$project$Graph$getMaybeRectAroundVertices = F2(
 			var maxx = _n4.a.a;
 			var maxy = _n4.b.a;
 			return elm$core$Maybe$Just(
-				{aC: maxy - miny, a_: maxx - minx, R: minx, S: miny});
+				{height: maxy - miny, width: maxx - minx, x: minx, y: miny});
 		} else {
 			return elm$core$Maybe$Nothing;
 		}
 	});
 var author$project$Graph$getVertex = F2(
 	function (vertexId, _n0) {
-		var vertices = _n0.g;
+		var vertices = _n0.a.vertices;
 		return A2(elm$core$Dict$get, vertexId, vertices);
 	});
 var author$project$Main$ClickOnPullCenter = function (a) {
-	return {$: 60, a: a};
+	return {$: 'ClickOnPullCenter', a: a};
 };
 var author$project$Main$MouseDownOnPullCenter = F2(
 	function (a, b) {
-		return {$: 61, a: a, b: b};
+		return {$: 'MouseDownOnPullCenter', a: a, b: b};
 	});
 var author$project$Main$MouseDownOnTransparentInteractionRect = function (a) {
-	return {$: 12, a: a};
+	return {$: 'MouseDownOnTransparentInteractionRect', a: a};
 };
 var author$project$Main$MouseOutPullCenter = function (a) {
-	return {$: 56, a: a};
+	return {$: 'MouseOutPullCenter', a: a};
 };
 var author$project$Main$MouseOverPullCenter = function (a) {
-	return {$: 52, a: a};
+	return {$: 'MouseOverPullCenter', a: a};
 };
 var author$project$Main$MouseUpOnTransparentInteractionRect = function (a) {
-	return {$: 13, a: a};
+	return {$: 'MouseUpOnTransparentInteractionRect', a: a};
 };
 var elm$svg$Svg$circle = elm$svg$Svg$trustedNode('circle');
 var author$project$Main$emptySvgElement = A2(elm$svg$Svg$circle, _List_Nil, _List_Nil);
@@ -9508,17 +9525,17 @@ var author$project$Main$pointsForSvg = A2(
 	elm$core$String$concat);
 var author$project$Main$MouseDownOnEdge = F2(
 	function (a, b) {
-		return {$: 15, a: a, b: b};
+		return {$: 'MouseDownOnEdge', a: a, b: b};
 	});
 var author$project$Main$MouseOutEdge = function (a) {
-	return {$: 19, a: a};
+	return {$: 'MouseOutEdge', a: a};
 };
 var author$project$Main$MouseOverEdge = function (a) {
-	return {$: 17, a: a};
+	return {$: 'MouseOverEdge', a: a};
 };
 var author$project$Main$MouseUpOnEdge = F2(
 	function (a, b) {
-		return {$: 21, a: a, b: b};
+		return {$: 'MouseUpOnEdge', a: a, b: b};
 	});
 var elm$svg$Svg$g = elm$svg$Svg$trustedNode('g');
 var elm$svg$Svg$line = elm$svg$Svg$trustedNode('line');
@@ -9548,12 +9565,12 @@ var author$project$Main$viewEdges = function (graph) {
 		function (_n1, _n2) {
 			var s = _n1.a;
 			var t = _n1.b;
-			var color = _n2.aw;
-			var thickness = _n2.bx;
+			var color = _n2.color;
+			var thickness = _n2.thickness;
 			var _n0 = _Utils_Tuple2(
 				A2(elm$core$Dict$get, s, vertices),
 				A2(elm$core$Dict$get, t, vertices));
-			if ((!_n0.a.$) && (!_n0.b.$)) {
+			if ((_n0.a.$ === 'Just') && (_n0.b.$ === 'Just')) {
 				var v = _n0.a.a;
 				var w = _n0.b.a;
 				return A2(
@@ -9589,36 +9606,35 @@ var author$project$Main$viewEdges = function (graph) {
 							elm$svg$Svg$line,
 							_List_fromArray(
 								[
-									elm$svg$Svg$Attributes$stroke(color),
+									elm$svg$Svg$Attributes$stroke('red'),
 									elm$svg$Svg$Attributes$strokeWidth(
-									elm$core$String$fromFloat(thickness)),
+									elm$core$String$fromFloat(thickness + 6)),
+									elm$svg$Svg$Attributes$strokeOpacity('0'),
 									elm$svg$Svg$Attributes$x1(
-									elm$core$String$fromFloat(v.R)),
+									elm$core$String$fromFloat(v.x)),
 									elm$svg$Svg$Attributes$y1(
-									elm$core$String$fromFloat(v.S)),
+									elm$core$String$fromFloat(v.y)),
 									elm$svg$Svg$Attributes$x2(
-									elm$core$String$fromFloat(w.R)),
+									elm$core$String$fromFloat(w.x)),
 									elm$svg$Svg$Attributes$y2(
-									elm$core$String$fromFloat(w.S))
+									elm$core$String$fromFloat(w.y))
 								]),
 							_List_Nil),
 							A2(
 							elm$svg$Svg$line,
 							_List_fromArray(
 								[
-									elm$svg$Svg$Attributes$stroke('red'),
+									elm$svg$Svg$Attributes$stroke(color),
 									elm$svg$Svg$Attributes$strokeWidth(
-									elm$core$String$fromFloat(
-										A2(elm$core$Basics$max, 20, thickness))),
-									elm$svg$Svg$Attributes$strokeOpacity('0'),
+									elm$core$String$fromFloat(thickness)),
 									elm$svg$Svg$Attributes$x1(
-									elm$core$String$fromFloat(v.R)),
+									elm$core$String$fromFloat(v.x)),
 									elm$svg$Svg$Attributes$y1(
-									elm$core$String$fromFloat(v.S)),
+									elm$core$String$fromFloat(v.y)),
 									elm$svg$Svg$Attributes$x2(
-									elm$core$String$fromFloat(w.R)),
+									elm$core$String$fromFloat(w.x)),
 									elm$svg$Svg$Attributes$y2(
-									elm$core$String$fromFloat(w.S))
+									elm$core$String$fromFloat(w.y))
 								]),
 							_List_Nil)
 						]));
@@ -9751,7 +9767,7 @@ var author$project$Graph$getBagsWithVertices = function (graph) {
 				elm$core$List$foldr,
 				cons(v),
 				acc,
-				elm$core$Set$toList(v.q));
+				elm$core$Set$toList(v.inBags));
 		});
 	return A3(
 		elm$core$Dict$foldr,
@@ -9787,7 +9803,7 @@ var author$project$Main$viewHulls = function (graph) {
 			A2(
 				elm$core$Maybe$map,
 				function ($) {
-					return $.bc;
+					return $.hasConvexHull;
 				},
 				A2(
 					elm$core$Dict$get,
@@ -9801,7 +9817,7 @@ var author$project$Main$viewHulls = function (graph) {
 			elm$core$List$map,
 			elm$core$List$map(
 				function (v) {
-					return _Utils_Tuple2(v.R, v.S);
+					return _Utils_Tuple2(v.x, v.y);
 				}),
 			elm$core$Dict$values(
 				A2(
@@ -9815,16 +9831,16 @@ var author$project$Main$viewHulls = function (graph) {
 };
 var author$project$Main$MouseDownOnVertex = F2(
 	function (a, b) {
-		return {$: 14, a: a, b: b};
+		return {$: 'MouseDownOnVertex', a: a, b: b};
 	});
 var author$project$Main$MouseOutVertex = function (a) {
-	return {$: 18, a: a};
+	return {$: 'MouseOutVertex', a: a};
 };
 var author$project$Main$MouseOverVertex = function (a) {
-	return {$: 16, a: a};
+	return {$: 'MouseOverVertex', a: a};
 };
 var author$project$Main$MouseUpOnVertex = function (a) {
-	return {$: 20, a: a};
+	return {$: 'MouseUpOnVertex', a: a};
 };
 var elm$svg$Svg$Attributes$r = _VirtualDom_attribute('r');
 var elm$svg$Svg$Attributes$transform = _VirtualDom_attribute('transform');
@@ -9851,11 +9867,11 @@ var author$project$Main$viewVertices = function (graph) {
 		});
 	var drawVertex = F2(
 		function (id, _n0) {
-			var x = _n0.R;
-			var y = _n0.S;
-			var color = _n0.aw;
-			var radius = _n0.aq;
-			var fixed = _n0.V;
+			var x = _n0.x;
+			var y = _n0.y;
+			var color = _n0.color;
+			var radius = _n0.radius;
+			var fixed = _n0.fixed;
 			return A2(
 				elm$svg$Svg$g,
 				_List_fromArray(
@@ -9930,7 +9946,7 @@ var author$project$Main$mainSvg = function (m) {
 									_List_fromArray(
 										[element]));
 							});
-						var _n21 = _Utils_Tuple2(10 * bag.aP, 10 * bag.aQ);
+						var _n21 = _Utils_Tuple2(10 * bag.pullXStrength, 10 * bag.pullYStrength);
 						var xScale = _n21.a;
 						var yScale = _n21.b;
 						var _n22 = _Utils_Tuple3(30, 20, 6);
@@ -9981,9 +9997,9 @@ var author$project$Main$mainSvg = function (m) {
 							_List_fromArray(
 								[
 									elm$svg$Svg$Attributes$display(
-									bag.a6 ? 'inline' : 'none'),
+									bag.draggablePullCenter ? 'inline' : 'none'),
 									elm$svg$Svg$Attributes$transform(
-									'translate(' + (elm$core$String$fromFloat(bag.ao) + (',' + (elm$core$String$fromFloat(bag.ap) + ')')))),
+									'translate(' + (elm$core$String$fromFloat(bag.pullX) + (',' + (elm$core$String$fromFloat(bag.pullY) + ')')))),
 									elm$svg$Svg$Attributes$opacity('0.4'),
 									elm$svg$Svg$Attributes$class('pullCenter'),
 									A2(
@@ -10001,9 +10017,9 @@ var author$project$Main$mainSvg = function (m) {
 									author$project$Main$ClickOnPullCenter(bagId)),
 									elm$svg$Svg$Attributes$fill(
 									_Utils_eq(
-										m.W,
+										m.highlightingPullCenterOnMouseOver,
 										elm$core$Maybe$Just(bagId)) ? 'rgb(40,129,230\n' : (_Utils_eq(
-										m.f,
+										m.maybeSelectedBag,
 										elm$core$Maybe$Just(bagId)) ? 'rgb(40,129,230\n' : 'gray'))
 								]),
 							_List_fromArray(
@@ -10018,7 +10034,7 @@ var author$project$Main$mainSvg = function (m) {
 									A2(rotate, 180, rectY)
 								]));
 					}),
-				author$project$Graph$getBags(m.a))));
+				author$project$Graph$getBags(m.graph))));
 	var transparentInteractionRect = A2(
 		elm$svg$Svg$rect,
 		_List_fromArray(
@@ -10040,12 +10056,12 @@ var author$project$Main$mainSvg = function (m) {
 		_List_Nil);
 	var maybeRectAroundSelectedVertices = function () {
 		var rect = function (selectedVertices) {
-			var maybeRectAroundVertices = A2(author$project$Graph$getMaybeRectAroundVertices, selectedVertices, m.a);
-			if (!maybeRectAroundVertices.$) {
-				var x = maybeRectAroundVertices.a.R;
-				var y = maybeRectAroundVertices.a.S;
-				var width = maybeRectAroundVertices.a.a_;
-				var height = maybeRectAroundVertices.a.aC;
+			var maybeRectAroundVertices = A2(author$project$Graph$getMaybeRectAroundVertices, selectedVertices, m.graph);
+			if (maybeRectAroundVertices.$ === 'Just') {
+				var x = maybeRectAroundVertices.a.x;
+				var y = maybeRectAroundVertices.a.y;
+				var width = maybeRectAroundVertices.a.width;
+				var height = maybeRectAroundVertices.a.height;
 				return A2(
 					elm$svg$Svg$rect,
 					_List_fromArray(
@@ -10067,21 +10083,21 @@ var author$project$Main$mainSvg = function (m) {
 				return author$project$Main$emptySvgElement;
 			}
 		};
-		var _n18 = m.b;
-		if (_n18.$ === 1) {
+		var _n18 = m.tool;
+		if (_n18.$ === 'Select') {
 			var vertexSelectorState = _n18.a;
-			if (vertexSelectorState.$ === 1) {
+			if (vertexSelectorState.$ === 'BrushingForSelection') {
 				return author$project$Main$emptySvgElement;
 			} else {
-				return rect(m.c);
+				return rect(m.selectedVertices);
 			}
 		} else {
 			return author$project$Main$emptySvgElement;
 		}
 	}();
 	var maybeHighlightsOnSelectedVertices = function () {
-		var _n16 = m.b;
-		if (_n16.$ === 1) {
+		var _n16 = m.tool;
+		if (_n16.$ === 'Select') {
 			var sVAction = _n16.a;
 			var hL = F2(
 				function (color, radius) {
@@ -10096,34 +10112,32 @@ var author$project$Main$mainSvg = function (m) {
 									_List_fromArray(
 										[
 											elm$svg$Svg$Attributes$cx(
-											elm$core$String$fromFloat(v.R)),
+											elm$core$String$fromFloat(v.x)),
 											elm$svg$Svg$Attributes$cy(
-											elm$core$String$fromFloat(v.S)),
+											elm$core$String$fromFloat(v.y)),
 											elm$svg$Svg$Attributes$r(
 											elm$core$String$fromFloat(
-												radius(v))),
-											elm$svg$Svg$Attributes$stroke(color),
-											elm$svg$Svg$Attributes$strokeWidth('2'),
-											elm$svg$Svg$Attributes$fill('none')
+												radius(v) + 4)),
+											elm$svg$Svg$Attributes$fill(color)
 										]),
 									_List_Nil);
 							},
 							elm$core$Dict$values(
-								A2(author$project$Graph$getVerticesIn, m.c, m.a))));
+								A2(author$project$Graph$getVerticesIn, m.selectedVertices, m.graph))));
 				});
-			if (sVAction.$ === 1) {
+			if (sVAction.$ === 'BrushingForSelection') {
 				return A2(
 					hL,
-					'rgb(197,18,98)',
+					author$project$Colors$highlightColorForMouseOver,
 					function ($) {
-						return $.aq;
+						return $.radius;
 					});
 			} else {
 				return A2(
 					hL,
-					'rgb(40,129,230)',
+					author$project$Colors$colorHighlightForSelection,
 					function ($) {
-						return $.aq;
+						return $.radius;
 					});
 			}
 		} else {
@@ -10131,8 +10145,8 @@ var author$project$Main$mainSvg = function (m) {
 		}
 	}();
 	var maybeHighlightsOnSelectedEdges = function () {
-		var _n12 = m.b;
-		if (_n12.$ === 1) {
+		var _n12 = m.tool;
+		if (_n12.$ === 'Select') {
 			var sVAction = _n12.a;
 			var hL = function (color) {
 				return A2(
@@ -10147,10 +10161,10 @@ var author$project$Main$mainSvg = function (m) {
 								A2(
 									author$project$Graph$getEdge,
 									_Utils_Tuple2(s, t),
-									m.a),
-								A2(author$project$Graph$getVertex, s, m.a),
-								A2(author$project$Graph$getVertex, t, m.a));
-							if (((!_n15.a.$) && (!_n15.b.$)) && (!_n15.c.$)) {
+									m.graph),
+								A2(author$project$Graph$getVertex, s, m.graph),
+								A2(author$project$Graph$getVertex, t, m.graph));
+							if (((_n15.a.$ === 'Just') && (_n15.b.$ === 'Just')) && (_n15.c.$ === 'Just')) {
 								var e = _n15.a.a;
 								var v = _n15.b.a;
 								var w = _n15.c.a;
@@ -10160,35 +10174,35 @@ var author$project$Main$mainSvg = function (m) {
 										[
 											elm$svg$Svg$Attributes$stroke(color),
 											elm$svg$Svg$Attributes$strokeWidth(
-											elm$core$String$fromFloat(e.bx + 4)),
+											elm$core$String$fromFloat(e.thickness + 6)),
 											elm$svg$Svg$Attributes$x1(
-											elm$core$String$fromFloat(v.R)),
+											elm$core$String$fromFloat(v.x)),
 											elm$svg$Svg$Attributes$y1(
-											elm$core$String$fromFloat(v.S)),
+											elm$core$String$fromFloat(v.y)),
 											elm$svg$Svg$Attributes$x2(
-											elm$core$String$fromFloat(w.R)),
+											elm$core$String$fromFloat(w.x)),
 											elm$svg$Svg$Attributes$y2(
-											elm$core$String$fromFloat(w.S))
+											elm$core$String$fromFloat(w.y))
 										]),
 									_List_Nil);
 							} else {
 								return author$project$Main$emptySvgElement;
 							}
 						},
-						elm$core$Set$toList(m.d)));
+						elm$core$Set$toList(m.selectedEdges)));
 			};
-			if (sVAction.$ === 1) {
-				return hL('rgb(197,18,98)');
+			if (sVAction.$ === 'BrushingForSelection') {
+				return hL(author$project$Colors$highlightColorForMouseOver);
 			} else {
-				return hL('rgb(40,129,230)');
+				return hL(author$project$Colors$colorHighlightForSelection);
 			}
 		} else {
 			return author$project$Main$emptySvgElement;
 		}
 	}();
 	var maybeHighlightOnVerticesOfMouseOveredBag = function () {
-		var _n10 = m.K;
-		if (!_n10.$) {
+		var _n10 = m.highlightingBagOnMouseOver;
+		if (_n10.$ === 'Just') {
 			var bagId = _n10.a;
 			return A2(
 				elm$svg$Svg$g,
@@ -10201,14 +10215,12 @@ var author$project$Main$mainSvg = function (m) {
 							_List_fromArray(
 								[
 									elm$svg$Svg$Attributes$cx(
-									elm$core$String$fromFloat(v.R)),
+									elm$core$String$fromFloat(v.x)),
 									elm$svg$Svg$Attributes$cy(
-									elm$core$String$fromFloat(v.S)),
+									elm$core$String$fromFloat(v.y)),
 									elm$svg$Svg$Attributes$r(
-									elm$core$String$fromFloat(v.aq)),
-									elm$svg$Svg$Attributes$stroke('rgb(197,18,98)'),
-									elm$svg$Svg$Attributes$strokeWidth('2'),
-									elm$svg$Svg$Attributes$fill('none')
+									elm$core$String$fromFloat(v.radius + 4)),
+									elm$svg$Svg$Attributes$fill(author$project$Colors$highlightColorForMouseOver)
 								]),
 							_List_Nil);
 					},
@@ -10217,33 +10229,31 @@ var author$project$Main$mainSvg = function (m) {
 							elm$core$Dict$filter,
 							F2(
 								function (_n11, v) {
-									return A2(elm$core$Set$member, bagId, v.q);
+									return A2(elm$core$Set$member, bagId, v.inBags);
 								}),
-							author$project$Graph$getVertices(m.a)))));
+							author$project$Graph$getVertices(m.graph)))));
 		} else {
 			return author$project$Main$emptySvgElement;
 		}
 	}();
 	var maybeHighlightOnMouseOveredVertex = function () {
-		var _n8 = m.v;
-		if (!_n8.$) {
+		var _n8 = m.highlightingVertexOnMouseOver;
+		if (_n8.$ === 'Just') {
 			var id = _n8.a;
-			var _n9 = A2(author$project$Graph$getVertex, id, m.a);
-			if (!_n9.$) {
+			var _n9 = A2(author$project$Graph$getVertex, id, m.graph);
+			if (_n9.$ === 'Just') {
 				var v = _n9.a;
 				return A2(
 					elm$svg$Svg$circle,
 					_List_fromArray(
 						[
 							elm$svg$Svg$Attributes$cx(
-							elm$core$String$fromFloat(v.R)),
+							elm$core$String$fromFloat(v.x)),
 							elm$svg$Svg$Attributes$cy(
-							elm$core$String$fromFloat(v.S)),
+							elm$core$String$fromFloat(v.y)),
 							elm$svg$Svg$Attributes$r(
-							elm$core$String$fromFloat(v.aq)),
-							elm$svg$Svg$Attributes$stroke('rgb(197,18,98)'),
-							elm$svg$Svg$Attributes$strokeWidth('2'),
-							elm$svg$Svg$Attributes$fill('none')
+							elm$core$String$fromFloat(v.radius + 4)),
+							elm$svg$Svg$Attributes$fill(author$project$Colors$highlightColorForMouseOver)
 						]),
 					_List_Nil);
 			} else {
@@ -10254,8 +10264,8 @@ var author$project$Main$mainSvg = function (m) {
 		}
 	}();
 	var maybeHighlightOnMouseOveredEdge = function () {
-		var _n5 = m.o;
-		if (!_n5.$) {
+		var _n5 = m.highlightingEdgeOnMouseOver;
+		if (_n5.$ === 'Just') {
 			var _n6 = _n5.a;
 			var s = _n6.a;
 			var t = _n6.b;
@@ -10263,10 +10273,10 @@ var author$project$Main$mainSvg = function (m) {
 				A2(
 					author$project$Graph$getEdge,
 					_Utils_Tuple2(s, t),
-					m.a),
-				A2(author$project$Graph$getVertex, s, m.a),
-				A2(author$project$Graph$getVertex, t, m.a));
-			if (((!_n7.a.$) && (!_n7.b.$)) && (!_n7.c.$)) {
+					m.graph),
+				A2(author$project$Graph$getVertex, s, m.graph),
+				A2(author$project$Graph$getVertex, t, m.graph));
+			if (((_n7.a.$ === 'Just') && (_n7.b.$ === 'Just')) && (_n7.c.$ === 'Just')) {
 				var e = _n7.a.a;
 				var v = _n7.b.a;
 				var w = _n7.c.a;
@@ -10274,17 +10284,17 @@ var author$project$Main$mainSvg = function (m) {
 					elm$svg$Svg$line,
 					_List_fromArray(
 						[
-							elm$svg$Svg$Attributes$stroke('rgb(197,18,98)'),
+							elm$svg$Svg$Attributes$stroke(author$project$Colors$highlightColorForMouseOver),
 							elm$svg$Svg$Attributes$strokeWidth(
-							elm$core$String$fromFloat(e.bx + 4)),
+							elm$core$String$fromFloat(e.thickness + 6)),
 							elm$svg$Svg$Attributes$x1(
-							elm$core$String$fromFloat(v.R)),
+							elm$core$String$fromFloat(v.x)),
 							elm$svg$Svg$Attributes$y1(
-							elm$core$String$fromFloat(v.S)),
+							elm$core$String$fromFloat(v.y)),
 							elm$svg$Svg$Attributes$x2(
-							elm$core$String$fromFloat(w.R)),
+							elm$core$String$fromFloat(w.x)),
 							elm$svg$Svg$Attributes$y2(
-							elm$core$String$fromFloat(w.S))
+							elm$core$String$fromFloat(w.y))
 						]),
 					_List_Nil);
 			} else {
@@ -10295,16 +10305,16 @@ var author$project$Main$mainSvg = function (m) {
 		}
 	}();
 	var maybeBrushedSelectionRect = function () {
-		var _n3 = m.b;
-		if ((_n3.$ === 1) && (_n3.a.$ === 1)) {
-			var start = _n3.a.a.P;
-			var mousePos = _n3.a.a._;
-			var _n4 = m.B;
-			if (!_n4) {
-				var miny = A2(elm$core$Basics$min, start.S, mousePos.S);
-				var minx = A2(elm$core$Basics$min, start.R, mousePos.R);
-				var maxy = A2(elm$core$Basics$max, start.S, mousePos.S);
-				var maxx = A2(elm$core$Basics$max, start.R, mousePos.R);
+		var _n3 = m.tool;
+		if ((_n3.$ === 'Select') && (_n3.a.$ === 'BrushingForSelection')) {
+			var start = _n3.a.a.start;
+			var mousePos = _n3.a.a.mousePos;
+			var _n4 = m.selector;
+			if (_n4.$ === 'RectSelector') {
+				var miny = A2(elm$core$Basics$min, start.y, mousePos.y);
+				var minx = A2(elm$core$Basics$min, start.x, mousePos.x);
+				var maxy = A2(elm$core$Basics$max, start.y, mousePos.y);
+				var maxx = A2(elm$core$Basics$max, start.x, mousePos.x);
 				return A2(
 					elm$svg$Svg$rect,
 					_List_fromArray(
@@ -10329,13 +10339,13 @@ var author$project$Main$mainSvg = function (m) {
 					_List_fromArray(
 						[
 							elm$svg$Svg$Attributes$x1(
-							elm$core$String$fromInt(start.R)),
+							elm$core$String$fromInt(start.x)),
 							elm$svg$Svg$Attributes$y1(
-							elm$core$String$fromInt(start.S)),
+							elm$core$String$fromInt(start.y)),
 							elm$svg$Svg$Attributes$x2(
-							elm$core$String$fromInt(mousePos.R)),
+							elm$core$String$fromInt(mousePos.x)),
 							elm$svg$Svg$Attributes$y2(
-							elm$core$String$fromInt(mousePos.S)),
+							elm$core$String$fromInt(mousePos.y)),
 							elm$svg$Svg$Attributes$stroke('rgb(127,127,127)'),
 							elm$svg$Svg$Attributes$strokeWidth('1'),
 							elm$svg$Svg$Attributes$strokeDasharray('1 2')
@@ -10347,14 +10357,14 @@ var author$project$Main$mainSvg = function (m) {
 		}
 	}();
 	var maybeBrushedEdge = function () {
-		var _n1 = m.b;
-		if ((!_n1.$) && (!_n1.a.$)) {
-			var sourceId = _n1.a.a.O;
-			var mousePos = _n1.a.a._;
-			var _n2 = A2(author$project$Graph$getVertex, sourceId, m.a);
-			if (!_n2.$) {
-				var x = _n2.a.R;
-				var y = _n2.a.S;
+		var _n1 = m.tool;
+		if ((_n1.$ === 'Draw') && (_n1.a.$ === 'Just')) {
+			var sourceId = _n1.a.a.sourceId;
+			var mousePos = _n1.a.a.mousePos;
+			var _n2 = A2(author$project$Graph$getVertex, sourceId, m.graph);
+			if (_n2.$ === 'Just') {
+				var x = _n2.a.x;
+				var y = _n2.a.y;
 				return A2(
 					elm$svg$Svg$line,
 					_List_fromArray(
@@ -10362,14 +10372,14 @@ var author$project$Main$mainSvg = function (m) {
 							elm$svg$Svg$Attributes$x1(
 							elm$core$String$fromFloat(x)),
 							elm$svg$Svg$Attributes$x2(
-							elm$core$String$fromInt(mousePos.R)),
+							elm$core$String$fromInt(mousePos.x)),
 							elm$svg$Svg$Attributes$y1(
 							elm$core$String$fromFloat(y)),
 							elm$svg$Svg$Attributes$y2(
-							elm$core$String$fromInt(mousePos.S)),
+							elm$core$String$fromInt(mousePos.y)),
 							elm$svg$Svg$Attributes$strokeWidth(
-							elm$core$String$fromFloat(m.h.bx)),
-							elm$svg$Svg$Attributes$stroke(m.h.aw)
+							elm$core$String$fromFloat(m.edgePreferences.thickness)),
+							elm$svg$Svg$Attributes$stroke(m.edgePreferences.color)
 						]),
 					_List_Nil);
 			} else {
@@ -10380,8 +10390,8 @@ var author$project$Main$mainSvg = function (m) {
 		}
 	}();
 	var cursor = function () {
-		var _n0 = m.b;
-		if (!_n0.$) {
+		var _n0 = m.tool;
+		if (_n0.$ === 'Draw') {
 			return 'crosshair';
 		} else {
 			return 'default';
@@ -10399,19 +10409,19 @@ var author$project$Main$mainSvg = function (m) {
 			]),
 		_List_fromArray(
 			[
-				author$project$Main$viewHulls(m.a),
+				author$project$Main$viewHulls(m.graph),
 				maybeBrushedEdge,
 				transparentInteractionRect,
 				viewPullCenters,
 				maybeHighlightsOnSelectedEdges,
 				maybeHighlightOnMouseOveredEdge,
-				author$project$Main$viewEdges(m.a),
-				author$project$Main$viewVertices(m.a),
-				maybeBrushedSelectionRect,
-				maybeRectAroundSelectedVertices,
-				maybeHighlightsOnSelectedVertices,
 				maybeHighlightOnMouseOveredVertex,
-				maybeHighlightOnVerticesOfMouseOveredBag
+				maybeHighlightsOnSelectedVertices,
+				maybeHighlightOnVerticesOfMouseOveredBag,
+				author$project$Main$viewEdges(m.graph),
+				author$project$Main$viewVertices(m.graph),
+				maybeBrushedSelectionRect,
+				maybeRectAroundSelectedVertices
 			]));
 };
 var elm$core$Char$fromCode = _Char_fromCode;
@@ -10421,7 +10431,7 @@ var elm$core$String$fromChar = function (_char) {
 };
 var author$project$CheckBox$view = function (maybeChecked) {
 	var _n0 = function () {
-		if (!maybeChecked.$) {
+		if (maybeChecked.$ === 'Just') {
 			if (maybeChecked.a) {
 				return _Utils_Tuple2(
 					elm$core$String$fromChar(
@@ -10457,29 +10467,29 @@ var author$project$CheckBox$view = function (maybeChecked) {
 			]));
 };
 var author$project$Main$FromConvexHullCheckBox = function (a) {
-	return {$: 27, a: a};
+	return {$: 'FromConvexHullCheckBox', a: a};
 };
 var author$project$Main$FromDraggableCenterCheckBox = function (a) {
-	return {$: 29, a: a};
+	return {$: 'FromDraggableCenterCheckBox', a: a};
 };
 var author$project$Main$FromPullIsActiveCheckBox = function (a) {
-	return {$: 28, a: a};
+	return {$: 'FromPullIsActiveCheckBox', a: a};
 };
 var author$project$Main$FromPullXInput = function (a) {
-	return {$: 32, a: a};
+	return {$: 'FromPullXInput', a: a};
 };
 var author$project$Main$FromPullXStrengthInput = function (a) {
-	return {$: 30, a: a};
+	return {$: 'FromPullXStrengthInput', a: a};
 };
 var author$project$Main$FromPullYInput = function (a) {
-	return {$: 33, a: a};
+	return {$: 'FromPullYInput', a: a};
 };
 var author$project$Main$FromPullYStrengthInput = function (a) {
-	return {$: 31, a: a};
+	return {$: 'FromPullYStrengthInput', a: a};
 };
 var author$project$Main$headerForBagProperties = function (m) {
-	var _n0 = m.f;
-	if (_n0.$ === 1) {
+	var _n0 = m.maybeSelectedBag;
+	if (_n0.$ === 'Nothing') {
 		return 'Bag Preferences';
 	} else {
 		var bagId = _n0.a;
@@ -10603,7 +10613,7 @@ var elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
 var elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
-	return {$: 1, a: a};
+	return {$: 'MayStopPropagation', a: a};
 };
 var elm$html$Html$Events$stopPropagationOn = F2(
 	function (event, decoder) {
@@ -10649,18 +10659,18 @@ var author$project$Main$bagProperties = function (m) {
 							author$project$Main$FromConvexHullCheckBox,
 							author$project$CheckBox$view(
 								function () {
-									var _n0 = m.f;
-									if (!_n0.$) {
+									var _n0 = m.maybeSelectedBag;
+									if (_n0.$ === 'Just') {
 										var bagId = _n0.a;
-										var _n1 = A2(author$project$Graph$getBag, bagId, m.a);
-										if (!_n1.$) {
+										var _n1 = A2(author$project$Graph$getBag, bagId, m.graph);
+										if (_n1.$ === 'Just') {
 											var bag = _n1.a;
-											return elm$core$Maybe$Just(bag.bc);
+											return elm$core$Maybe$Just(bag.hasConvexHull);
 										} else {
 											return elm$core$Maybe$Nothing;
 										}
 									} else {
-										return elm$core$Maybe$Just(m.e.bc);
+										return elm$core$Maybe$Just(m.bagPreferences.hasConvexHull);
 									}
 								}())))
 					])),
@@ -10677,18 +10687,18 @@ var author$project$Main$bagProperties = function (m) {
 							author$project$Main$FromPullIsActiveCheckBox,
 							author$project$CheckBox$view(
 								function () {
-									var _n2 = m.f;
-									if (!_n2.$) {
+									var _n2 = m.maybeSelectedBag;
+									if (_n2.$ === 'Just') {
 										var bagId = _n2.a;
-										var _n3 = A2(author$project$Graph$getBag, bagId, m.a);
-										if (!_n3.$) {
+										var _n3 = A2(author$project$Graph$getBag, bagId, m.graph);
+										if (_n3.$ === 'Just') {
 											var bag = _n3.a;
-											return elm$core$Maybe$Just(bag.aO);
+											return elm$core$Maybe$Just(bag.pullIsActive);
 										} else {
 											return elm$core$Maybe$Nothing;
 										}
 									} else {
-										return elm$core$Maybe$Just(m.e.aO);
+										return elm$core$Maybe$Just(m.bagPreferences.pullIsActive);
 									}
 								}()))),
 						A2(
@@ -10699,18 +10709,18 @@ var author$project$Main$bagProperties = function (m) {
 							author$project$Main$FromDraggableCenterCheckBox,
 							author$project$CheckBox$view(
 								function () {
-									var _n4 = m.f;
-									if (!_n4.$) {
+									var _n4 = m.maybeSelectedBag;
+									if (_n4.$ === 'Just') {
 										var bagId = _n4.a;
-										var _n5 = A2(author$project$Graph$getBag, bagId, m.a);
-										if (!_n5.$) {
+										var _n5 = A2(author$project$Graph$getBag, bagId, m.graph);
+										if (_n5.$ === 'Just') {
 											var bag = _n5.a;
-											return elm$core$Maybe$Just(bag.a6);
+											return elm$core$Maybe$Just(bag.draggablePullCenter);
 										} else {
 											return elm$core$Maybe$Nothing;
 										}
 									} else {
-										return elm$core$Maybe$Just(m.e.a6);
+										return elm$core$Maybe$Just(m.bagPreferences.draggablePullCenter);
 									}
 								}())))
 					])),
@@ -10729,8 +10739,8 @@ var author$project$Main$bagProperties = function (m) {
 									elm$html$Html$Attributes$value(
 									elm$core$String$fromFloat(
 										function () {
-											var _n6 = m.f;
-											if (!_n6.$) {
+											var _n6 = m.maybeSelectedBag;
+											if (_n6.$ === 'Just') {
 												var bagId = _n6.a;
 												return A2(
 													elm$core$Maybe$withDefault,
@@ -10738,14 +10748,14 @@ var author$project$Main$bagProperties = function (m) {
 													A2(
 														elm$core$Maybe$map,
 														function ($) {
-															return $.ao;
+															return $.pullX;
 														},
 														A2(
 															elm$core$Dict$get,
 															bagId,
-															author$project$Graph$getBags(m.a))));
+															author$project$Graph$getBags(m.graph))));
 											} else {
-												return m.e.ao;
+												return m.bagPreferences.pullX;
 											}
 										}()))
 								]))),
@@ -10759,8 +10769,8 @@ var author$project$Main$bagProperties = function (m) {
 									elm$html$Html$Attributes$value(
 									elm$core$String$fromFloat(
 										function () {
-											var _n7 = m.f;
-											if (!_n7.$) {
+											var _n7 = m.maybeSelectedBag;
+											if (_n7.$ === 'Just') {
 												var bagId = _n7.a;
 												return A2(
 													elm$core$Maybe$withDefault,
@@ -10768,14 +10778,14 @@ var author$project$Main$bagProperties = function (m) {
 													A2(
 														elm$core$Maybe$map,
 														function ($) {
-															return $.ap;
+															return $.pullY;
 														},
 														A2(
 															elm$core$Dict$get,
 															bagId,
-															author$project$Graph$getBags(m.a))));
+															author$project$Graph$getBags(m.graph))));
 											} else {
-												return m.e.ap;
+												return m.bagPreferences.pullY;
 											}
 										}()))
 								])))
@@ -10795,8 +10805,8 @@ var author$project$Main$bagProperties = function (m) {
 									elm$html$Html$Attributes$value(
 									elm$core$String$fromFloat(
 										function () {
-											var _n8 = m.f;
-											if (!_n8.$) {
+											var _n8 = m.maybeSelectedBag;
+											if (_n8.$ === 'Just') {
 												var bagId = _n8.a;
 												return A2(
 													elm$core$Maybe$withDefault,
@@ -10804,14 +10814,14 @@ var author$project$Main$bagProperties = function (m) {
 													A2(
 														elm$core$Maybe$map,
 														function ($) {
-															return $.aP;
+															return $.pullXStrength;
 														},
 														A2(
 															elm$core$Dict$get,
 															bagId,
-															author$project$Graph$getBags(m.a))));
+															author$project$Graph$getBags(m.graph))));
 											} else {
-												return m.e.aP;
+												return m.bagPreferences.pullXStrength;
 											}
 										}())),
 									elm$html$Html$Attributes$min('0'),
@@ -10828,8 +10838,8 @@ var author$project$Main$bagProperties = function (m) {
 									elm$html$Html$Attributes$value(
 									elm$core$String$fromFloat(
 										function () {
-											var _n9 = m.f;
-											if (!_n9.$) {
+											var _n9 = m.maybeSelectedBag;
+											if (_n9.$ === 'Just') {
 												var bagId = _n9.a;
 												return A2(
 													elm$core$Maybe$withDefault,
@@ -10837,14 +10847,14 @@ var author$project$Main$bagProperties = function (m) {
 													A2(
 														elm$core$Maybe$map,
 														function ($) {
-															return $.aQ;
+															return $.pullYStrength;
 														},
 														A2(
 															elm$core$Dict$get,
 															bagId,
-															author$project$Graph$getBags(m.a))));
+															author$project$Graph$getBags(m.graph))));
 											} else {
-												return m.e.aQ;
+												return m.bagPreferences.pullYStrength;
 											}
 										}())),
 									elm$html$Html$Attributes$min('0'),
@@ -10855,12 +10865,12 @@ var author$project$Main$bagProperties = function (m) {
 			]));
 };
 var author$project$Colors$vertexAndEdgeColors = _List_fromArray(
-	['black', 'white', 'gray', 'rgb(199, 0, 57)', 'rgb(144, 12, 63)', 'rgb(81, 24, 73)', 'rgb(61, 61, 106)', 'rgb(42, 123, 154)', 'rgb(0, 187, 173)', 'rgb(86, 199, 133)', 'rgb(173, 213, 91)', 'rgb(237, 221, 83)', 'rgb(255, 195, 0)', 'rgb(255, 140, 26)', 'rgb(255, 87, 51)']);
+	['black', 'white', 'lightgray', 'darkgray', 'gray', 'rgb(199, 0, 57)', 'rgb(144, 12, 63)', 'rgb(81, 24, 73)', 'rgb(61, 61, 106)', 'rgb(42, 123, 154)', 'rgb(0, 187, 173)', 'rgb(86, 199, 133)', 'rgb(173, 213, 91)', 'rgb(237, 221, 83)', 'rgb(255, 195, 0)', 'rgb(255, 140, 26)', 'rgb(255, 87, 51)']);
 var author$project$ColorPicker$colors = author$project$Colors$vertexAndEdgeColors;
 var elm$html$Html$button = _VirtualDom_node('button');
 var author$project$ColorPicker$view = function (maybeSelectedColor) {
 	var dropbtn = function () {
-		if (!maybeSelectedColor.$) {
+		if (maybeSelectedColor.$ === 'Just') {
 			var color = maybeSelectedColor.a;
 			return A2(
 				elm$html$Html$button,
@@ -10935,7 +10945,7 @@ var author$project$ColorPicker$view = function (maybeSelectedColor) {
 };
 var author$project$Graph$getEdgesIn = F2(
 	function (edgeIds, _n0) {
-		var edges = _n0.n;
+		var edges = _n0.a.edges;
 		return A2(
 			elm$core$Dict$filter,
 			F2(
@@ -10976,27 +10986,27 @@ var author$project$Graph$getCommonEdgeProperty = F3(
 		}
 	});
 var author$project$Main$FromDistanceInput = function (a) {
-	return {$: 36, a: a};
+	return {$: 'FromDistanceInput', a: a};
 };
 var author$project$Main$FromEdgeColorPicker = function (a) {
-	return {$: 25, a: a};
+	return {$: 'FromEdgeColorPicker', a: a};
 };
 var author$project$Main$FromStrengthInput = function (a) {
-	return {$: 37, a: a};
+	return {$: 'FromStrengthInput', a: a};
 };
 var author$project$Main$FromThicknessInput = function (a) {
-	return {$: 35, a: a};
+	return {$: 'FromThicknessInput', a: a};
 };
 var author$project$Main$edgeProperties = function (m) {
 	var thicknessToShow = function () {
-		var maybeCommonThickness = elm$core$Set$isEmpty(m.d) ? elm$core$Maybe$Just(m.h.bx) : A3(
+		var maybeCommonThickness = elm$core$Set$isEmpty(m.selectedEdges) ? elm$core$Maybe$Just(m.edgePreferences.thickness) : A3(
 			author$project$Graph$getCommonEdgeProperty,
-			m.d,
+			m.selectedEdges,
 			function ($) {
-				return $.bx;
+				return $.thickness;
 			},
-			m.a);
-		if (!maybeCommonThickness.$) {
+			m.graph);
+		if (maybeCommonThickness.$ === 'Just') {
 			var r = maybeCommonThickness.a;
 			return elm$core$String$fromFloat(r);
 		} else {
@@ -11004,29 +11014,29 @@ var author$project$Main$edgeProperties = function (m) {
 		}
 	}();
 	var strengthToShow = function () {
-		var maybeCommonStrength = elm$core$Set$isEmpty(m.d) ? elm$core$Maybe$Just(m.h.ac) : A3(
+		var maybeCommonStrength = elm$core$Set$isEmpty(m.selectedEdges) ? elm$core$Maybe$Just(m.edgePreferences.strength) : A3(
 			author$project$Graph$getCommonEdgeProperty,
-			m.d,
+			m.selectedEdges,
 			function ($) {
-				return $.ac;
+				return $.strength;
 			},
-			m.a);
-		if (!maybeCommonStrength.$) {
+			m.graph);
+		if (maybeCommonStrength.$ === 'Just') {
 			var r = maybeCommonStrength.a;
 			return elm$core$String$fromFloat(r);
 		} else {
 			return '';
 		}
 	}();
-	var maybeCommonEdgeColor = elm$core$Set$isEmpty(m.d) ? elm$core$Maybe$Just(m.h.aw) : A3(
+	var maybeCommonEdgeColor = elm$core$Set$isEmpty(m.selectedEdges) ? elm$core$Maybe$Just(m.edgePreferences.color) : A3(
 		author$project$Graph$getCommonEdgeProperty,
-		m.d,
+		m.selectedEdges,
 		function ($) {
-			return $.aw;
+			return $.color;
 		},
-		m.a);
+		m.graph);
 	var headerForEdgeProperties = function () {
-		var _n1 = elm$core$Set$size(m.d);
+		var _n1 = elm$core$Set$size(m.selectedEdges);
 		switch (_n1) {
 			case 0:
 				return 'Edge Preferences';
@@ -11037,14 +11047,14 @@ var author$project$Main$edgeProperties = function (m) {
 		}
 	}();
 	var distanceToShow = function () {
-		var maybeCommonDistance = elm$core$Set$isEmpty(m.d) ? elm$core$Maybe$Just(m.h.ay) : A3(
+		var maybeCommonDistance = elm$core$Set$isEmpty(m.selectedEdges) ? elm$core$Maybe$Just(m.edgePreferences.distance) : A3(
 			author$project$Graph$getCommonEdgeProperty,
-			m.d,
+			m.selectedEdges,
 			function ($) {
-				return $.ay;
+				return $.distance;
 			},
-			m.a);
-		if (!maybeCommonDistance.$) {
+			m.graph);
+		if (maybeCommonDistance.$ === 'Just') {
 			var r = maybeCommonDistance.a;
 			return elm$core$String$fromFloat(r);
 		} else {
@@ -11114,19 +11124,19 @@ var author$project$Main$edgeProperties = function (m) {
 			]));
 };
 var author$project$Main$FromManyBodyMaxDistanceInput = function (a) {
-	return {$: 41, a: a};
+	return {$: 'FromManyBodyMaxDistanceInput', a: a};
 };
 var author$project$Main$FromManyBodyMinDistanceInput = function (a) {
-	return {$: 40, a: a};
+	return {$: 'FromManyBodyMinDistanceInput', a: a};
 };
 var author$project$Main$FromManyBodyStrengthInput = function (a) {
-	return {$: 38, a: a};
+	return {$: 'FromManyBodyStrengthInput', a: a};
 };
 var author$project$Main$FromManyBodyThetaInput = function (a) {
-	return {$: 39, a: a};
+	return {$: 'FromManyBodyThetaInput', a: a};
 };
 var author$project$Main$manyBodyProperties = function (m) {
-	var mB = author$project$Graph$getManyBody(m.a);
+	var mB = author$project$Graph$getManyBody(m.graph);
 	return A2(
 		author$project$Main$subMenu,
 		'Many Body',
@@ -11147,7 +11157,7 @@ var author$project$Main$manyBodyProperties = function (m) {
 									elm$html$Html$Attributes$max('0'),
 									elm$html$Html$Attributes$step('10'),
 									elm$html$Html$Attributes$value(
-									elm$core$String$fromFloat(mB.ac)),
+									elm$core$String$fromFloat(mB.strength)),
 									elm$html$Html$Events$onInput(author$project$Main$FromManyBodyStrengthInput)
 								]))),
 						A2(
@@ -11160,7 +11170,7 @@ var author$project$Main$manyBodyProperties = function (m) {
 									elm$html$Html$Attributes$max('1'),
 									elm$html$Html$Attributes$step('0.1'),
 									elm$html$Html$Attributes$value(
-									elm$core$String$fromFloat(mB.as)),
+									elm$core$String$fromFloat(mB.theta)),
 									elm$html$Html$Events$onInput(author$project$Main$FromManyBodyThetaInput)
 								])))
 					])),
@@ -11179,7 +11189,7 @@ var author$project$Main$manyBodyProperties = function (m) {
 									elm$html$Html$Attributes$max('1000'),
 									elm$html$Html$Attributes$step('1'),
 									elm$html$Html$Attributes$value(
-									elm$core$String$fromFloat(mB.aj)),
+									elm$core$String$fromFloat(mB.distanceMin)),
 									elm$html$Html$Events$onInput(author$project$Main$FromManyBodyMinDistanceInput)
 								]))),
 						A2(
@@ -11189,15 +11199,15 @@ var author$project$Main$manyBodyProperties = function (m) {
 							_List_fromArray(
 								[
 									elm$html$Html$Attributes$value(
-									elm$core$String$fromFloat(mB.ai)),
+									elm$core$String$fromFloat(mB.distanceMax)),
 									elm$html$Html$Events$onInput(author$project$Main$FromManyBodyMaxDistanceInput)
 								])))
 					]))
 			]));
 };
 var author$project$Main$rightBarWidth = 300;
-var author$project$Main$LineSelectorClicked = {$: 9};
-var author$project$Main$RectSelectorClicked = {$: 8};
+var author$project$Main$LineSelectorClicked = {$: 'LineSelectorClicked'};
+var author$project$Main$RectSelectorClicked = {$: 'RectSelectorClicked'};
 var author$project$Main$selectionType = function (m) {
 	var rectSelector = A2(
 		elm$html$Html$div,
@@ -11209,8 +11219,8 @@ var author$project$Main$selectionType = function (m) {
 				elm$html$Html$Events$onClick(author$project$Main$RectSelectorClicked),
 				elm$html$Html$Attributes$class(
 				function () {
-					var _n1 = m.B;
-					if (!_n1) {
+					var _n1 = m.selector;
+					if (_n1.$ === 'RectSelector') {
 						return 'radio-button-selected';
 					} else {
 						return 'radio-button';
@@ -11219,7 +11229,7 @@ var author$project$Main$selectionType = function (m) {
 			]),
 		_List_fromArray(
 			[
-				author$project$Icons$draw24px(author$project$Icons$icons.bv)
+				author$project$Icons$draw24px(author$project$Icons$icons.selectionRect)
 			]));
 	var lineSelector = A2(
 		elm$html$Html$div,
@@ -11231,8 +11241,8 @@ var author$project$Main$selectionType = function (m) {
 				elm$html$Html$Events$onClick(author$project$Main$LineSelectorClicked),
 				elm$html$Html$Attributes$class(
 				function () {
-					var _n0 = m.B;
-					if (_n0 === 1) {
+					var _n0 = m.selector;
+					if (_n0.$ === 'LineSelector') {
 						return 'radio-button-selected';
 					} else {
 						return 'radio-button';
@@ -11241,7 +11251,7 @@ var author$project$Main$selectionType = function (m) {
 			]),
 		_List_fromArray(
 			[
-				author$project$Icons$draw24px(author$project$Icons$icons.bu)
+				author$project$Icons$draw24px(author$project$Icons$icons.selectionLine)
 			]));
 	return A2(
 		author$project$Main$subMenu,
@@ -11316,52 +11326,52 @@ var author$project$Graph$getCommonVertexProperty = F3(
 		}
 	});
 var author$project$Main$FromFixedCheckBox = function (a) {
-	return {$: 26, a: a};
+	return {$: 'FromFixedCheckBox', a: a};
 };
 var author$project$Main$FromRadiusInput = function (a) {
-	return {$: 34, a: a};
+	return {$: 'FromRadiusInput', a: a};
 };
 var author$project$Main$FromVertexColorPicker = function (a) {
-	return {$: 24, a: a};
+	return {$: 'FromVertexColorPicker', a: a};
 };
 var author$project$Main$FromXInput = function (a) {
-	return {$: 43, a: a};
+	return {$: 'FromXInput', a: a};
 };
 var author$project$Main$FromYInput = function (a) {
-	return {$: 42, a: a};
+	return {$: 'FromYInput', a: a};
 };
 var author$project$Main$vertexProperties = function (m) {
 	var radiusToShow = function () {
-		var maybeCommonRadius = elm$core$Set$isEmpty(m.c) ? elm$core$Maybe$Just(m.j.aq) : A3(
+		var maybeCommonRadius = elm$core$Set$isEmpty(m.selectedVertices) ? elm$core$Maybe$Just(m.vertexPreferences.radius) : A3(
 			author$project$Graph$getCommonVertexProperty,
-			m.c,
+			m.selectedVertices,
 			function ($) {
-				return $.aq;
+				return $.radius;
 			},
-			m.a);
-		if (!maybeCommonRadius.$) {
+			m.graph);
+		if (maybeCommonRadius.$ === 'Just') {
 			var r = maybeCommonRadius.a;
 			return elm$core$String$fromFloat(r);
 		} else {
 			return '';
 		}
 	}();
-	var maybeCommonVertexColor = elm$core$Set$isEmpty(m.c) ? elm$core$Maybe$Just(m.j.aw) : A3(
+	var maybeCommonVertexColor = elm$core$Set$isEmpty(m.selectedVertices) ? elm$core$Maybe$Just(m.vertexPreferences.color) : A3(
 		author$project$Graph$getCommonVertexProperty,
-		m.c,
+		m.selectedVertices,
 		function ($) {
-			return $.aw;
+			return $.color;
 		},
-		m.a);
-	var maybeCommonFixed = elm$core$Set$isEmpty(m.c) ? elm$core$Maybe$Just(m.j.V) : A3(
+		m.graph);
+	var maybeCommonFixed = elm$core$Set$isEmpty(m.selectedVertices) ? elm$core$Maybe$Just(m.vertexPreferences.fixed) : A3(
 		author$project$Graph$getCommonVertexProperty,
-		m.c,
+		m.selectedVertices,
 		function ($) {
-			return $.V;
+			return $.fixed;
 		},
-		m.a);
+		m.graph);
 	var headerForVertexProperties = function () {
-		var _n2 = elm$core$Set$size(m.c);
+		var _n2 = elm$core$Set$size(m.selectedVertices);
 		switch (_n2) {
 			case 0:
 				return 'Vertex Preferences';
@@ -11372,12 +11382,12 @@ var author$project$Main$vertexProperties = function (m) {
 		}
 	}();
 	var _n0 = function () {
-		var _n1 = A2(author$project$Graph$getCenter, m.c, m.a);
-		if (_n1.$ === 1) {
+		var _n1 = A2(author$project$Graph$getCenter, m.selectedVertices, m.graph);
+		if (_n1.$ === 'Nothing') {
 			return _Utils_Tuple2('', '');
 		} else {
-			var x = _n1.a.R;
-			var y = _n1.a.S;
+			var x = _n1.a.x;
+			var y = _n1.a.y;
 			return _Utils_Tuple2(
 				elm$core$String$fromInt(
 					elm$core$Basics$round(x)),
@@ -11494,12 +11504,12 @@ var author$project$Main$shortCutsButtonGroup = function (m) {
 					[
 						elm$html$Html$Attributes$title('Force (F)'),
 						elm$html$Html$Attributes$class(
-						m.u ? 'radio-button-selected' : 'radio-button'),
+						m.vaderIsOn ? 'radio-button-selected' : 'radio-button'),
 						elm$html$Html$Events$onClick(author$project$Main$VaderClicked)
 					]),
 				_List_fromArray(
 					[
-						author$project$Icons$draw34px(author$project$Icons$icons.bD)
+						author$project$Icons$draw34px(author$project$Icons$icons.vader)
 					]))
 			]));
 };
@@ -11520,8 +11530,8 @@ var author$project$Main$toolSelectionButtonGroup = function (m) {
 						elm$html$Html$Events$onClick(author$project$Main$SelectToolClicked),
 						elm$html$Html$Attributes$class(
 						function () {
-							var _n0 = m.b;
-							if (_n0.$ === 1) {
+							var _n0 = m.tool;
+							if (_n0.$ === 'Select') {
 								return 'radio-button-selected';
 							} else {
 								return 'radio-button';
@@ -11530,7 +11540,7 @@ var author$project$Main$toolSelectionButtonGroup = function (m) {
 					]),
 				_List_fromArray(
 					[
-						author$project$Icons$draw34px(author$project$Icons$icons.bq)
+						author$project$Icons$draw34px(author$project$Icons$icons.pointer)
 					])),
 				A2(
 				elm$html$Html$div,
@@ -11540,8 +11550,8 @@ var author$project$Main$toolSelectionButtonGroup = function (m) {
 						elm$html$Html$Events$onClick(author$project$Main$DrawToolClicked),
 						elm$html$Html$Attributes$class(
 						function () {
-							var _n1 = m.b;
-							if (!_n1.$) {
+							var _n1 = m.tool;
+							if (_n1.$ === 'Draw') {
 								return 'radio-button-selected';
 							} else {
 								return 'radio-button';
@@ -11550,7 +11560,7 @@ var author$project$Main$toolSelectionButtonGroup = function (m) {
 					]),
 				_List_fromArray(
 					[
-						author$project$Icons$draw34px(author$project$Icons$icons.bo)
+						author$project$Icons$draw34px(author$project$Icons$icons.pen)
 					]))
 			]));
 };
@@ -11568,7 +11578,7 @@ var author$project$Main$topBar = function (m) {
 				A2(
 				elm$html$Html$Attributes$style,
 				'width',
-				elm$core$String$fromFloat(((m.ah.a_ - author$project$Main$leftBarWidth) - author$project$Main$rightBarWidth) - 3) + 'px'),
+				elm$core$String$fromFloat(((m.windowSize.width - author$project$Main$leftBarWidth) - author$project$Main$rightBarWidth) - 3) + 'px'),
 				A2(
 				elm$html$Html$Attributes$style,
 				'height',
@@ -11607,7 +11617,7 @@ var author$project$Main$viewAlpha = function (m) {
 						A2(
 						elm$html$Html$Attributes$style,
 						'width',
-						elm$core$String$fromFloat(100 * m.D) + '%'),
+						elm$core$String$fromFloat(100 * m.alpha) + '%'),
 						A2(elm$html$Html$Attributes$style, 'height', '100%'),
 						A2(elm$html$Html$Attributes$style, 'background-color', '#454545')
 					]),
@@ -11639,7 +11649,7 @@ var elm$core$Basics$always = F2(
 	});
 var author$project$Main$main = elm$browser$Browser$document(
 	{
-		bg: elm$core$Basics$always(
+		init: elm$core$Basics$always(
 			_Utils_Tuple2(
 				author$project$Main$initialModel,
 				elm$core$Platform$Cmd$batch(
@@ -11650,17 +11660,17 @@ var author$project$Main$main = elm$browser$Browser$document(
 							author$project$Main$UpdateWindowSize,
 							A2(elm$core$Task$map, author$project$Main$getWindowSize, elm$browser$Browser$Dom$getViewport))
 						])))),
-		bw: author$project$Main$subscriptions,
-		bA: author$project$Main$update,
-		bE: function (model) {
+		subscriptions: author$project$Main$subscriptions,
+		update: author$project$Main$update,
+		view: function (model) {
 			return {
-				a2: _List_fromArray(
+				body: _List_fromArray(
 					[
 						author$project$Main$view(model)
 					]),
-				by: 'Kite'
+				title: 'Kite'
 			};
 		}
 	});
 _Platform_export({'Main':{'init':author$project$Main$main(
-	elm$json$Json$Decode$succeed(0))(0)}});}(this));
+	elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
