@@ -67,7 +67,7 @@ port toD3DragStart : ( Value, List { id : VertexId, x : Float, y : Float } ) -> 
 port toD3Drag : List { id : VertexId, x : Float, y : Float } -> Cmd msg
 
 
-port toD3DragEnd : () -> Cmd msg
+port toD3DragEnd : Value -> Cmd msg
 
 
 
@@ -163,7 +163,7 @@ initialModel =
         }
     , edgePreferences =
         { color = "white"
-        , thickness = 2
+        , thickness = 3
         , distance = 50
         , strength = 0.5
         }
@@ -479,14 +479,11 @@ update msg m =
 
                 Select (DraggingSelection _ _) ->
                     ( { m | tool = Select Idle }
-                    , Cmd.batch
-                        [ if m.vaderIsOn then
-                            toD3DragEnd ()
+                    , if m.vaderIsOn then
+                        toD3DragEnd (Graph.encodeForD3 m.graph)
 
-                          else
-                            Cmd.none
-                        , sendGraphData m.graph
-                        ]
+                      else
+                        Cmd.none
                     )
 
                 Select (DraggingPullCenter _ _ _) ->
@@ -1763,7 +1760,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     else
                         "leftBarContent-item"
                 , if m.highlightingBagOnMouseOver == Just bagId then
-                    HA.style "border-right" "6px solid rgb(197, 18, 98)"
+                    HA.style "border-right" ("6px solid " ++ Colors.highlightColorForMouseOver)
 
                   else
                     HA.style "" ""
@@ -1809,7 +1806,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     else
                         "leftBarContent-item"
                 , if m.highlightingVertexOnMouseOver == Just vertexId then
-                    HA.style "border-right" "6px solid rgb(197, 18, 98)"
+                    HA.style "border-right" ("6px solid " ++ Colors.highlightColorForMouseOver)
 
                   else
                     HA.style "" ""
@@ -1873,7 +1870,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     else
                         "leftBarContent-item"
                 , if m.highlightingEdgeOnMouseOver == Just edgeId then
-                    HA.style "border-right" "6px solid rgb(197, 18, 98)"
+                    HA.style "border-right" ("6px solid " ++ Colors.highlightColorForMouseOver)
 
                   else
                     HA.style "" ""
@@ -2675,10 +2672,8 @@ mainSvg m =
                                         S.circle
                                             [ SA.cx (String.fromFloat v.x)
                                             , SA.cy (String.fromFloat v.y)
-                                            , SA.r (String.fromFloat (radius v))
-                                            , SA.stroke color
-                                            , SA.strokeWidth "2"
-                                            , SA.fill "none"
+                                            , SA.r (String.fromFloat (radius v + 4))
+                                            , SA.fill color
                                             ]
                                             []
                                     )
@@ -2686,10 +2681,10 @@ mainSvg m =
                     in
                     case sVAction of
                         BrushingForSelection _ ->
-                            hL "rgb(197,18,98)" .radius
+                            hL Colors.highlightColorForMouseOver .radius
 
                         _ ->
-                            hL "rgb(40,129,230)" .radius
+                            hL Colors.colorHighlightForSelection .radius
 
                 _ ->
                     emptySvgElement
@@ -2702,10 +2697,8 @@ mainSvg m =
                             S.circle
                                 [ SA.cx (String.fromFloat v.x)
                                 , SA.cy (String.fromFloat v.y)
-                                , SA.r (String.fromFloat v.radius)
-                                , SA.stroke "rgb(197,18,98)"
-                                , SA.strokeWidth "2"
-                                , SA.fill "none"
+                                , SA.r (String.fromFloat (v.radius + 4))
+                                , SA.fill Colors.highlightColorForMouseOver
                                 ]
                                 []
 
@@ -2734,7 +2727,7 @@ mainSvg m =
                                             ( Just e, Just v, Just w ) ->
                                                 S.line
                                                     [ SA.stroke color
-                                                    , SA.strokeWidth (String.fromFloat (e.thickness + 4))
+                                                    , SA.strokeWidth (String.fromFloat (e.thickness + 6))
                                                     , SA.x1 (String.fromFloat v.x)
                                                     , SA.y1 (String.fromFloat v.y)
                                                     , SA.x2 (String.fromFloat w.x)
@@ -2750,10 +2743,10 @@ mainSvg m =
                     in
                     case sVAction of
                         BrushingForSelection _ ->
-                            hL "rgb(197,18,98)"
+                            hL Colors.highlightColorForMouseOver
 
                         _ ->
-                            hL "rgb(40,129,230)"
+                            hL Colors.colorHighlightForSelection
 
                 _ ->
                     emptySvgElement
@@ -2769,8 +2762,8 @@ mainSvg m =
                     of
                         ( Just e, Just v, Just w ) ->
                             S.line
-                                [ SA.stroke "rgb(197,18,98)"
-                                , SA.strokeWidth (String.fromFloat (e.thickness + 4))
+                                [ SA.stroke Colors.highlightColorForMouseOver
+                                , SA.strokeWidth (String.fromFloat (e.thickness + 6))
                                 , SA.x1 (String.fromFloat v.x)
                                 , SA.y1 (String.fromFloat v.y)
                                 , SA.x2 (String.fromFloat w.x)
@@ -2797,10 +2790,8 @@ mainSvg m =
                                 S.circle
                                     [ SA.cx (String.fromFloat v.x)
                                     , SA.cy (String.fromFloat v.y)
-                                    , SA.r (String.fromFloat v.radius)
-                                    , SA.stroke "rgb(197,18,98)"
-                                    , SA.strokeWidth "2"
-                                    , SA.fill "none"
+                                    , SA.r (String.fromFloat (v.radius + 4))
+                                    , SA.fill Colors.highlightColorForMouseOver
                                     ]
                                     []
                             )
@@ -2923,13 +2914,13 @@ mainSvg m =
         , viewPullCenters
         , maybeHighlightsOnSelectedEdges
         , maybeHighlightOnMouseOveredEdge
+        , maybeHighlightOnMouseOveredVertex
+        , maybeHighlightsOnSelectedVertices
+        , maybeHighlightOnVerticesOfMouseOveredBag
         , viewEdges m.graph
         , viewVertices m.graph
         , maybeBrushedSelectionRect
         , maybeRectAroundSelectedVertices
-        , maybeHighlightsOnSelectedVertices
-        , maybeHighlightOnMouseOveredVertex
-        , maybeHighlightOnVerticesOfMouseOveredBag
         ]
 
 
@@ -2960,8 +2951,9 @@ viewEdges graph =
                         , SE.onMouseOut (MouseOutEdge ( s, t ))
                         ]
                         [ S.line
-                            [ SA.stroke color
-                            , SA.strokeWidth (String.fromFloat thickness)
+                            [ SA.stroke "red"
+                            , SA.strokeWidth (String.fromFloat (thickness + 6))
+                            , SA.strokeOpacity "0"
                             , SA.x1 (String.fromFloat v.x)
                             , SA.y1 (String.fromFloat v.y)
                             , SA.x2 (String.fromFloat w.x)
@@ -2969,9 +2961,8 @@ viewEdges graph =
                             ]
                             []
                         , S.line
-                            [ SA.stroke "red"
-                            , SA.strokeWidth (String.fromFloat (max 20 thickness))
-                            , SA.strokeOpacity "0"
+                            [ SA.stroke color
+                            , SA.strokeWidth (String.fromFloat thickness)
                             , SA.x1 (String.fromFloat v.x)
                             , SA.y1 (String.fromFloat v.y)
                             , SA.x2 (String.fromFloat w.x)

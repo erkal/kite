@@ -1,13 +1,23 @@
-module Colors exposing (Color, vertexAndEdgeColors)
+module Colors exposing (Color, colorHighlightForSelection, highlightColorForMouseOver, vertexAndEdgeColors)
 
 
 type alias Color =
     String
 
 
+highlightColorForMouseOver =
+    "rgb(255, 47, 146)"
+
+
+colorHighlightForSelection =
+    "rgb(0, 150, 255)"
+
+
 vertexAndEdgeColors =
     [ "black"
     , "white"
+    , "lightgray"
+    , "darkgray"
     , "gray"
     , "rgb(199, 0, 57)"
     , "rgb(144, 12, 63)"
