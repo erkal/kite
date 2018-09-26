@@ -101,13 +101,14 @@
             };
         });
 
-        app.ports.toD3DragEnd.subscribe(() => {
+        app.ports.toD3DragEnd.subscribe(graphData => {
             for (var id in draggedNodes) {
                 node = draggedNodes[id];
-                node.fx = null;
-                node.fy = null;
+                // node.fx = null;
+                // node.fy = null;
             };
             draggedNodes = {};
+            updateGraphData(graphData);
             sim.alphaTarget(0);
         });
 
