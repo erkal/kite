@@ -15,14 +15,6 @@
     <meta charset="UTF-8">
     <title>Kite</title>
     <link rel="stylesheet" href="style.css">
-    <!-- See https://github.com/d3/d3-force -->
-    <script src="src/third-party-libraries/d3-collection.v1.min.js"></script>
-    <script src="src/third-party-libraries/d3-dispatch.v1.min.js"></script>
-    <script src="src/third-party-libraries/d3-quadtree.v1.min.js"></script>
-    <script src="src/third-party-libraries/d3-timer.v1.min.js"></script>
-    <script src="src/third-party-libraries/d3-force.v1.min.js"></script>
-    <script src="src/js/pullToBagCenters.js"></script>
-    <!-- Elm -->
     <script type="text/javascript" src="elm.js"></script>
     <!-- <script type="text/javascript" src="elm.min.js"></script> -->
 </head>
@@ -30,85 +22,6 @@
 <body>
     <script type="text/javascript">
         var app = Elm.Main.init();
-
-        const sim =
-            d3.forceSimulation()
-                .on("tick", function () {
-                    app.ports.fromD3TickData.send({
-                        alpha: this.alpha(),
-                        nodes: this.nodes()
-                    });
-                })
-                .stop();
-
-
-        function updateGraphData({ vertices, edges, manyBody }) {
-            const forceManyBody =
-                d3.forceManyBody()
-                    .strength(manyBody.strength)
-                    .theta(manyBody.theta)
-                    .distanceMin(manyBody.distanceMin)
-                    .distanceMax(manyBody.distanceMax)
-
-            const forceLink =
-                d3.forceLink(edges)
-                    .id(d => d.id)
-                    .distance(link => link.distance)
-                    .strength(link => link.strength)
-
-            sim
-                .nodes(vertices)
-                .force("many-body", forceManyBody)
-                .force("links", forceLink)
-                .force("pull-to-bag-centers", pullToBagCenters())
-        }
-
-        app.ports.toD3GraphData.subscribe(updateGraphData);
-
-
-        app.ports.toD3RestartWithAlpha.subscribe(a => {
-            sim.alpha(a).restart();
-        });
-
-        app.ports.toD3StopSimulation.subscribe(() => {
-            sim.stop();
-        });
-
-
-
-
-
-
-        let draggedNodes = {};
-
-        app.ports.toD3DragStart.subscribe(([graphData, startPositionsOfDraggedVertices]) => {
-            updateGraphData(graphData);
-            for (var e of startPositionsOfDraggedVertices) {
-                node = sim.nodes().find(node => node.id == e.id);
-                draggedNodes[e.id] = node;
-                node.fx = e.x;
-                node.fy = e.y;
-                sim.alphaTarget(0.3).restart();
-            };
-        });
-
-        app.ports.toD3Drag.subscribe(newPositionsOfDraggedVertices => {
-            for (var e of newPositionsOfDraggedVertices) {
-                node = draggedNodes[e.id];
-                node.fx = e.x;
-                node.fy = e.y;
-            };
-        });
-
-        app.ports.toD3DragEnd.subscribe(graphData => {
-            updateGraphData(graphData);
-            sim.alphaTarget(0);
-            draggedNodes = {};
-        });
-
-
-
-
     </script>
 </body>
 

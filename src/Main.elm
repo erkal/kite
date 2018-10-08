@@ -1,24 +1,33 @@
-port module Main exposing (main)
+module Main exposing (main)
 
+import BoundingBox2d exposing (BoundingBox2d)
 import Browser
 import Browser.Dom as Dom
-import Browser.Events
+import Browser.Events exposing (Visibility(..))
 import CheckBox
+import Circle2d exposing (Circle2d)
 import ColorPicker
 import Colors exposing (Color)
-import ConvexHull
 import Dict exposing (Dict)
-import Graph exposing (BagId, EdgeId, Graph, VertexId)
+import Force exposing (Force)
+import Geometry.Svg
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
 import Html.Events as HE
 import Icons exposing (icons)
+import IntDict exposing (IntDict)
 import Json.Decode as Decode exposing (Decoder, Value)
+import LineSegment2d exposing (LineSegment2d)
+import Point2d exposing (Point2d)
+import Polygon2d exposing (Polygon2d)
 import Set exposing (Set)
 import Svg as S
 import Svg.Attributes as SA
 import Svg.Events as SE
 import Task
+import Time
+import User exposing (BagId, BagProperties, EdgeId, EdgeProperties, User, VertexId, VertexProperties)
+import Vector2d exposing (Vector2d)
 
 
 main : Program () Model Msg
@@ -26,13 +35,11 @@ main =
     Browser.document
         { init =
             always
-                ( initialModel
-                , Cmd.batch
-                    [ Task.perform UpdateWindowSize (Task.map getWindowSize Dom.getViewport)
-                    ]
+                ( initialModel User.default
+                , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
                 )
         , view = \model -> { title = "Kite", body = [ view model ] }
-        , update = update
+        , update = \msg model -> ( update msg model, Cmd.none )
         , subscriptions = subscriptions
         }
 
@@ -43,61 +50,61 @@ getWindowSize viewPort =
     }
 
 
-port fromD3TickData : (TickData -> msg) -> Sub msg
-
-
-type alias TickData =
-    { alpha : Float
-    , nodes : List { id : VertexId, x : Float, y : Float }
-    }
-
-
-port toD3GraphData : Value -> Cmd msg
-
-
-port toD3RestartWithAlpha : Float -> Cmd msg
-
-
-port toD3StopSimulation : () -> Cmd msg
-
-
-port toD3DragStart : ( Value, List { id : VertexId, x : Float, y : Float } ) -> Cmd msg
-
-
-port toD3Drag : List { id : VertexId, x : Float, y : Float } -> Cmd msg
-
-
-port toD3DragEnd : Value -> Cmd msg
-
-
 
 -- MODEL
 
 
 type alias Model =
-    { windowSize : { width : Int, height : Int }
+    { user : User
+
+    --
+    , simulationEntities : List Entity
+    , simulationState : Force.State VertexId
+
+    --
+    , windowSize : { width : Int, height : Int }
+    , mousePosition : MousePosition
+    , svgMousePosition : Point2d
+
+    --
     , altIsDown : Bool
     , shiftIsDown : Bool
-    , graph : Graph
-    , tool : Tool
-    , leftBarContent : LeftBarContent
-    , selector : Selector
+
+    --
+    , pan : {- This is the svg coordinates of the top left corner of the browser window -} Point2d
+    , zoom : Float
+
+    --
     , vaderIsOn : Bool
-    , highlightingVertexOnMouseOver : Maybe VertexId
-    , highlightingEdgeOnMouseOver : Maybe EdgeId
-    , highlightingBagOnMouseOver : Maybe BagId
-    , highlightingPullCenterOnMouseOver : Maybe BagId
+
+    --
+    , selectedMode : Mode
+    , selectedTool : Tool
+    , selectedSelector : Selector
+
+    --
+    , maybeSelectedBag : Maybe BagId
+
+    --
+    , highlightedVertices : Set VertexId
+    , highlightedEdges : Set EdgeId
+
+    --
     , selectedVertices : Set VertexId
     , selectedEdges : Set EdgeId
-    , vertexPreferences : Graph.Vertex
-    , edgePreferences : Graph.Edge
-    , bagPreferences : Graph.Bag
-    , maybeSelectedBag : Maybe BagId
-    , alpha : Float
     }
 
 
-type LeftBarContent
+type alias Entity =
+    { id : VertexId
+    , x : Float
+    , y : Float
+    , vx : Float
+    , vy : Float
+    }
+
+
+type Mode
     = Preferences
     | ListsOfBagsVerticesAndEdges
     | GraphOperations
@@ -113,14 +120,26 @@ type Selector
 
 
 type Tool
-    = Draw (Maybe EdgeBrush)
+    = Hand HandState
+    | Draw DrawState
     | Select SelectState
 
 
-type alias EdgeBrush =
-    { sourceId : VertexId
-    , mousePos : MousePosition
-    }
+type alias Pan =
+    Point2d
+
+
+type HandState
+    = HandIdle
+    | Panning
+        { mousePositionAtPanStart : MousePosition
+        , panAtStart : Pan
+        }
+
+
+type DrawState
+    = DrawIdle
+    | BrushingNewEdgeWithSourceId VertexId
 
 
 type alias MousePosition =
@@ -128,1362 +147,802 @@ type alias MousePosition =
 
 
 type SelectState
-    = Idle
-    | BrushingForSelection Brush
-    | DraggingSelection (List { id : VertexId, x : Float, y : Float }) Brush
-    | DraggingPullCenter BagId { x : Float, y : Float } Brush
+    = SelectIdle
+    | BrushingForSelection { brushStart : Point2d }
+    | DraggingSelection
+        { brushStart : Point2d
+        , vertexPositionsAtStart : IntDict Point2d
+        }
 
 
-type alias Brush =
-    { start : MousePosition
-    , mousePos : MousePosition
-    }
+initialModel : User -> Model
+initialModel user =
+    { user = user
 
+    --
+    , simulationEntities = user |> User.toEntities
+    , simulationState = user |> User.simulation
 
-initialModel : Model
-initialModel =
-    { windowSize = { width = 800, height = 600 }
+    --
+    , windowSize = { width = 800, height = 600 }
+    , mousePosition = { x = 0, y = 0 }
+    , svgMousePosition = Point2d.fromCoordinates ( 0, 0 )
+
+    --
     , altIsDown = False
     , shiftIsDown = False
-    , graph = Graph.empty
-    , tool = Draw Nothing
-    , leftBarContent = ListsOfBagsVerticesAndEdges
-    , selector = RectSelector
+
+    --
+    , pan = initialPan
+    , zoom = 1
+
+    --
     , vaderIsOn = True
-    , highlightingVertexOnMouseOver = Nothing
-    , highlightingEdgeOnMouseOver = Nothing
-    , highlightingBagOnMouseOver = Nothing
-    , highlightingPullCenterOnMouseOver = Nothing
+
+    --
+    , selectedMode = ListsOfBagsVerticesAndEdges
+    , selectedTool = Draw DrawIdle
+    , selectedSelector = RectSelector
+
+    --
+    , maybeSelectedBag = Nothing
+
+    --
+    , highlightedVertices = Set.empty
+    , highlightedEdges = Set.empty
+
+    --
     , selectedVertices = Set.empty
     , selectedEdges = Set.empty
-    , vertexPreferences =
-        { x = 200
-        , y = 200
-        , fixed = False
-        , color = "white"
-        , radius = 5
-        , inBags = Set.empty
-        , userDefinedProperties = Dict.empty
-        }
-    , edgePreferences =
-        { color = "white"
-        , thickness = 3
-        , distance = 30
-        , strength = 0.5
-        }
-    , bagPreferences =
-        { hasConvexHull = False
-        , pullIsActive = True
-        , draggablePullCenter = False
-        , pullX = 600
-        , pullXStrength = 0.1
-        , pullY = 300
-        , pullYStrength = 0.1
-        }
-    , maybeSelectedBag = Nothing
-    , alpha = 0
     }
 
 
+initialPan =
+    Point2d.fromCoordinates
+        ( -(leftBarWidth + 40)
+        , -(topBarHeight + 40)
+        )
 
--- UPDATE
+
+
+--  UPDATE
 
 
 type Msg
     = NoOp
       --
-    | UpdateWindowSize { width : Int, height : Int }
-    | FromD3Tick TickData
+    | Tick Time.Posix
       --
-    | AltKeyDown
-    | AltKeyUp
-    | ShiftKeyDown
-    | ShiftKeyUp
+    | WindowResize { width : Int, height : Int }
       --
-    | LeftMostBarRadioButtonClicked LeftBarContent
+    | WheelDeltaY Int
       --
-    | DrawToolClicked
-    | SelectToolClicked
-    | VaderClicked
+    | KeyDownAlt
+    | KeyUpAlt
+    | KeyDownShift
+    | KeyUpShift
       --
-    | RectSelectorClicked
-    | LineSelectorClicked
+    | PageVisibility Browser.Events.Visibility
+      --
+    | ClickOnLeftMostBarRadioButton Mode
+      --
+    | ClickOnResetZoomAndPanButton
+      --
+    | ClickOnHandTool
+    | ClickOnDrawTool
+    | ClickOnSelectTool
+      --
+    | ClickOnVader
+      --
+    | ClickOnRectSelector
+    | ClickOnLineSelector
       --
     | MouseMove MousePosition
+    | MouseMoveForUpdatingSvgPos MousePosition
     | MouseUp MousePosition
       --
-    | MouseDownOnTransparentInteractionRect MousePosition
-    | MouseUpOnTransparentInteractionRect MousePosition
+    | MouseDownOnTransparentInteractionRect
+    | MouseUpOnTransparentInteractionRect
+      --
+    | MouseDownOnMainSvg
       --
     | MouseOverVertex VertexId
     | MouseOutVertex VertexId
-    | MouseDownOnVertex VertexId MousePosition
-    | MouseUpOnVertex VertexId
-      --
     | MouseOverEdge EdgeId
     | MouseOutEdge EdgeId
-    | MouseDownOnEdge EdgeId MousePosition
-    | MouseUpOnEdge EdgeId MousePosition
-      --
-    | MouseOverPullCenter BagId
-    | MouseOutPullCenter BagId
-    | MouseDownOnPullCenter BagId MousePosition
-    | ClickOnPullCenter BagId
+    | MouseDownOnVertex VertexId
+    | MouseUpOnVertex VertexId
+    | MouseDownOnEdge EdgeId
+    | MouseUpOnEdge EdgeId
       --
     | ClickOnBagPlus
     | ClickOnBagTrash
+    | MouseOverBagItem BagId
+    | MouseOutBagItem BagId
+    | ClickOnBagItem BagId
+    | CheckBoxConvexHull Bool
       --
     | ClickOnVertexTrash
+    | MouseOverVertexItem VertexId
+    | MouseOutVertexItem VertexId
+    | ClickOnVertexItem VertexId
+    | NumberInputVertexX String
+    | NumberInputVertexY String
+    | ColorPickerVertex Color
+    | NumberInputRadius String
+    | CheckBoxFixed Bool
       --
     | ClickOnEdgeContract
     | ClickOnEdgeTrash
-      --
-      --
-    | MouseOverVertexItem VertexId
     | MouseOverEdgeItem EdgeId
-    | MouseOverBagItem BagId
-    | MouseOutVertexItem VertexId
     | MouseOutEdgeItem EdgeId
-    | MouseOutBagItem BagId
-    | ClickOnVertexItem VertexId
     | ClickOnEdgeItem EdgeId
-    | ClickOnBagItem BagId
-      --
-    | FromVertexColorPicker Color
-    | FromEdgeColorPicker Color
-    | FromFixedCheckBox Bool
-    | FromConvexHullCheckBox Bool
-    | FromPullIsActiveCheckBox Bool
-    | FromDraggableCenterCheckBox Bool
-    | FromPullXStrengthInput String
-    | FromPullYStrengthInput String
-    | FromPullXInput String
-    | FromPullYInput String
-    | FromRadiusInput String
-    | FromThicknessInput String
-    | FromDistanceInput String
-    | FromStrengthInput String
-    | FromManyBodyStrengthInput String
-    | FromManyBodyThetaInput String
-    | FromManyBodyMinDistanceInput String
-    | FromManyBodyMaxDistanceInput String
-    | FromYInput String
-    | FromXInput String
+    | ColorPickerEdge Color
+    | NumberInputThickness String
+    | NumberInputDistance String
+    | NumberInputEdgeStrength String
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+restartSimulationIfVaderIsOn : Model -> Model
+restartSimulationIfVaderIsOn m =
+    if m.vaderIsOn then
+        { m
+            | simulationEntities = m.user |> User.toEntities
+            , simulationState = m.user |> User.simulation
+        }
+
+    else
+        m
+
+
+update : Msg -> Model -> Model
 update msg m =
-    let
-        sendGraphData : Graph -> Cmd msg
-        sendGraphData graph =
-            toD3GraphData (Graph.encodeForD3 graph)
-
-        reheatSimulationIfVaderIsOn : Cmd msg
-        reheatSimulationIfVaderIsOn =
-            if m.vaderIsOn then
-                toD3RestartWithAlpha 0.6
-
-            else
-                Cmd.none
-    in
     case msg of
         NoOp ->
-            ( m
-            , Cmd.none
-            )
+            m
 
-        AltKeyDown ->
-            ( { m | altIsDown = True }
-            , Cmd.none
-            )
+        Tick _ ->
+            let
+                ( newSimulationState, newSimulationEntities__ ) =
+                    Force.tick m.simulationState m.simulationEntities
 
-        AltKeyUp ->
-            ( { m | altIsDown = False }
-            , Cmd.none
-            )
+                newSimulationEntities_ =
+                    newSimulationEntities__ |> User.bringBackIfFixed m.user
 
-        ShiftKeyDown ->
-            ( { m | shiftIsDown = True }
-            , Cmd.none
-            )
+                newSimulationEntities =
+                    case m.selectedTool of
+                        Select (DraggingSelection { brushStart, vertexPositionsAtStart }) ->
+                            let
+                                delta =
+                                    Vector2d.from brushStart m.svgMousePosition
 
-        ShiftKeyUp ->
-            ( { m | shiftIsDown = False }
-            , Cmd.none
-            )
+                                newVertexPositions =
+                                    vertexPositionsAtStart
+                                        |> IntDict.map (\_ pos -> pos |> Point2d.translateBy delta)
+                            in
+                            newSimulationEntities_
+                                |> List.map
+                                    (\ent ->
+                                        let
+                                            maybePos =
+                                                newVertexPositions |> IntDict.get ent.id
 
-        UpdateWindowSize wS ->
-            ( { m | windowSize = wS }
-            , Cmd.none
-            )
+                                            maybeX =
+                                                maybePos |> Maybe.map Point2d.xCoordinate
 
-        DrawToolClicked ->
-            ( { m
-                | tool = Draw Nothing
-                , selectedVertices = Set.empty
-                , selectedEdges = Set.empty
-              }
-            , Cmd.none
-            )
-
-        SelectToolClicked ->
-            ( { m | tool = Select Idle }
-            , Cmd.none
-            )
-
-        RectSelectorClicked ->
-            ( { m
-                | selector = RectSelector
-                , tool = Select Idle
-              }
-            , Cmd.none
-            )
-
-        LineSelectorClicked ->
-            ( { m
-                | selector = LineSelector
-                , tool = Select Idle
-              }
-            , Cmd.none
-            )
-
-        MouseMove mousePos ->
-            case m.tool of
-                Draw (Just { sourceId }) ->
-                    ( { m | tool = Draw (Just (EdgeBrush sourceId mousePos)) }
-                    , Cmd.none
-                    )
-
-                Select (BrushingForSelection { start }) ->
-                    let
-                        ( newSelectedVertices, newSelectedEdges ) =
-                            case m.selector of
-                                RectSelector ->
-                                    let
-                                        minx =
-                                            toFloat (min start.x mousePos.x)
-
-                                        miny =
-                                            toFloat (min start.y mousePos.y)
-
-                                        maxx =
-                                            toFloat (max start.x mousePos.x)
-
-                                        maxy =
-                                            toFloat (max start.y mousePos.y)
-
-                                        newSelectedVertices_ =
-                                            m.graph
-                                                |> Graph.getVertexIdsInRect
-                                                    { x = minx
-                                                    , y = miny
-                                                    , width = maxx - minx
-                                                    , height = maxy - miny
-                                                    }
-                                    in
-                                    ( newSelectedVertices_
-                                    , Graph.inducedEdges newSelectedVertices_ m.graph
+                                            maybeY =
+                                                maybePos |> Maybe.map Point2d.yCoordinate
+                                        in
+                                        { ent
+                                            | x = maybeX |> Maybe.withDefault ent.x
+                                            , y = maybeY |> Maybe.withDefault ent.y
+                                            , vx = 0
+                                            , vy = 0
+                                        }
                                     )
 
-                                LineSelector ->
-                                    let
-                                        newSelectedEdges_ =
-                                            m.graph
-                                                |> Graph.getEdgeIdsIntersectingLineSegment
-                                                    ( ( toFloat start.x
-                                                      , toFloat start.y
-                                                      )
-                                                    , ( toFloat mousePos.x
-                                                      , toFloat mousePos.y
-                                                      )
-                                                    )
-                                    in
-                                    ( Graph.inducedVertices newSelectedEdges_ m.graph
-                                    , newSelectedEdges_
-                                    )
-                    in
-                    ( { m
-                        | tool =
-                            Select
-                                (BrushingForSelection
-                                    (Brush start mousePos)
-                                )
-                        , selectedVertices = newSelectedVertices
-                        , selectedEdges = newSelectedEdges
-                      }
-                    , Cmd.none
-                    )
+                        _ ->
+                            newSimulationEntities_
+            in
+            { m
+                | user = m.user |> User.updateByEntities newSimulationEntities
+                , simulationEntities = newSimulationEntities
+                , simulationState = newSimulationState
+            }
 
-                Select (DraggingSelection startPositionsOfVertices { start }) ->
-                    let
-                        move { id, x, y } =
-                            { id = id
-                            , x = x + toFloat (mousePos.x - start.x)
-                            , y = y + toFloat (mousePos.y - start.y)
+        WindowResize wS ->
+            { m | windowSize = wS }
+
+        WheelDeltaY deltaY ->
+            let
+                zoomDelta =
+                    m.zoom + 0.001 * toFloat -deltaY
+
+                newZoom =
+                    clamp 0.5 2 zoomDelta
+            in
+            { m
+                | zoom = newZoom
+                , pan =
+                    m.pan
+                        |> Point2d.scaleAbout m.svgMousePosition (m.zoom / newZoom)
+            }
+
+        KeyDownAlt ->
+            { m | altIsDown = True }
+
+        KeyUpAlt ->
+            { m | altIsDown = False }
+
+        KeyDownShift ->
+            { m | shiftIsDown = True }
+
+        KeyUpShift ->
+            { m | shiftIsDown = False }
+
+        PageVisibility visibility ->
+            {- TODO : This does not work, I don't know why. Google this. -}
+            case visibility of
+                Hidden ->
+                    { m
+                        | shiftIsDown = False
+                        , altIsDown = False
+                    }
+
+                Visible ->
+                    m
+
+        ClickOnLeftMostBarRadioButton selectedMode ->
+            { m | selectedMode = selectedMode }
+
+        ClickOnResetZoomAndPanButton ->
+            { m
+                | pan = initialPan
+                , zoom = 1
+            }
+
+        ClickOnHandTool ->
+            { m | selectedTool = Hand HandIdle }
+
+        ClickOnDrawTool ->
+            { m | selectedTool = Draw DrawIdle }
+
+        ClickOnSelectTool ->
+            { m | selectedTool = Select SelectIdle }
+
+        ClickOnVader ->
+            restartSimulationIfVaderIsOn
+                { m | vaderIsOn = not m.vaderIsOn }
+
+        ClickOnRectSelector ->
+            { m
+                | selectedSelector = RectSelector
+                , selectedTool = Select SelectIdle
+            }
+
+        ClickOnLineSelector ->
+            { m
+                | selectedSelector = LineSelector
+                , selectedTool = Select SelectIdle
+            }
+
+        MouseMove newMousePosition ->
+            case m.selectedTool of
+                Select (BrushingForSelection { brushStart }) ->
+                    case m.selectedSelector of
+                        RectSelector ->
+                            let
+                                newSelectedVertices =
+                                    User.vertexIdsInBoundingBox
+                                        (BoundingBox2d.from brushStart m.svgMousePosition)
+                                        m.user
+                            in
+                            { m
+                                | selectedVertices = newSelectedVertices
+                                , selectedEdges = m.user |> User.inducedEdges newSelectedVertices
                             }
 
-                        newPositions =
-                            List.map move startPositionsOfVertices
-                    in
-                    ( { m
-                        | tool =
-                            Select
-                                (DraggingSelection startPositionsOfVertices
-                                    (Brush start mousePos)
-                                )
-                        , graph =
-                            if m.vaderIsOn then
-                                m.graph
-
-                            else
-                                Graph.moveVertices newPositions m.graph
-                      }
-                    , if m.vaderIsOn then
-                        toD3Drag newPositions
-
-                      else
-                        Cmd.none
-                    )
-
-                Select (DraggingPullCenter bagId startPositionOfThePullCenter { start }) ->
-                    let
-                        newGraph =
+                        LineSelector ->
                             let
-                                { x, y } =
-                                    startPositionOfThePullCenter
-
-                                move bag =
-                                    { bag
-                                        | pullX =
-                                            x + toFloat (mousePos.x - start.x)
-                                        , pullY =
-                                            y + toFloat (mousePos.y - start.y)
-                                    }
+                                newSelectedEdges =
+                                    User.edgeIdsIntersectiongLineSegment
+                                        (LineSegment2d.from brushStart m.svgMousePosition)
+                                        m.user
                             in
-                            m.graph |> Graph.updateBag bagId move
+                            { m
+                                | selectedEdges = newSelectedEdges
+                                , selectedVertices = User.inducedVertices newSelectedEdges
+                            }
+
+                Select (DraggingSelection { brushStart, vertexPositionsAtStart }) ->
+                    let
+                        delta =
+                            Vector2d.from brushStart m.svgMousePosition
+
+                        newVertexPositions =
+                            vertexPositionsAtStart
+                                |> IntDict.toList
+                                |> List.map (Tuple.mapSecond (Point2d.translateBy delta))
                     in
-                    ( { m
-                        | tool =
-                            Select
-                                (DraggingPullCenter bagId
-                                    startPositionOfThePullCenter
-                                    (Brush start mousePos)
-                                )
-                        , graph =
-                            newGraph
-                      }
-                    , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-                    )
+                    { m
+                        | user = m.user |> User.setVertexPositions newVertexPositions
+                        , simulationState = Force.reheat m.simulationState
+                    }
+
+                Hand (Panning { mousePositionAtPanStart, panAtStart }) ->
+                    { m
+                        | pan =
+                            let
+                                toPoint : { x : Int, y : Int } -> Point2d
+                                toPoint pos =
+                                    Point2d.fromCoordinates ( toFloat pos.x, toFloat pos.y )
+
+                                delta =
+                                    Vector2d.from (toPoint newMousePosition) (toPoint mousePositionAtPanStart)
+                                        |> Vector2d.scaleBy (1 / m.zoom)
+                            in
+                            panAtStart |> Point2d.translateBy delta
+                    }
 
                 _ ->
-                    ( m
-                    , Cmd.none
-                    )
+                    m
+
+        MouseMoveForUpdatingSvgPos newMousePosition ->
+            let
+                panAsVector =
+                    m.pan |> Point2d.coordinates |> Vector2d.fromComponents
+
+                newSvgMousePosition =
+                    Point2d.fromCoordinates ( toFloat newMousePosition.x, toFloat newMousePosition.y )
+                        |> Point2d.scaleAbout Point2d.origin (1 / m.zoom)
+                        |> Point2d.translateBy panAsVector
+            in
+            { m
+                | svgMousePosition = newSvgMousePosition
+                , mousePosition = newMousePosition
+            }
 
         MouseUp _ ->
-            case m.tool of
-                Select (BrushingForSelection { start, mousePos }) ->
-                    ( { m
-                        | tool = Select Idle
-                        , selectedVertices =
-                            if start == mousePos then
-                                Set.empty
+            case m.selectedTool of
+                Select (BrushingForSelection { brushStart }) ->
+                    let
+                        ( newSelectedVertices, newSelectedEdges ) =
+                            if brushStart == m.svgMousePosition then
+                                ( Set.empty, Set.empty )
 
                             else
-                                m.selectedVertices
-                        , selectedEdges =
-                            if start == mousePos then
-                                Set.empty
-
-                            else
-                                m.selectedEdges
-                      }
-                    , Cmd.none
-                    )
-
-                Select (DraggingSelection _ _) ->
-                    ( { m | tool = Select Idle }
-                    , if m.vaderIsOn then
-                        toD3DragEnd (Graph.encodeForD3 m.graph)
-
-                      else
-                        sendGraphData m.graph
-                    )
-
-                Select (DraggingPullCenter _ _ _) ->
-                    ( { m | tool = Select Idle }
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( m
-                    , Cmd.none
-                    )
-
-        MouseDownOnTransparentInteractionRect ({ x, y } as mousePos) ->
-            case m.tool of
-                Draw Nothing ->
-                    let
-                        ( upGraph, newId ) =
-                            m.graph
-                                |> Graph.addVertexAndGetTheNewVertexId
-                                    mousePos
-                                    ( m.vertexPreferences, m.maybeSelectedBag )
-
-                        newGraph =
-                            upGraph |> Graph.movePullCenterToCenter m.maybeSelectedBag
+                                ( m.selectedVertices, m.selectedEdges )
                     in
-                    ( { m
-                        | graph = newGraph
-                        , tool = Draw (Just (EdgeBrush newId mousePos))
-                      }
-                    , Cmd.none
-                    )
-
-                Select Idle ->
-                    ( { m | tool = Select (BrushingForSelection (Brush mousePos mousePos)) }
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( m, Cmd.none )
-
-        MouseUpOnTransparentInteractionRect pos ->
-            case m.tool of
-                Draw (Just { sourceId }) ->
-                    let
-                        newGraph =
-                            m.graph
-                                |> Graph.addNeighbour pos
-                                    sourceId
-                                    ( m.vertexPreferences, m.maybeSelectedBag )
-                                    m.edgePreferences
-                    in
-                    ( { m
-                        | graph = newGraph
-                        , tool = Draw Nothing
-                      }
-                    , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-                    )
-
-                _ ->
-                    ( m, Cmd.none )
-
-        MouseOverVertex id ->
-            ( { m | highlightingVertexOnMouseOver = Just id }
-            , Cmd.none
-            )
-
-        MouseOverEdge edgeId ->
-            ( { m | highlightingEdgeOnMouseOver = Just edgeId }
-            , Cmd.none
-            )
-
-        MouseOutVertex _ ->
-            ( { m | highlightingVertexOnMouseOver = Nothing }
-            , Cmd.none
-            )
-
-        MouseOutEdge _ ->
-            ( { m | highlightingEdgeOnMouseOver = Nothing }
-            , Cmd.none
-            )
-
-        MouseDownOnVertex id mousePos ->
-            case m.tool of
-                Draw Nothing ->
-                    ( { m
-                        | tool =
-                            case Graph.getRoundedVertexPosition id m.graph of
-                                Just pos ->
-                                    Draw (Just (EdgeBrush id pos))
-
-                                _ ->
-                                    Draw Nothing
-                      }
-                    , Cmd.none
-                    )
-
-                Select Idle ->
-                    let
-                        ( newGraph, newSelectedVertices, newSelectedEdges ) =
-                            if Set.member id m.selectedVertices then
-                                if m.altIsDown then
-                                    m.graph |> Graph.duplicateSubgraphAndGetTheDuplicate m.selectedVertices m.selectedEdges
-
-                                else
-                                    ( m.graph, m.selectedVertices, m.selectedEdges )
-
-                            else
-                                ( m.graph, Set.singleton id, Set.empty )
-
-                        idAndPosition vertexId { x, y } =
-                            { id = vertexId, x = x, y = y }
-
-                        startPositionsOfDraggedVertices =
-                            newGraph
-                                |> Graph.getVerticesIn newSelectedVertices
-                                |> Dict.map idAndPosition
-                                |> Dict.values
-                    in
-                    ( { m
-                        | tool = Select (DraggingSelection startPositionsOfDraggedVertices (Brush mousePos mousePos))
-                        , graph = newGraph
+                    { m
+                        | selectedTool = Select SelectIdle
                         , selectedVertices = newSelectedVertices
                         , selectedEdges = newSelectedEdges
-                      }
-                    , if m.vaderIsOn then
-                        toD3DragStart ( Graph.encodeForD3 newGraph, startPositionsOfDraggedVertices )
+                    }
 
-                      else
-                        Cmd.none
-                    )
+                Select (DraggingSelection _) ->
+                    restartSimulationIfVaderIsOn
+                        { m | selectedTool = Select SelectIdle }
+
+                Hand (Panning _) ->
+                    { m | selectedTool = Hand HandIdle }
 
                 _ ->
-                    ( m, Cmd.none )
+                    m
 
-        MouseDownOnEdge ( s, t ) mousePos ->
-            case m.tool of
-                Draw Nothing ->
+        MouseDownOnTransparentInteractionRect ->
+            case m.selectedTool of
+                Draw DrawIdle ->
                     let
-                        ( newGraph, idOfTheNewVertex ) =
-                            m.graph
-                                |> Graph.devideEdge mousePos
-                                    ( s, t )
-                                    ( m.vertexPreferences, m.maybeSelectedBag )
+                        ( newUser, sourceId ) =
+                            m.user |> User.addVertex m.svgMousePosition
                     in
-                    ( { m
-                        | graph = newGraph
-                        , highlightingEdgeOnMouseOver = Nothing
-                        , tool = Draw (Just (EdgeBrush idOfTheNewVertex mousePos))
-                      }
-                    , Cmd.none
-                    )
+                    { m
+                        | user = newUser
+                        , selectedTool = Draw (BrushingNewEdgeWithSourceId sourceId)
+                    }
 
-                Select Idle ->
+                Select SelectIdle ->
+                    { m | selectedTool = Select (BrushingForSelection { brushStart = m.svgMousePosition }) }
+
+                _ ->
+                    m
+
+        MouseUpOnTransparentInteractionRect ->
+            case m.selectedTool of
+                Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     let
-                        ( newGraph, newSelectedVertices, newSelectedEdges ) =
-                            if Set.member ( s, t ) m.selectedEdges then
+                        ( userGraphWithAddedVertex, newId ) =
+                            m.user
+                                |> User.addVertex m.svgMousePosition
+
+                        newUser =
+                            userGraphWithAddedVertex
+                                |> User.addEdge ( sourceId, newId )
+                    in
+                    restartSimulationIfVaderIsOn
+                        { m
+                            | user = newUser
+                            , selectedTool = Draw DrawIdle
+                        }
+
+                _ ->
+                    m
+
+        MouseDownOnMainSvg ->
+            { m
+                | selectedTool =
+                    case m.selectedTool of
+                        Hand HandIdle ->
+                            Hand
+                                (Panning
+                                    { mousePositionAtPanStart = m.mousePosition
+                                    , panAtStart = m.pan
+                                    }
+                                )
+
+                        _ ->
+                            m.selectedTool
+            }
+
+        MouseOverVertex id ->
+            { m | highlightedVertices = Set.singleton id }
+
+        MouseOutVertex _ ->
+            { m | highlightedVertices = Set.empty }
+
+        MouseOverEdge edgeId ->
+            { m | highlightedEdges = Set.singleton edgeId }
+
+        MouseOutEdge _ ->
+            { m | highlightedEdges = Set.empty }
+
+        MouseDownOnVertex id ->
+            case m.selectedTool of
+                Draw DrawIdle ->
+                    { m | selectedTool = Draw (BrushingNewEdgeWithSourceId id) }
+
+                Select SelectIdle ->
+                    let
+                        ( newUser, newSelectedVertices, newSelectedEdges ) =
+                            if Set.member id m.selectedVertices then
                                 if m.altIsDown then
-                                    m.graph |> Graph.duplicateSubgraphAndGetTheDuplicate m.selectedVertices m.selectedEdges
+                                    m.user |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
 
                                 else
-                                    ( m.graph, m.selectedVertices, m.selectedEdges )
+                                    ( m.user, m.selectedVertices, m.selectedEdges )
 
                             else
-                                ( m.graph
+                                ( m.user, Set.singleton id, Set.empty )
+                    in
+                    { m
+                        | user = newUser
+                        , selectedVertices = newSelectedVertices
+                        , selectedEdges = newSelectedEdges
+                        , selectedTool =
+                            Select
+                                (DraggingSelection
+                                    { brushStart = m.svgMousePosition
+                                    , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
+                                    }
+                                )
+                    }
+
+                _ ->
+                    m
+
+        MouseUpOnVertex targetId ->
+            case m.selectedTool of
+                Draw (BrushingNewEdgeWithSourceId sourceId) ->
+                    if sourceId == targetId then
+                        { m | selectedTool = Draw DrawIdle }
+
+                    else
+                        restartSimulationIfVaderIsOn
+                            { m
+                                | user = m.user |> User.addEdge ( sourceId, targetId )
+                                , selectedTool = Draw DrawIdle
+                            }
+
+                _ ->
+                    m
+
+        MouseDownOnEdge ( s, t ) ->
+            case m.selectedTool of
+                Draw DrawIdle ->
+                    let
+                        ( newUser, idOfTheNewVertex ) =
+                            m.user |> User.divideEdge m.svgMousePosition ( s, t )
+                    in
+                    { m
+                        | user = newUser
+                        , highlightedEdges = Set.empty
+                        , selectedTool = Draw (BrushingNewEdgeWithSourceId idOfTheNewVertex)
+                    }
+
+                Select SelectIdle ->
+                    let
+                        ( newUser, newSelectedVertices, newSelectedEdges ) =
+                            if Set.member ( s, t ) m.selectedEdges then
+                                if m.altIsDown then
+                                    m.user |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
+
+                                else
+                                    ( m.user, m.selectedVertices, m.selectedEdges )
+
+                            else
+                                ( m.user
                                 , Set.fromList [ s, t ]
                                 , Set.singleton ( s, t )
                                 )
-
-                        idAndPosition vertexId { x, y } =
-                            { id = vertexId, x = x, y = y }
-
-                        startPositionsOfVertices =
-                            newGraph
-                                |> Graph.getVerticesIn newSelectedVertices
-                                |> Dict.map idAndPosition
-                                |> Dict.values
                     in
-                    ( { m
-                        | tool =
-                            Select
-                                (DraggingSelection startPositionsOfVertices
-                                    (Brush mousePos mousePos)
-                                )
-                        , graph = newGraph
+                    { m
+                        | user = newUser
                         , selectedVertices = newSelectedVertices
                         , selectedEdges = newSelectedEdges
-                      }
-                    , if m.vaderIsOn then
-                        toD3DragStart ( Graph.encodeForD3 newGraph, startPositionsOfVertices )
-
-                      else
-                        Cmd.none
-                    )
+                        , selectedTool =
+                            Select
+                                (DraggingSelection
+                                    { brushStart = m.svgMousePosition
+                                    , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
+                                    }
+                                )
+                    }
 
                 _ ->
-                    ( m, Cmd.none )
+                    m
 
-        MouseUpOnVertex id ->
-            case m.tool of
-                Draw (Just { sourceId }) ->
+        MouseUpOnEdge ( s, t ) ->
+            case m.selectedTool of
+                Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     let
-                        newGraph =
-                            if sourceId == id then
-                                m.graph
+                        ( newUser_, newId ) =
+                            m.user |> User.divideEdge m.svgMousePosition ( s, t )
 
-                            else
-                                m.graph
-                                    |> Graph.addEdgeBetweenExistingVertices
-                                        ( sourceId, id )
-                                        m.edgePreferences
+                        newUser =
+                            newUser_ |> User.addEdge ( sourceId, newId )
                     in
-                    ( { m
-                        | graph = newGraph
-                        , tool = Draw Nothing
-                      }
-                    , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-                    )
+                    restartSimulationIfVaderIsOn
+                        { m
+                            | user = newUser
+                            , highlightedEdges = Set.empty
+                            , selectedTool = Draw DrawIdle
+                        }
 
                 _ ->
-                    ( m, Cmd.none )
+                    m
 
-        MouseUpOnEdge ( s, t ) pos ->
-            case m.tool of
-                Draw (Just { sourceId }) ->
-                    let
-                        newGraph =
-                            m.graph
-                                |> Graph.addNeighbourDevidingEdge
-                                    sourceId
-                                    pos
-                                    ( s, t )
-                                    ( m.vertexPreferences, m.maybeSelectedBag )
-                                    m.edgePreferences
-                    in
-                    ( { m
-                        | graph = newGraph
-                        , highlightingEdgeOnMouseOver = Nothing
-                        , tool = Draw Nothing
-                      }
-                    , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-                    )
-
-                _ ->
-                    ( m, Cmd.none )
-
-        FromD3Tick { alpha, nodes } ->
-            ( { m
-                | graph = Graph.moveVertices nodes m.graph
-                , alpha = alpha
-              }
-            , Cmd.none
-            )
-
-        VaderClicked ->
-            let
-                newVaderIsOn =
-                    not m.vaderIsOn
-            in
-            ( { m | vaderIsOn = newVaderIsOn }
-            , if newVaderIsOn then
-                toD3RestartWithAlpha 1
-
-              else
-                toD3StopSimulation ()
-            )
-
-        FromConvexHullCheckBox b ->
+        CheckBoxConvexHull b ->
             let
                 updateCH bag =
                     { bag | hasConvexHull = b }
-
-                ( newGraph, newBagPreferences ) =
+            in
+            { m
+                | user =
                     case m.maybeSelectedBag of
                         Just bagId ->
-                            ( m.graph |> Graph.updateBag bagId updateCH
-                            , m.bagPreferences
-                            )
+                            m.user |> User.updateBag bagId updateCH
 
                         Nothing ->
-                            ( m.graph
-                            , m.bagPreferences |> updateCH
-                            )
-            in
-            ( { m
-                | graph = newGraph
-                , bagPreferences = newBagPreferences
-              }
-            , Cmd.none
-            )
+                            m.user |> User.updateDefaultBag updateCH
+            }
 
-        FromPullIsActiveCheckBox b ->
-            let
-                updatePullIsActive bag =
-                    { bag | pullIsActive = b }
+        NumberInputVertexX str ->
+            { m | user = m.user |> User.setCentroidX m.selectedVertices (str |> String.toFloat |> Maybe.withDefault 0) }
 
-                ( newGraph, newBagPreferences ) =
-                    case m.maybeSelectedBag of
-                        Just bagId ->
-                            ( m.graph |> Graph.updateBag bagId updatePullIsActive
-                            , m.bagPreferences
-                            )
+        NumberInputVertexY str ->
+            { m | user = m.user |> User.setCentroidY m.selectedVertices (str |> String.toFloat |> Maybe.withDefault 0) }
 
-                        Nothing ->
-                            ( m.graph
-                            , m.bagPreferences |> updatePullIsActive
-                            )
-            in
-            ( { m
-                | graph = newGraph
-                , bagPreferences = newBagPreferences
-              }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
-
-        FromDraggableCenterCheckBox b ->
-            let
-                updateDraggablePullCenter bag =
-                    { bag | draggablePullCenter = b }
-
-                ( newGraph, newBagPreferences ) =
-                    case m.maybeSelectedBag of
-                        Just bagId ->
-                            ( m.graph |> Graph.updateBag bagId updateDraggablePullCenter
-                            , m.bagPreferences
-                            )
-
-                        Nothing ->
-                            ( m.graph
-                            , m.bagPreferences |> updateDraggablePullCenter
-                            )
-            in
-            ( { m
-                | graph = newGraph
-                , bagPreferences = newBagPreferences
-              }
-            , Cmd.none
-            )
-
-        FromPullXStrengthInput str ->
-            case m.maybeSelectedBag of
-                Just bagId ->
-                    let
-                        oldPullXStrength =
-                            m.graph
-                                |> Graph.getBags
-                                |> Dict.get bagId
-                                |> Maybe.map .pullXStrength
-                                |> Maybe.withDefault 0
-                                |> clamp 0 1
-
-                        newPullXStrength =
-                            str
-                                |> String.toFloat
-                                |> Maybe.withDefault oldPullXStrength
-
-                        newGraph =
-                            m.graph
-                                |> Graph.updateBag bagId
-                                    (\bag -> { bag | pullXStrength = newPullXStrength })
-                    in
-                    ( { m | graph = newGraph }
-                    , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-                    )
-
-                Nothing ->
-                    let
-                        newPullXStrength =
-                            str
-                                |> String.toFloat
-                                |> Maybe.withDefault m.bagPreferences.pullXStrength
-
-                        oldCashedBag =
-                            m.bagPreferences
-                    in
-                    ( { m
-                        | bagPreferences =
-                            { oldCashedBag
-                                | pullXStrength = newPullXStrength
-                            }
-                      }
-                    , Cmd.batch [ sendGraphData m.graph, reheatSimulationIfVaderIsOn ]
-                    )
-
-        FromPullYStrengthInput str ->
-            case m.maybeSelectedBag of
-                Just bagId ->
-                    let
-                        oldPullYStrength =
-                            m.graph
-                                |> Graph.getBags
-                                |> Dict.get bagId
-                                |> Maybe.map .pullYStrength
-                                |> Maybe.withDefault 0
-
-                        newPullYStrength =
-                            str
-                                |> String.toFloat
-                                |> Maybe.withDefault oldPullYStrength
-                                |> clamp 0 1
-
-                        newGraph =
-                            m.graph
-                                |> Graph.updateBag bagId
-                                    (\bag -> { bag | pullYStrength = newPullYStrength })
-                    in
-                    ( { m | graph = newGraph }
-                    , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-                    )
-
-                Nothing ->
-                    let
-                        newPullYStrength =
-                            str
-                                |> String.toFloat
-                                |> Maybe.withDefault m.bagPreferences.pullYStrength
-
-                        oldCashedBag =
-                            m.bagPreferences
-                    in
-                    ( { m
-                        | bagPreferences =
-                            { oldCashedBag
-                                | pullYStrength = newPullYStrength
-                            }
-                      }
-                    , Cmd.batch [ sendGraphData m.graph, reheatSimulationIfVaderIsOn ]
-                    )
-
-        FromPullXInput str ->
-            let
-                updatePullX bag =
-                    { bag
-                        | pullX =
-                            str |> String.toFloat |> Maybe.withDefault 0
-                    }
-
-                ( newGraph, newBagPreferences ) =
-                    case m.maybeSelectedBag of
-                        Just bagId ->
-                            ( m.graph |> Graph.updateBag bagId updatePullX
-                            , m.bagPreferences
-                            )
-
-                        Nothing ->
-                            ( m.graph
-                            , m.bagPreferences |> updatePullX
-                            )
-            in
-            ( { m
-                | graph = newGraph
-                , bagPreferences = newBagPreferences
-              }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
-
-        FromPullYInput str ->
-            let
-                updatePullY bag =
-                    { bag
-                        | pullY =
-                            str |> String.toFloat |> Maybe.withDefault 0
-                    }
-
-                ( newGraph, newBagPreferences ) =
-                    case m.maybeSelectedBag of
-                        Just bagId ->
-                            ( m.graph |> Graph.updateBag bagId updatePullY
-                            , m.bagPreferences
-                            )
-
-                        Nothing ->
-                            ( m.graph
-                            , m.bagPreferences |> updatePullY
-                            )
-            in
-            ( { m
-                | graph = newGraph
-                , bagPreferences = newBagPreferences
-              }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
-
-        FromVertexColorPicker newColor ->
+        ColorPickerVertex newColor ->
             let
                 updateColor v =
                     { v | color = newColor }
-
-                newGraph =
-                    m.graph
-                        |> Graph.updateVertices
-                            m.selectedVertices
-                            updateColor
-
-                newVertexPreferences =
+            in
+            { m
+                | user =
                     if Set.isEmpty m.selectedVertices then
-                        updateColor m.vertexPreferences
+                        m.user |> User.updateDefaultVertexProperties updateColor
 
                     else
-                        m.vertexPreferences
-            in
-            ( { m
-                | graph = newGraph
-                , vertexPreferences = newVertexPreferences
-              }
-            , Cmd.none
-            )
+                        m.user |> User.updateVertices m.selectedVertices updateColor
+            }
 
-        FromEdgeColorPicker newColor ->
+        NumberInputRadius str ->
+            let
+                updateRadius v =
+                    { v | radius = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 4 20 }
+            in
+            { m
+                | user =
+                    if Set.isEmpty m.selectedVertices then
+                        m.user |> User.updateDefaultVertexProperties updateRadius
+
+                    else
+                        m.user |> User.updateVertices m.selectedVertices updateRadius
+            }
+
+        ColorPickerEdge newColor ->
             let
                 updateColor e =
                     { e | color = newColor }
-
-                newGraph =
-                    m.graph
-                        |> Graph.updateEdges
-                            m.selectedEdges
-                            updateColor
-
-                newEdgePreferences =
+            in
+            { m
+                | user =
                     if Set.isEmpty m.selectedEdges then
-                        updateColor m.edgePreferences
+                        m.user |> User.updateDefaultEdgeProperties updateColor
 
                     else
-                        m.edgePreferences
-            in
-            ( { m
-                | graph = newGraph
-                , edgePreferences = newEdgePreferences
-              }
-            , Cmd.none
-            )
+                        m.user |> User.updateEdges m.selectedEdges updateColor
+            }
 
-        FromFixedCheckBox b ->
+        CheckBoxFixed b ->
             let
                 updateFixed v =
                     { v | fixed = b }
-
-                newGraph =
-                    m.graph
-                        |> Graph.updateVertices
-                            m.selectedVertices
-                            updateFixed
-
-                newVertexPreferences =
-                    if Set.isEmpty m.selectedVertices then
-                        updateFixed m.vertexPreferences
-
-                    else
-                        m.vertexPreferences
             in
-            ( { m
-                | graph = newGraph
-                , vertexPreferences = newVertexPreferences
-              }
-            , Cmd.batch [ sendGraphData newGraph ]
-            )
+            restartSimulationIfVaderIsOn
+                { m
+                    | user =
+                        if Set.isEmpty m.selectedVertices then
+                            m.user |> User.updateDefaultVertexProperties updateFixed
 
-        FromRadiusInput str ->
-            let
-                updateRadius v =
-                    { v | radius = newRadius }
+                        else
+                            m.user |> User.updateVertices m.selectedVertices updateFixed
+                }
 
-                newRadius =
-                    str |> String.toFloat |> Maybe.withDefault 0 |> clamp 4 20
-
-                newGraph =
-                    m.graph
-                        |> Graph.updateVertices
-                            m.selectedVertices
-                            updateRadius
-
-                newVertexPreferences =
-                    if Set.isEmpty m.selectedVertices then
-                        updateRadius m.vertexPreferences
-
-                    else
-                        m.vertexPreferences
-            in
-            ( { m
-                | graph = newGraph
-                , vertexPreferences = newVertexPreferences
-              }
-            , Cmd.none
-            )
-
-        FromThicknessInput str ->
+        NumberInputThickness str ->
             let
                 updateThickness e =
-                    { e | thickness = newThickness }
-
-                newThickness =
-                    str |> String.toFloat |> Maybe.withDefault 0 |> clamp 1 20
-
-                newGraph =
-                    m.graph
-                        |> Graph.updateEdges
-                            m.selectedEdges
-                            updateThickness
-
-                newEdgePreferences =
+                    { e | thickness = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 1 20 }
+            in
+            { m
+                | user =
                     if Set.isEmpty m.selectedEdges then
-                        updateThickness m.edgePreferences
+                        m.user |> User.updateDefaultEdgeProperties updateThickness
 
                     else
-                        m.edgePreferences
-            in
-            ( { m
-                | graph = newGraph
-                , edgePreferences = newEdgePreferences
-              }
-            , Cmd.none
-            )
+                        m.user |> User.updateEdges m.selectedEdges updateThickness
+            }
 
-        FromDistanceInput str ->
+        NumberInputDistance str ->
             let
                 updateDistance e =
-                    { e | distance = newDistance }
-
-                newDistance =
-                    str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 2000
-
-                newGraph =
-                    m.graph
-                        |> Graph.updateEdges
-                            m.selectedEdges
-                            updateDistance
-
-                newEdgePreferences =
-                    if Set.isEmpty m.selectedEdges then
-                        updateDistance m.edgePreferences
-
-                    else
-                        m.edgePreferences
+                    { e | distance = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 2000 }
             in
-            ( { m
-                | graph = newGraph
-                , edgePreferences = newEdgePreferences
-              }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
+            restartSimulationIfVaderIsOn
+                { m
+                    | user =
+                        if Set.isEmpty m.selectedEdges then
+                            m.user |> User.updateDefaultEdgeProperties updateDistance
 
-        FromStrengthInput str ->
+                        else
+                            m.user |> User.updateEdges m.selectedEdges updateDistance
+                }
+
+        NumberInputEdgeStrength str ->
             let
                 updateStrength e =
-                    { e | strength = newStrength }
-
-                newStrength =
-                    str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 1
-
-                newGraph =
-                    m.graph
-                        |> Graph.updateEdges
-                            m.selectedEdges
-                            updateStrength
-
-                newEdgePreferences =
-                    if Set.isEmpty m.selectedEdges then
-                        updateStrength m.edgePreferences
-
-                    else
-                        m.edgePreferences
+                    { e | strength = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 1 }
             in
-            ( { m
-                | graph = newGraph
-                , edgePreferences = newEdgePreferences
-              }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
+            restartSimulationIfVaderIsOn
+                { m
+                    | user =
+                        if Set.isEmpty m.selectedEdges then
+                            m.user |> User.updateDefaultEdgeProperties updateStrength
 
-        FromManyBodyStrengthInput str ->
-            let
-                currentStrength =
-                    m.graph |> Graph.getManyBody |> .strength
-
-                newStrength =
-                    str |> String.toFloat |> Maybe.withDefault currentStrength
-
-                up mB =
-                    { mB | strength = newStrength }
-
-                newGraph =
-                    m.graph |> Graph.updateManyBody up
-            in
-            ( { m | graph = newGraph }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
-
-        FromManyBodyThetaInput str ->
-            let
-                currentTheta =
-                    m.graph |> Graph.getManyBody |> .theta
-
-                newTheta =
-                    str |> String.toFloat |> Maybe.withDefault currentTheta
-
-                up mB =
-                    { mB | theta = newTheta }
-
-                newGraph =
-                    m.graph |> Graph.updateManyBody up
-            in
-            ( { m | graph = newGraph }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
-
-        FromManyBodyMinDistanceInput str ->
-            let
-                currentDistanceMin =
-                    m.graph |> Graph.getManyBody |> .distanceMin
-
-                newDistanceMin =
-                    str |> String.toFloat |> Maybe.withDefault currentDistanceMin
-
-                up mB =
-                    { mB | distanceMin = newDistanceMin }
-
-                newGraph =
-                    m.graph |> Graph.updateManyBody up
-            in
-            ( { m | graph = newGraph }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
-
-        FromManyBodyMaxDistanceInput str ->
-            let
-                currentDistanceMax =
-                    m.graph |> Graph.getManyBody |> .distanceMax
-
-                newDistanceMax =
-                    str |> String.toFloat |> Maybe.withDefault currentDistanceMax
-
-                up mB =
-                    { mB | distanceMax = newDistanceMax }
-
-                newGraph =
-                    m.graph |> Graph.updateManyBody up
-            in
-            ( { m | graph = newGraph }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
-
-        FromYInput str ->
-            case m.tool of
-                Select _ ->
-                    ( { m
-                        | graph =
-                            let
-                                oldCenterY =
-                                    case Graph.getCenter m.selectedVertices m.graph of
-                                        Just { y } ->
-                                            y
-
-                                        Nothing ->
-                                            0
-
-                                newY =
-                                    str
-                                        |> String.toFloat
-                                        |> Maybe.withDefault oldCenterY
-                            in
-                            m.graph
-                                |> Graph.moveCenterY m.selectedVertices
-                                    newY
-                      }
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( m, Cmd.none )
-
-        FromXInput str ->
-            case m.tool of
-                Select _ ->
-                    ( { m
-                        | graph =
-                            let
-                                oldCenterX =
-                                    case Graph.getCenter m.selectedVertices m.graph of
-                                        Just { x } ->
-                                            x
-
-                                        Nothing ->
-                                            0
-
-                                newX =
-                                    str
-                                        |> String.toFloat
-                                        |> Maybe.withDefault oldCenterX
-                            in
-                            m.graph
-                                |> Graph.moveCenterX m.selectedVertices
-                                    newX
-                      }
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( m, Cmd.none )
+                        else
+                            m.user |> User.updateEdges m.selectedEdges updateStrength
+                }
 
         ClickOnVertexTrash ->
             let
-                newGraph =
-                    m.graph |> Graph.removeVertices m.selectedVertices
+                newUser =
+                    m.user |> User.removeVertices m.selectedVertices
             in
-            ( { m
-                | graph = newGraph
-                , selectedVertices = Set.empty
-                , highlightingVertexOnMouseOver = Nothing
-                , selectedEdges = Set.empty
-                , highlightingEdgeOnMouseOver = Nothing
-              }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
+            restartSimulationIfVaderIsOn
+                { m
+                    | user = newUser
+                    , selectedVertices = Set.empty
+                    , highlightedVertices = Set.empty
+                    , selectedEdges = Set.empty
+                    , highlightedEdges = Set.empty
+                }
 
         ClickOnEdgeTrash ->
             let
-                newGraph =
-                    m.graph |> Graph.removeEdges m.selectedEdges
+                newUser =
+                    m.user |> User.removeEdges m.selectedEdges
             in
-            ( { m
-                | graph = newGraph
-                , highlightingEdgeOnMouseOver = Nothing
-                , selectedEdges = Set.empty
-              }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
+            restartSimulationIfVaderIsOn
+                { m
+                    | user = newUser
+                    , highlightedEdges = Set.empty
+                    , selectedEdges = Set.empty
+                }
 
         ClickOnEdgeContract ->
             case Set.toList m.selectedEdges of
                 [ selectedEdge ] ->
                     let
-                        newGraph =
-                            m.graph
-                                |> Graph.contractEdge
-                                    selectedEdge
-                                    m.vertexPreferences
+                        newUser =
+                            m.user |> User.contractEdge selectedEdge
                     in
-                    ( { m
-                        | graph = newGraph
-                        , highlightingEdgeOnMouseOver = Nothing
-                        , selectedEdges = Set.empty
-                      }
-                    , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-                    )
+                    restartSimulationIfVaderIsOn
+                        { m
+                            | user = newUser
+                            , highlightedEdges = Set.empty
+                            , selectedEdges = Set.empty
+                        }
 
                 _ ->
-                    ( m, Cmd.none )
+                    m
 
         ClickOnBagTrash ->
             case m.maybeSelectedBag of
                 Just bagId ->
-                    let
-                        newGraph =
-                            m.graph |> Graph.removeBag bagId
-                    in
-                    ( { m
-                        | graph = newGraph
+                    { m
+                        | user = m.user |> User.removeBag bagId
                         , maybeSelectedBag = Nothing
-                      }
-                    , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-                    )
+                    }
 
                 Nothing ->
-                    ( m, Cmd.none )
+                    m
 
         ClickOnBagPlus ->
             let
-                ( newGraph_, idOfTheNewBag ) =
-                    Graph.addBagAndGetNewBagId m.selectedVertices m.bagPreferences m.graph
-
-                newGraph =
-                    Graph.movePullCenterToCenter (Just idOfTheNewBag) newGraph_
+                ( newUser, idOfTheNewBag ) =
+                    m.user |> User.addBag m.selectedVertices
             in
-            ( { m
-                | graph = newGraph
+            { m
+                | user = newUser
                 , maybeSelectedBag = Just idOfTheNewBag
-              }
-            , Cmd.batch [ sendGraphData newGraph, reheatSimulationIfVaderIsOn ]
-            )
+            }
 
-        MouseOverVertexItem vertexId ->
-            ( { m | highlightingVertexOnMouseOver = Just vertexId }
-            , Cmd.none
-            )
+        MouseOverVertexItem id ->
+            { m | highlightedVertices = Set.singleton id }
 
         MouseOutVertexItem _ ->
-            ( { m | highlightingVertexOnMouseOver = Nothing }
-            , Cmd.none
-            )
+            { m | highlightedVertices = Set.empty }
 
-        MouseOutEdgeItem _ ->
-            ( { m | highlightingEdgeOnMouseOver = Nothing }
-            , Cmd.none
-            )
-
-        ClickOnVertexItem vertexId ->
-            ( { m
-                | tool = Select Idle
-                , selectedVertices = Set.singleton vertexId
+        ClickOnVertexItem id ->
+            { m
+                | selectedTool = Select SelectIdle
+                , selectedVertices = Set.singleton id
                 , selectedEdges = Set.empty
-              }
-            , Cmd.none
-            )
-
-        ClickOnEdgeItem ( sourceId, targetId ) ->
-            ( { m
-                | tool = Select Idle
-                , selectedVertices = Set.fromList [ sourceId, targetId ]
-                , selectedEdges = Set.singleton ( sourceId, targetId )
-              }
-            , Cmd.none
-            )
-
-        MouseOverBagItem bagId ->
-            ( { m | highlightingBagOnMouseOver = Just bagId }, Cmd.none )
+            }
 
         MouseOverEdgeItem edgeId ->
-            ( { m | highlightingEdgeOnMouseOver = Just edgeId }, Cmd.none )
+            { m | highlightedEdges = Set.singleton edgeId }
 
-        MouseOverPullCenter bagId ->
-            ( { m | highlightingPullCenterOnMouseOver = Just bagId }, Cmd.none )
+        MouseOutEdgeItem _ ->
+            { m | highlightedEdges = Set.empty }
+
+        ClickOnEdgeItem ( sourceId, targetId ) ->
+            { m
+                | selectedTool = Select SelectIdle
+                , selectedVertices = Set.fromList [ sourceId, targetId ]
+                , selectedEdges = Set.singleton ( sourceId, targetId )
+            }
+
+        MouseOverBagItem bagId ->
+            { m | highlightedVertices = m.user |> User.getVerticesInBag bagId }
 
         MouseOutBagItem _ ->
-            ( { m | highlightingBagOnMouseOver = Nothing }, Cmd.none )
-
-        MouseOutPullCenter _ ->
-            ( { m | highlightingPullCenterOnMouseOver = Nothing }, Cmd.none )
+            { m | highlightedVertices = Set.empty }
 
         ClickOnBagItem bagId ->
-            ( { m
-                | maybeSelectedBag =
+            let
+                ( newMaybeSelectedBag, newSelectedVertices ) =
                     if m.maybeSelectedBag == Just bagId then
-                        Nothing
+                        ( Nothing, Set.empty )
 
                     else
-                        Just bagId
-                , selectedVertices =
-                    if m.maybeSelectedBag == Just bagId then
-                        Set.empty
-
-                    else
-                        m.graph |> Graph.getVerticesInBag bagId
-                , tool = Select Idle
-              }
-            , Cmd.none
-            )
-
-        ClickOnPullCenter bagId ->
-            ( { m
-                | maybeSelectedBag = Just bagId
-                , selectedVertices = m.graph |> Graph.getVerticesInBag bagId
-              }
-            , Cmd.none
-            )
-
-        MouseDownOnPullCenter bagId mousePos ->
-            case Graph.getBag bagId m.graph of
-                Just bag ->
-                    ( { m
-                        | tool =
-                            Select
-                                (DraggingPullCenter bagId
-                                    { x = bag.pullX, y = bag.pullY }
-                                    (Brush mousePos mousePos)
-                                )
-                      }
-                    , Cmd.none
-                    )
-
-                Nothing ->
-                    ( m, Cmd.none )
-
-        LeftMostBarRadioButtonClicked leftBarContent ->
-            ( { m | leftBarContent = leftBarContent }
-            , Cmd.none
-            )
+                        ( Just bagId, m.user |> User.getVerticesInBag bagId )
+            in
+            { m
+                | maybeSelectedBag = newMaybeSelectedBag
+                , selectedVertices = newSelectedVertices
+                , selectedEdges = Set.empty
+            }
 
 
 
@@ -1491,14 +950,20 @@ update msg m =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions m =
     Sub.batch
-        [ Browser.Events.onResize (\w h -> UpdateWindowSize { width = w, height = h })
+        [ Browser.Events.onResize (\w h -> WindowResize { width = w, height = h })
         , Browser.Events.onMouseMove (Decode.map MouseMove mousePosition)
+        , Browser.Events.onMouseMove (Decode.map MouseMoveForUpdatingSvgPos mousePosition)
         , Browser.Events.onMouseUp (Decode.map MouseUp mousePosition)
-        , fromD3TickData FromD3Tick
         , Browser.Events.onKeyDown (Decode.map toKeyDownMsg keyDecoder)
         , Browser.Events.onKeyUp (Decode.map toKeyUpMsg keyDecoder)
+        , Browser.Events.onVisibilityChange PageVisibility
+        , if Force.isCompleted m.simulationState || not m.vaderIsOn then
+            Sub.none
+
+          else
+            Browser.Events.onAnimationFrame Tick
         ]
 
 
@@ -1506,22 +971,19 @@ toKeyDownMsg : Key -> Msg
 toKeyDownMsg key =
     case key of
         Character 's' ->
-            SelectToolClicked
+            ClickOnSelectTool
 
         Character 'd' ->
-            DrawToolClicked
+            ClickOnDrawTool
 
         Character 'f' ->
-            VaderClicked
-
-        Control "Backspace" ->
-            ClickOnVertexTrash
+            ClickOnVader
 
         Control "Alt" ->
-            AltKeyDown
+            KeyDownAlt
 
         Control "Shift" ->
-            ShiftKeyDown
+            KeyDownShift
 
         _ ->
             NoOp
@@ -1531,10 +993,10 @@ toKeyUpMsg : Key -> Msg
 toKeyUpMsg key =
     case key of
         Control "Alt" ->
-            AltKeyUp
+            KeyUpAlt
 
         Control "Shift" ->
-            ShiftKeyUp
+            KeyUpShift
 
         _ ->
             NoOp
@@ -1589,18 +1051,26 @@ view m =
     div
         [ HA.style "width" "100vw" ]
         [ mainSvg m
-        , viewAlpha m
         , leftBar m
         , rightBar m
         , topBar m
-        , forDebuggingKeyPresses m
+
+        -- , forDebugging m
         ]
 
 
-forDebuggingKeyPresses : Model -> Html Msg
-forDebuggingKeyPresses m =
+forDebugging : Model -> Html Msg
+forDebugging m =
     let
-        toShow =
+        show : String -> String -> Html Msg
+        show label content =
+            div []
+                [ H.span [ HA.style "color" "orange" ] [ H.text (label ++ ": ") ]
+                , H.span [] [ H.text content ]
+                ]
+    in
+    div [ HA.class "forDebugging" ]
+        [ show "pressed control keys" <|
             case ( m.shiftIsDown, m.altIsDown ) of
                 ( True, True ) ->
                     "Shift + Alt"
@@ -1613,9 +1083,20 @@ forDebuggingKeyPresses m =
 
                 ( False, False ) ->
                     ""
-    in
-    div [ HA.class "forDebugging" ]
-        [ H.text toShow
+        , show "svgMousePosition" <|
+            "{ x = "
+                ++ String.fromFloat (Point2d.xCoordinate m.svgMousePosition)
+                ++ ", y = "
+                ++ String.fromFloat (Point2d.yCoordinate m.svgMousePosition)
+                ++ " }"
+        , show "pan" <|
+            "{ x = "
+                ++ String.fromFloat (Point2d.xCoordinate m.pan)
+                ++ ", y = "
+                ++ String.fromFloat (Point2d.yCoordinate m.pan)
+                ++ " }"
+        , show "zoom" <|
+            String.fromFloat m.zoom
         ]
 
 
@@ -1631,11 +1112,22 @@ topBar m =
         , HA.style "width" (String.fromFloat (toFloat m.windowSize.width - leftBarWidth - rightBarWidth - 3) ++ "px")
         , HA.style "height" (String.fromFloat topBarHeight ++ "px")
         ]
-        [ --undoRedoButtonGroup
-          toolSelectionButtonGroup m
-        , shortCutsButtonGroup m
+        [ zoomAndItsButtons m
+        , toolSelectionButtonGroup m
+        , vaderAsRadioButton m
+        ]
 
-        --, importExportButtons
+
+zoomAndItsButtons : Model -> Html Msg
+zoomAndItsButtons m =
+    div
+        [ HA.class "button-group" ]
+        [ div
+            [ HA.title "Reset Zoom and Pan"
+            , HE.onClick ClickOnResetZoomAndPanButton
+            , HA.class "topbar-button"
+            ]
+            [ Icons.draw34px Icons.icons.resetZoomAndPan ]
         ]
 
 
@@ -1644,10 +1136,22 @@ toolSelectionButtonGroup m =
     div
         [ HA.class "radio-button-group" ]
         [ div
-            [ HA.title "Selection (S)"
-            , HE.onClick SelectToolClicked
+            [ HA.title "Hand (H)"
+            , HE.onClick ClickOnHandTool
             , HA.class <|
-                case m.tool of
+                case m.selectedTool of
+                    Hand _ ->
+                        "radio-button-selected"
+
+                    _ ->
+                        "radio-button"
+            ]
+            [ Icons.draw34px Icons.icons.hand ]
+        , div
+            [ HA.title "Selection (S)"
+            , HE.onClick ClickOnSelectTool
+            , HA.class <|
+                case m.selectedTool of
                     Select _ ->
                         "radio-button-selected"
 
@@ -1657,9 +1161,9 @@ toolSelectionButtonGroup m =
             [ Icons.draw34px Icons.icons.pointer ]
         , div
             [ HA.title "Draw (D)"
-            , HE.onClick DrawToolClicked
+            , HE.onClick ClickOnDrawTool
             , HA.class <|
-                case m.tool of
+                case m.selectedTool of
                     Draw _ ->
                         "radio-button-selected"
 
@@ -1670,8 +1174,8 @@ toolSelectionButtonGroup m =
         ]
 
 
-shortCutsButtonGroup : Model -> Html Msg
-shortCutsButtonGroup m =
+vaderAsRadioButton : Model -> Html Msg
+vaderAsRadioButton m =
     div
         [ HA.class "radio-button-group" ]
         [ div
@@ -1682,32 +1186,9 @@ shortCutsButtonGroup m =
 
                 else
                     "radio-button"
-            , HE.onClick VaderClicked
+            , HE.onClick ClickOnVader
             ]
             [ Icons.draw34px Icons.icons.vader ]
-        ]
-
-
-
--- ALPHA
-
-
-viewAlpha : Model -> Html Msg
-viewAlpha m =
-    div
-        [ HA.id "alpha"
-        , HA.style "position" "absolute"
-        , HA.style "left" (String.fromFloat leftBarWidth ++ "px")
-        , HA.style "right" (String.fromFloat rightBarWidth ++ "px")
-        , HA.style "bottom" "0px"
-        , HA.style "height" "8px"
-        ]
-        [ div
-            [ HA.style "width" (String.fromFloat (100 * m.alpha) ++ "%")
-            , HA.style "height" "100%"
-            , HA.style "background-color" "#454545"
-            ]
-            []
         ]
 
 
@@ -1740,7 +1221,7 @@ leftBarContentForPreferences m =
 leftBarContentForListsOfBagsVerticesAndEdges : Model -> List (Html Msg)
 leftBarContentForListsOfBagsVerticesAndEdges m =
     let
-        -- bags
+        -- BAGS
         viewBagList =
             div []
                 [ bagsHeader
@@ -1767,7 +1248,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
 
         listOfBags =
             div []
-                (Graph.getBags m.graph
+                (m.user
+                    |> User.getBags
                     |> Dict.map bagItem
                     |> Dict.values
                     |> List.reverse
@@ -1782,18 +1264,13 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
 
                     else
                         "leftBarContent-item"
-                , if m.highlightingBagOnMouseOver == Just bagId then
-                    HA.style "border-right" ("6px solid " ++ Colors.highlightColorForMouseOver)
-
-                  else
-                    HA.style "" ""
                 , HE.onMouseOver (MouseOverBagItem bagId)
                 , HE.onMouseOut (MouseOutBagItem bagId)
                 , HE.onClick (ClickOnBagItem bagId)
                 ]
-                [ H.text (m.graph |> Graph.bagElementsInCurlyBraces bagId) ]
+                [ H.text (m.user |> User.bagElementsInCurlyBraces bagId) ]
 
-        -- vertices
+        -- VERTICES
         viewVertexList =
             div []
                 [ verticesHeader
@@ -1813,33 +1290,33 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
 
         listOfVertices =
             div []
-                (Graph.getVertices m.graph
-                    |> Dict.map vertexItem
-                    |> Dict.values
+                (m.user
+                    |> User.getVertices
+                    |> List.map vertexItem
                     |> List.reverse
                 )
 
-        vertexItem vertexId _ =
+        vertexItem { id } =
             div
                 [ HA.style "padding" "4px 20px 4px 20px"
                 , HA.class <|
-                    if Set.member vertexId m.selectedVertices then
+                    if Set.member id m.selectedVertices then
                         "leftBarContent-item-selected"
 
                     else
                         "leftBarContent-item"
-                , if m.highlightingVertexOnMouseOver == Just vertexId then
-                    HA.style "border-right" ("6px solid " ++ Colors.highlightColorForMouseOver)
+                , if Set.member id m.highlightedVertices then
+                    HA.style "border-right" ("10px solid " ++ Colors.highlightColorForMouseOver)
 
                   else
                     HA.style "" ""
-                , HE.onMouseOver (MouseOverVertexItem vertexId)
-                , HE.onMouseOut (MouseOutVertexItem vertexId)
-                , HE.onClick (ClickOnVertexItem vertexId)
+                , HE.onMouseOver (MouseOverVertexItem id)
+                , HE.onMouseOut (MouseOutVertexItem id)
+                , HE.onClick (ClickOnVertexItem id)
                 ]
-                [ H.text (String.fromInt vertexId) ]
+                [ H.text (String.fromInt id) ]
 
-        -- edges
+        -- EDGES
         viewEdgeList =
             div []
                 [ edgesHeader
@@ -1874,34 +1351,31 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
 
         listOfEdges =
             div []
-                (Graph.getEdges m.graph
-                    |> Dict.map edgeItem
-                    |> Dict.values
+                (m.user
+                    |> User.getEdges
+                    |> List.map edgeItem
                     |> List.reverse
                 )
 
-        edgeIdToString ( sourceId, targetId ) =
-            String.fromInt sourceId ++ " → " ++ String.fromInt targetId
-
-        edgeItem edgeId _ =
+        edgeItem { from, to } =
             div
                 [ HA.style "padding" "4px 20px 4px 20px"
                 , HA.class <|
-                    if Set.member edgeId m.selectedEdges then
+                    if Set.member ( from, to ) m.selectedEdges then
                         "leftBarContent-item-selected"
 
                     else
                         "leftBarContent-item"
-                , if m.highlightingEdgeOnMouseOver == Just edgeId then
-                    HA.style "border-right" ("6px solid " ++ Colors.highlightColorForMouseOver)
+                , if Set.member ( from, to ) m.highlightedEdges then
+                    HA.style "border-right" ("10px solid " ++ Colors.highlightColorForMouseOver)
 
                   else
                     HA.style "" ""
-                , HE.onMouseOver (MouseOverEdgeItem edgeId)
-                , HE.onMouseOut (MouseOutEdgeItem edgeId)
-                , HE.onClick (ClickOnEdgeItem edgeId)
+                , HE.onMouseOver (MouseOverEdgeItem ( from, to ))
+                , HE.onMouseOut (MouseOutEdgeItem ( from, to ))
+                , HE.onClick (ClickOnEdgeItem ( from, to ))
                 ]
-                [ H.text (edgeIdToString edgeId) ]
+                [ H.text <| String.fromInt from ++ " → " ++ String.fromInt to ]
     in
     [ viewBagList
     , viewVertexList
@@ -1950,10 +1424,10 @@ leftBar m =
         thinBandWidth =
             40
 
-        thinBandButton title leftBarContent icon =
+        thinBandButton title selectedMode icon =
             let
                 color =
-                    if leftBarContent == m.leftBarContent then
+                    if selectedMode == m.selectedMode then
                         "white"
 
                     else
@@ -1962,7 +1436,7 @@ leftBar m =
             div
                 [ HA.title title
                 , HA.class "thinBandButton"
-                , HE.onClick (LeftMostBarRadioButtonClicked leftBarContent)
+                , HE.onClick (ClickOnLeftMostBarRadioButton selectedMode)
                 ]
                 [ Icons.draw40pxWithColor color icon ]
 
@@ -1974,14 +1448,14 @@ leftBar m =
                 ]
                 [ Icons.draw40pxWithColor "yellow" Icons.icons.githubCat ]
 
-        donateButton =
-            div
-                [ HA.title "Donate"
-
-                -- , HE.onClick (DonateButtonClicked)
-                ]
-                [ Icons.draw40pxWithColor "orchid" Icons.icons.donateHeart ]
-
+        -- donateButton =
+        --     div
+        --         [ HA.title "Donate"
+        --         , HE.onClick (DonateButtonClicked)
+        --         ]
+        --         [ Icons.draw40pxWithColor "orchid" Icons.icons.donateHeart ]
+        --
+        --
         thinBandRadioButtons =
             div [ HA.id "thinBarButtonGroup" ]
                 [ thinBandButton "Preferences" Preferences Icons.icons.preferencesGear
@@ -2014,7 +1488,7 @@ leftBar m =
                 , HA.style "height" "100%"
                 , HA.style "overflow" "scroll"
                 ]
-                (case m.leftBarContent of
+                (case m.selectedMode of
                     Preferences ->
                         leftBarContentForPreferences m
 
@@ -2109,9 +1583,9 @@ selectionType m =
                 [ HA.style "float" "left"
                 , HA.style "margin" "1px"
                 , HA.title "Rectangle Selector"
-                , HE.onClick RectSelectorClicked
+                , HE.onClick ClickOnRectSelector
                 , HA.class <|
-                    case m.selector of
+                    case m.selectedSelector of
                         RectSelector ->
                             "radio-button-selected"
 
@@ -2125,9 +1599,9 @@ selectionType m =
                 [ HA.style "float" "left"
                 , HA.style "margin" "1px"
                 , HA.title "Line Selector"
-                , HE.onClick LineSelectorClicked
+                , HE.onClick ClickOnLineSelector
                 , HA.class <|
-                    case m.selector of
+                    case m.selectedSelector of
                         LineSelector ->
                             "radio-button-selected"
 
@@ -2147,7 +1621,6 @@ selectionType m =
                         [ rectSelector
                         , lineSelector
                         ]
-                    , div [ HA.style "clear" "both" ] []
                     ]
             ]
         ]
@@ -2168,11 +1641,11 @@ bagProperties m =
     subMenu (headerForBagProperties m)
         [ lineWithColumns 140
             [ input "Convex Hull" <|
-                H.map FromConvexHullCheckBox <|
+                H.map CheckBoxConvexHull <|
                     CheckBox.view <|
                         case m.maybeSelectedBag of
                             Just bagId ->
-                                case Graph.getBag bagId m.graph of
+                                case User.getBagProperties bagId m.user of
                                     Just bag ->
                                         Just bag.hasConvexHull
 
@@ -2180,111 +1653,7 @@ bagProperties m =
                                         Nothing
 
                             Nothing ->
-                                Just m.bagPreferences.hasConvexHull
-            ]
-        , lineWithColumns 140
-            [ input "Pull Active" <|
-                H.map FromPullIsActiveCheckBox <|
-                    CheckBox.view <|
-                        case m.maybeSelectedBag of
-                            Just bagId ->
-                                case Graph.getBag bagId m.graph of
-                                    Just bag ->
-                                        Just bag.pullIsActive
-
-                                    Nothing ->
-                                        Nothing
-
-                            Nothing ->
-                                Just m.bagPreferences.pullIsActive
-            , input "Show Center" <|
-                H.map FromDraggableCenterCheckBox <|
-                    CheckBox.view <|
-                        case m.maybeSelectedBag of
-                            Just bagId ->
-                                case Graph.getBag bagId m.graph of
-                                    Just bag ->
-                                        Just bag.draggablePullCenter
-
-                                    Nothing ->
-                                        Nothing
-
-                            Nothing ->
-                                Just m.bagPreferences.draggablePullCenter
-            ]
-        , lineWithColumns 140
-            [ input "Pull X" <|
-                numberInput
-                    [ HE.onInput FromPullXInput
-                    , HA.value <|
-                        String.fromFloat <|
-                            case m.maybeSelectedBag of
-                                Just bagId ->
-                                    m.graph
-                                        |> Graph.getBags
-                                        |> Dict.get bagId
-                                        |> Maybe.map .pullX
-                                        |> Maybe.withDefault 400
-
-                                Nothing ->
-                                    m.bagPreferences.pullX
-                    ]
-            , input "Pull Y" <|
-                numberInput
-                    [ HE.onInput FromPullYInput
-                    , HA.value <|
-                        String.fromFloat <|
-                            case m.maybeSelectedBag of
-                                Just bagId ->
-                                    m.graph
-                                        |> Graph.getBags
-                                        |> Dict.get bagId
-                                        |> Maybe.map .pullY
-                                        |> Maybe.withDefault 400
-
-                                Nothing ->
-                                    m.bagPreferences.pullY
-                    ]
-            ]
-        , lineWithColumns 140
-            [ input "Pull X Strength" <|
-                numberInput
-                    [ HE.onInput FromPullXStrengthInput
-                    , HA.value <|
-                        String.fromFloat <|
-                            case m.maybeSelectedBag of
-                                Just bagId ->
-                                    m.graph
-                                        |> Graph.getBags
-                                        |> Dict.get bagId
-                                        |> Maybe.map .pullXStrength
-                                        |> Maybe.withDefault 0.1
-
-                                Nothing ->
-                                    m.bagPreferences.pullXStrength
-                    , HA.min "0"
-                    , HA.max "1"
-                    , HA.step "0.02"
-                    ]
-            , input "Pull Y Strength" <|
-                numberInput
-                    [ HE.onInput FromPullYStrengthInput
-                    , HA.value <|
-                        String.fromFloat <|
-                            case m.maybeSelectedBag of
-                                Just bagId ->
-                                    m.graph
-                                        |> Graph.getBags
-                                        |> Dict.get bagId
-                                        |> Maybe.map .pullYStrength
-                                        |> Maybe.withDefault 0.1
-
-                                Nothing ->
-                                    m.bagPreferences.pullYStrength
-                    , HA.min "0"
-                    , HA.max "1"
-                    , HA.step "0.02"
-                    ]
+                                Just (m.user |> User.getDefaultBagProperties |> .hasConvexHull)
             ]
         ]
 
@@ -2302,76 +1671,73 @@ vertexProperties m =
 
                 _ ->
                     "Selected Vertices"
-
-        ( commonXToShow, commonYToShow ) =
-            case Graph.getCenter m.selectedVertices m.graph of
-                Nothing ->
-                    ( "", "" )
-
-                Just { x, y } ->
-                    ( String.fromInt (round x), String.fromInt (round y) )
-
-        radiusToShow =
-            let
-                maybeCommonRadius =
-                    if Set.isEmpty m.selectedVertices then
-                        Just m.vertexPreferences.radius
-
-                    else
-                        m.graph
-                            |> Graph.getCommonVertexProperty m.selectedVertices .radius
-            in
-            case maybeCommonRadius of
-                Just r ->
-                    String.fromFloat r
-
-                Nothing ->
-                    ""
-
-        maybeCommonVertexColor =
-            if Set.isEmpty m.selectedVertices then
-                Just m.vertexPreferences.color
-
-            else
-                m.graph |> Graph.getCommonVertexProperty m.selectedVertices .color
-
-        maybeCommonFixed =
-            if Set.isEmpty m.selectedVertices then
-                Just m.vertexPreferences.fixed
-
-            else
-                m.graph |> Graph.getCommonVertexProperty m.selectedVertices .fixed
     in
     subMenu headerForVertexProperties
         [ lineWithColumns 140
             [ input "X" <|
                 numberInput
-                    [ HA.value commonXToShow
-                    , HE.onInput FromXInput
+                    [ HA.value
+                        (m.user
+                            |> User.getCentroid m.selectedVertices
+                            |> Maybe.map Point2d.xCoordinate
+                            |> Maybe.map round
+                            |> Maybe.map String.fromInt
+                            |> Maybe.withDefault ""
+                        )
+                    , HE.onInput NumberInputVertexX
                     ]
             , input "Y" <|
                 numberInput
-                    [ HA.value commonYToShow
-                    , HE.onInput FromYInput
+                    [ HA.value
+                        (m.user
+                            |> User.getCentroid m.selectedVertices
+                            |> Maybe.map Point2d.yCoordinate
+                            |> Maybe.map round
+                            |> Maybe.map String.fromInt
+                            |> Maybe.withDefault ""
+                        )
+                    , HE.onInput NumberInputVertexY
                     ]
             ]
         , lineWithColumns 140
             [ input "Color" <|
-                H.map FromVertexColorPicker <|
-                    ColorPicker.view maybeCommonVertexColor
+                H.map ColorPickerVertex <|
+                    ColorPicker.view <|
+                        if Set.isEmpty m.selectedVertices then
+                            Just (m.user |> User.getDefaultVertexProperties |> .color)
+
+                        else
+                            m.user |> User.getCommonVertexProperty m.selectedVertices .color
             , input "Radius" <|
                 numberInput
                     [ HA.min "4"
                     , HA.max "20"
                     , HA.step "1"
-                    , HA.value radiusToShow
-                    , HE.onInput FromRadiusInput
+                    , HA.value <|
+                        if Set.isEmpty m.selectedVertices then
+                            m.user |> User.getDefaultVertexProperties |> .radius |> String.fromFloat
+
+                        else
+                            case m.user |> User.getCommonVertexProperty m.selectedVertices .radius of
+                                Just r ->
+                                    String.fromFloat r
+
+                                Nothing ->
+                                    ""
+                    , HE.onInput NumberInputRadius
                     ]
             ]
         , lineWithColumns 140
-            [ input "Fixed" <|
-                H.map FromFixedCheckBox <|
-                    CheckBox.view maybeCommonFixed
+            [ input "Fixed"
+                (H.map CheckBoxFixed
+                    (CheckBox.view <|
+                        if Set.isEmpty m.selectedVertices then
+                            Just (m.user |> User.getDefaultVertexProperties |> .fixed)
+
+                        else
+                            m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
+                    )
+                )
             ]
         ]
 
@@ -2389,78 +1755,31 @@ edgeProperties m =
 
                 _ ->
                     "Selected Edges"
-
-        thicknessToShow =
-            let
-                maybeCommonThickness =
-                    if Set.isEmpty m.selectedEdges then
-                        Just m.edgePreferences.thickness
-
-                    else
-                        m.graph
-                            |> Graph.getCommonEdgeProperty m.selectedEdges .thickness
-            in
-            case maybeCommonThickness of
-                Just r ->
-                    String.fromFloat r
-
-                Nothing ->
-                    ""
-
-        distanceToShow =
-            let
-                maybeCommonDistance =
-                    if Set.isEmpty m.selectedEdges then
-                        Just m.edgePreferences.distance
-
-                    else
-                        m.graph
-                            |> Graph.getCommonEdgeProperty
-                                m.selectedEdges
-                                .distance
-            in
-            case maybeCommonDistance of
-                Just r ->
-                    String.fromFloat r
-
-                Nothing ->
-                    ""
-
-        strengthToShow =
-            let
-                maybeCommonStrength =
-                    if Set.isEmpty m.selectedEdges then
-                        Just m.edgePreferences.strength
-
-                    else
-                        m.graph
-                            |> Graph.getCommonEdgeProperty
-                                m.selectedEdges
-                                .strength
-            in
-            case maybeCommonStrength of
-                Just r ->
-                    String.fromFloat r
-
-                Nothing ->
-                    ""
-
-        maybeCommonEdgeColor =
-            if Set.isEmpty m.selectedEdges then
-                Just m.edgePreferences.color
-
-            else
-                m.graph |> Graph.getCommonEdgeProperty m.selectedEdges .color
     in
     subMenu headerForEdgeProperties
         [ lineWithColumns 140
             [ input "Color" <|
-                H.map FromEdgeColorPicker <|
-                    ColorPicker.view maybeCommonEdgeColor
+                H.map ColorPickerEdge <|
+                    ColorPicker.view <|
+                        if Set.isEmpty m.selectedEdges then
+                            Just (m.user |> User.getDefaultEdgeProperties |> .color)
+
+                        else
+                            m.user |> User.getCommonEdgeProperty m.selectedEdges .color
             , input "thickness" <|
                 numberInput
-                    [ HA.value thicknessToShow
-                    , HE.onInput FromThicknessInput
+                    [ HA.value <|
+                        if Set.isEmpty m.selectedEdges then
+                            m.user |> User.getDefaultEdgeProperties |> .thickness |> String.fromFloat
+
+                        else
+                            case m.user |> User.getCommonEdgeProperty m.selectedEdges .thickness of
+                                Just r ->
+                                    String.fromFloat r
+
+                                Nothing ->
+                                    ""
+                    , HE.onInput NumberInputThickness
                     , HA.min "1"
                     , HA.max "20"
                     , HA.step "1"
@@ -2469,62 +1788,39 @@ edgeProperties m =
         , lineWithColumns 140
             [ input "distance" <|
                 numberInput
-                    [ HA.value distanceToShow
-                    , HE.onInput FromDistanceInput
+                    [ HA.value <|
+                        if Set.isEmpty m.selectedEdges then
+                            m.user |> User.getDefaultEdgeProperties |> .distance |> String.fromFloat
+
+                        else
+                            case m.user |> User.getCommonEdgeProperty m.selectedEdges .distance of
+                                Just r ->
+                                    String.fromFloat r
+
+                                Nothing ->
+                                    ""
+                    , HE.onInput NumberInputDistance
                     , HA.min "0"
                     , HA.max "2000"
                     , HA.step "1"
                     ]
             , input "strength" <|
                 numberInput
-                    [ HA.value strengthToShow
-                    , HE.onInput FromStrengthInput
+                    [ HA.value <|
+                        if Set.isEmpty m.selectedEdges then
+                            m.user |> User.getDefaultEdgeProperties |> .strength |> String.fromFloat
+
+                        else
+                            case m.user |> User.getCommonEdgeProperty m.selectedEdges .strength of
+                                Just r ->
+                                    String.fromFloat r
+
+                                Nothing ->
+                                    ""
+                    , HE.onInput NumberInputEdgeStrength
                     , HA.min "0"
                     , HA.max "1"
                     , HA.step "0.05"
-                    ]
-            ]
-        ]
-
-
-manyBodyProperties : Model -> Html Msg
-manyBodyProperties m =
-    let
-        mB =
-            Graph.getManyBody m.graph
-    in
-    subMenu "Many Body"
-        [ lineWithColumns 140
-            [ input "Strength" <|
-                numberInput
-                    [ HA.min "-1000"
-                    , HA.max "0"
-                    , HA.step "10"
-                    , HA.value (String.fromFloat mB.strength)
-                    , HE.onInput FromManyBodyStrengthInput
-                    ]
-            , input "Theta" <|
-                numberInput
-                    [ HA.min "0"
-                    , HA.max "1"
-                    , HA.step "0.1"
-                    , HA.value (String.fromFloat mB.theta)
-                    , HE.onInput FromManyBodyThetaInput
-                    ]
-            ]
-        , lineWithColumns 140
-            [ input "Min Distance" <|
-                numberInput
-                    [ HA.min "0"
-                    , HA.max "1000"
-                    , HA.step "1"
-                    , HA.value (String.fromFloat mB.distanceMin)
-                    , HE.onInput FromManyBodyMinDistanceInput
-                    ]
-            , input "Max Distance" <|
-                numberInput
-                    [ HA.value (String.fromFloat mB.distanceMax)
-                    , HE.onInput FromManyBodyMaxDistanceInput
                     ]
             ]
         ]
@@ -2542,12 +1838,11 @@ rightBar m =
         , bagProperties m
         , vertexProperties m
         , edgeProperties m
-        , manyBodyProperties m
         ]
 
 
 
---main svg
+--MAIN SVG
 
 
 mousePosition : Decoder MousePosition
@@ -2557,39 +1852,89 @@ mousePosition =
         (Decode.field "clientY" Decode.int)
 
 
+wheelDeltaY : Decoder Int
+wheelDeltaY =
+    Decode.field "deltaY" Decode.int
+
+
 emptySvgElement =
-    S.circle [] []
+    S.g [] []
 
 
 mainSvg : Model -> Html Msg
 mainSvg m =
     let
+        a4HeightByWidth =
+            297 / 210
+
+        backgroundPageWidth =
+            600
+
+        pageA4WithRuler =
+            S.g []
+                [ S.rect
+                    [ SA.x "0"
+                    , SA.y "0"
+                    , SA.width (String.fromFloat backgroundPageWidth)
+                    , SA.height (String.fromFloat (backgroundPageWidth * a4HeightByWidth))
+                    , SA.stroke "rgb(83, 83, 83)"
+                    , SA.fill "none"
+                    , SA.strokeWidth (String.fromFloat (1 / m.zoom))
+                    ]
+                    []
+                , S.line
+                    [ SA.x1 "100"
+                    , SA.y1 "0"
+                    , SA.x2 "100"
+                    , SA.y2 (String.fromFloat (-5 / m.zoom))
+                    , SA.stroke "rgb(83, 83, 83)"
+                    , SA.strokeWidth (String.fromFloat (1 / m.zoom))
+                    ]
+                    []
+                , S.text_
+                    [ SA.x "100"
+                    , SA.y (String.fromFloat (-24 / m.zoom))
+                    , SA.fill "rgb(83, 83, 83)"
+                    , SA.textAnchor "middle"
+                    , SA.fontSize (String.fromFloat (12 / m.zoom))
+                    ]
+                    [ S.text <| String.fromInt (round (100 * m.zoom)) ++ "%" ]
+                , S.text_
+                    [ SA.x "100"
+                    , SA.y (String.fromFloat (-10 / m.zoom))
+                    , SA.fill "rgb(83, 83, 83)"
+                    , SA.textAnchor "middle"
+                    , SA.fontSize (String.fromFloat (12 / m.zoom))
+                    ]
+                    [ S.text <| "100px" ]
+                ]
+
         transparentInteractionRect =
             S.rect
                 [ SA.fillOpacity "0"
-                , SA.x "0"
-                , SA.y "0"
-                , SA.width "100%"
-                , SA.height "100%"
-                , HE.on "mousedown" <| Decode.map MouseDownOnTransparentInteractionRect mousePosition
-                , HE.on "mouseup" <| Decode.map MouseUpOnTransparentInteractionRect mousePosition
+                , SA.x (String.fromFloat (Point2d.xCoordinate m.pan))
+                , SA.y (String.fromFloat (Point2d.yCoordinate m.pan))
+                , SA.width (String.fromFloat (toFloat m.windowSize.width / m.zoom))
+                , SA.height (String.fromFloat (toFloat m.windowSize.height / m.zoom))
+                , HE.onMouseDown MouseDownOnTransparentInteractionRect
+                , HE.onMouseUp MouseUpOnTransparentInteractionRect
                 ]
                 []
 
         maybeBrushedEdge =
-            case m.tool of
-                Draw (Just { sourceId, mousePos }) ->
-                    case Graph.getVertex sourceId m.graph of
-                        Just { x, y } ->
-                            S.line
-                                [ SA.x1 (String.fromFloat x)
-                                , SA.x2 (String.fromInt mousePos.x)
-                                , SA.y1 (String.fromFloat y)
-                                , SA.y2 (String.fromInt mousePos.y)
-                                , SA.strokeWidth (String.fromFloat m.edgePreferences.thickness)
-                                , SA.stroke m.edgePreferences.color
+            case m.selectedTool of
+                Draw (BrushingNewEdgeWithSourceId sourceId) ->
+                    case User.getVertexProperties sourceId m.user of
+                        Just { position } ->
+                            let
+                                dEP =
+                                    m.user |> User.getDefaultEdgeProperties
+                            in
+                            Geometry.Svg.lineSegment2d
+                                [ SA.strokeWidth (String.fromFloat dEP.thickness)
+                                , SA.stroke dEP.color
                                 ]
-                                []
+                                (LineSegment2d.from position m.svgMousePosition)
 
                         Nothing ->
                             emptySvgElement
@@ -2597,47 +1942,26 @@ mainSvg m =
                 _ ->
                     emptySvgElement
 
-        maybeBrushedSelectionRect =
-            case m.tool of
-                Select (BrushingForSelection { start, mousePos }) ->
-                    case m.selector of
+        maybeBrushedSelector =
+            case m.selectedTool of
+                Select (BrushingForSelection { brushStart }) ->
+                    case m.selectedSelector of
                         RectSelector ->
-                            let
-                                minx =
-                                    toFloat (min start.x mousePos.x)
-
-                                miny =
-                                    toFloat (min start.y mousePos.y)
-
-                                maxx =
-                                    toFloat (max start.x mousePos.x)
-
-                                maxy =
-                                    toFloat (max start.y mousePos.y)
-                            in
-                            S.rect
-                                [ SA.x (String.fromFloat minx)
-                                , SA.y (String.fromFloat miny)
-                                , SA.width (String.fromFloat (maxx - minx))
-                                , SA.height (String.fromFloat (maxy - miny))
-                                , SA.stroke "rgb(127,127,127)"
+                            Geometry.Svg.boundingBox2d
+                                [ SA.stroke "rgb(127,127,127)"
                                 , SA.strokeWidth "1"
                                 , SA.strokeDasharray "1 2"
                                 , SA.fill "none"
                                 ]
-                                []
+                                (BoundingBox2d.from brushStart m.svgMousePosition)
 
                         LineSelector ->
-                            S.line
-                                [ SA.x1 (String.fromInt start.x)
-                                , SA.y1 (String.fromInt start.y)
-                                , SA.x2 (String.fromInt mousePos.x)
-                                , SA.y2 (String.fromInt mousePos.y)
-                                , SA.stroke "rgb(127,127,127)"
+                            Geometry.Svg.lineSegment2d
+                                [ SA.stroke "rgb(127,127,127)"
                                 , SA.strokeWidth "1"
                                 , SA.strokeDasharray "1 2"
                                 ]
-                                []
+                                (LineSegment2d.from brushStart m.svgMousePosition)
 
                 _ ->
                     emptySvgElement
@@ -2646,28 +1970,22 @@ mainSvg m =
             let
                 rect selectedVertices =
                     let
-                        maybeRectAroundVertices =
-                            Graph.getMaybeRectAroundVertices
-                                selectedVertices
-                                m.graph
+                        maybeBoudingBox =
+                            User.getBoundingBoxWithMargin selectedVertices m.user
                     in
-                    case maybeRectAroundVertices of
-                        Just { x, y, width, height } ->
-                            S.rect
-                                [ SA.x (String.fromFloat (x - 4))
-                                , SA.y (String.fromFloat (y - 4))
-                                , SA.width (String.fromFloat (width + 8))
-                                , SA.height (String.fromFloat (height + 8))
-                                , SA.strokeWidth "1"
+                    case maybeBoudingBox of
+                        Just bB ->
+                            Geometry.Svg.boundingBox2d
+                                [ SA.strokeWidth "1"
                                 , SA.stroke "rgb(40,127,230)"
                                 , SA.fill "none"
                                 ]
-                                []
+                                bB
 
                         Nothing ->
                             emptySvgElement
             in
-            case m.tool of
+            case m.selectedTool of
                 Select vertexSelectorState ->
                     case vertexSelectorState of
                         BrushingForSelection _ ->
@@ -2680,265 +1998,122 @@ mainSvg m =
                     emptySvgElement
 
         maybeHighlightsOnSelectedVertices =
-            case m.tool of
-                Select sVAction ->
-                    let
-                        hL color radius =
-                            Graph.getVerticesIn m.selectedVertices m.graph
-                                |> Dict.values
-                                |> List.map
-                                    (\v ->
-                                        S.circle
-                                            [ SA.cx (String.fromFloat v.x)
-                                            , SA.cy (String.fromFloat v.y)
-                                            , SA.r (String.fromFloat (radius v + 4))
-                                            , SA.fill color
-                                            ]
-                                            []
-                                    )
-                                |> S.g []
-                    in
-                    case sVAction of
-                        BrushingForSelection _ ->
-                            hL Colors.highlightColorForMouseOver .radius
+            let
+                drawHL { position, radius } =
+                    Geometry.Svg.circle2d
+                        [ SA.fill Colors.colorHighlightForSelection ]
+                        (position |> Circle2d.withRadius (radius + 4))
+            in
+            S.g []
+                (m.user
+                    |> User.getVertices
+                    |> List.filter (\{ id } -> Set.member id m.selectedVertices)
+                    |> List.map (.label >> drawHL)
+                )
 
-                        _ ->
-                            hL Colors.colorHighlightForSelection .radius
-
-                _ ->
-                    emptySvgElement
-
-        maybeHighlightOnMouseOveredVertex =
-            case m.highlightingVertexOnMouseOver of
-                Just id ->
-                    case Graph.getVertex id m.graph of
-                        Just v ->
-                            S.circle
-                                [ SA.cx (String.fromFloat v.x)
-                                , SA.cy (String.fromFloat v.y)
-                                , SA.r (String.fromFloat (v.radius + 4))
-                                , SA.fill Colors.highlightColorForMouseOver
-                                ]
-                                []
-
-                        _ ->
-                            -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE: The vertex should be there!" <|
-                            emptySvgElement
-
-                Nothing ->
-                    emptySvgElement
+        maybeHighlightOnMouseOveredVertices =
+            let
+                drawHL { position, radius } =
+                    Geometry.Svg.circle2d
+                        [ SA.fill Colors.highlightColorForMouseOver ]
+                        (position |> Circle2d.withRadius (radius + 4))
+            in
+            S.g []
+                (m.user
+                    |> User.getVertices
+                    |> List.filter (\{ id } -> Set.member id m.highlightedVertices)
+                    |> List.map (.label >> drawHL)
+                )
 
         maybeHighlightsOnSelectedEdges =
-            case m.tool of
-                Select sVAction ->
-                    let
-                        hL color =
-                            m.selectedEdges
-                                |> Set.toList
-                                |> List.map
-                                    (\( s, t ) ->
-                                        case
-                                            ( m.graph |> Graph.getEdge ( s, t )
-                                            , m.graph |> Graph.getVertex s
-                                            , m.graph |> Graph.getVertex t
-                                            )
-                                        of
-                                            ( Just e, Just v, Just w ) ->
-                                                S.line
-                                                    [ SA.stroke color
-                                                    , SA.strokeWidth (String.fromFloat (e.thickness + 6))
-                                                    , SA.x1 (String.fromFloat v.x)
-                                                    , SA.y1 (String.fromFloat v.y)
-                                                    , SA.x2 (String.fromFloat w.x)
-                                                    , SA.y2 (String.fromFloat w.y)
-                                                    ]
-                                                    []
-
-                                            _ ->
-                                                -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE: They should be there!" <|
-                                                emptySvgElement
-                                    )
-                                |> S.g []
-                    in
-                    case sVAction of
-                        BrushingForSelection _ ->
-                            hL Colors.highlightColorForMouseOver
-
-                        _ ->
-                            hL Colors.colorHighlightForSelection
-
-                _ ->
-                    emptySvgElement
-
-        maybeHighlightOnMouseOveredEdge =
-            case m.highlightingEdgeOnMouseOver of
-                Just ( s, t ) ->
-                    case
-                        ( m.graph |> Graph.getEdge ( s, t )
-                        , m.graph |> Graph.getVertex s
-                        , m.graph |> Graph.getVertex t
-                        )
-                    of
-                        ( Just e, Just v, Just w ) ->
-                            S.line
-                                [ SA.stroke Colors.highlightColorForMouseOver
-                                , SA.strokeWidth (String.fromFloat (e.thickness + 6))
-                                , SA.x1 (String.fromFloat v.x)
-                                , SA.y1 (String.fromFloat v.y)
-                                , SA.x2 (String.fromFloat w.x)
-                                , SA.y2 (String.fromFloat w.y)
+            let
+                drawHL { from, to, label } =
+                    case ( User.getVertexProperties from m.user, User.getVertexProperties to m.user ) of
+                        ( Just v, Just w ) ->
+                            Geometry.Svg.lineSegment2d
+                                [ SA.stroke Colors.colorHighlightForSelection
+                                , SA.strokeWidth (String.fromFloat (label.thickness + 6))
                                 ]
-                                []
+                                (LineSegment2d.from v.position w.position)
 
                         _ ->
-                            -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE: They should be there!" <|
+                            -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
                             emptySvgElement
+            in
+            S.g []
+                (m.user
+                    |> User.getEdges
+                    |> List.filter (\{ from, to } -> Set.member ( from, to ) m.selectedEdges)
+                    |> List.map drawHL
+                )
 
-                Nothing ->
-                    emptySvgElement
+        maybeHighlightOnMouseOveredEdges =
+            let
+                drawHL { from, to, label } =
+                    case ( User.getVertexProperties from m.user, User.getVertexProperties to m.user ) of
+                        ( Just v, Just w ) ->
+                            Geometry.Svg.lineSegment2d
+                                [ SA.stroke Colors.highlightColorForMouseOver
+                                , SA.strokeWidth (String.fromFloat (label.thickness + 6))
+                                ]
+                                (LineSegment2d.from v.position w.position)
 
-        maybeHighlightOnVerticesOfMouseOveredBag =
-            case m.highlightingBagOnMouseOver of
-                Just bagId ->
-                    m.graph
-                        |> Graph.getVertices
-                        |> Dict.filter (\_ v -> Set.member bagId v.inBags)
-                        |> Dict.values
-                        |> List.map
-                            (\v ->
-                                S.circle
-                                    [ SA.cx (String.fromFloat v.x)
-                                    , SA.cy (String.fromFloat v.y)
-                                    , SA.r (String.fromFloat (v.radius + 4))
-                                    , SA.fill Colors.highlightColorForMouseOver
-                                    ]
-                                    []
-                            )
-                        |> S.g []
-
-                Nothing ->
-                    emptySvgElement
-
-        viewPullCenters =
-            Graph.getBags m.graph
-                |> Dict.map
-                    (\bagId bag ->
-                        let
-                            ( xScale, yScale ) =
-                                ( 10 * bag.pullXStrength
-                                , 10 * bag.pullYStrength
-                                )
-
-                            ( arrowWidth, arrowHeight, distFromCenter ) =
-                                ( 30, 20, 6 )
-
-                            sep =
-                                distFromCenter + arrowHeight
-
-                            arrow =
-                                S.polygon
-                                    [ SA.points <|
-                                        pointsForSvg
-                                            [ ( -sep, -arrowWidth / 2 )
-                                            , ( -sep, arrowWidth / 2 )
-                                            , ( -distFromCenter, 0 )
-                                            ]
-                                    ]
-                                    []
-
-                            rectX =
-                                S.rect
-                                    [ SA.x (String.fromFloat (-sep - xScale * 20))
-                                    , SA.y "-5"
-                                    , SA.width (String.fromFloat (xScale * 20))
-                                    , SA.height "10"
-                                    ]
-                                    []
-
-                            rectY =
-                                S.rect
-                                    [ SA.x "-5"
-                                    , SA.y (String.fromFloat (-sep - yScale * 20))
-                                    , SA.width "10"
-                                    , SA.height (String.fromFloat (yScale * 20))
-                                    ]
-                                    []
-
-                            rotate angle element =
-                                S.g
-                                    [ SA.transform <| "rotate(" ++ String.fromFloat angle ++ ",0,0)" ]
-                                    [ element ]
-                        in
-                        S.g
-                            [ SA.display <|
-                                if bag.draggablePullCenter then
-                                    "inline"
-
-                                else
-                                    "none"
-                            , SA.transform <| "translate(" ++ String.fromFloat bag.pullX ++ "," ++ String.fromFloat bag.pullY ++ ")"
-                            , SA.opacity "0.4"
-                            , SA.class "pullCenter"
-                            , HE.on "mousedown" <| Decode.map (MouseDownOnPullCenter bagId) mousePosition
-                            , SE.onMouseOver (MouseOverPullCenter bagId)
-                            , SE.onMouseOut (MouseOutPullCenter bagId)
-                            , SE.onClick (ClickOnPullCenter bagId)
-                            , SA.fill <|
-                                if
-                                    m.highlightingPullCenterOnMouseOver
-                                        == Just bagId
-                                then
-                                    "rgb(40,129,230\n"
-
-                                else if
-                                    m.maybeSelectedBag
-                                        == Just bagId
-                                then
-                                    "rgb(40,129,230\n"
-
-                                else
-                                    "gray"
-                            ]
-                            [ arrow
-                            , rotate 90 arrow
-                            , rotate 180 arrow
-                            , rotate 270 arrow
-                            , rectX
-                            , rotate 180 rectX
-                            , rectY
-                            , rotate 180 rectY
-                            ]
-                    )
-                |> Dict.values
-                |> S.g []
+                        _ ->
+                            -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
+                            emptySvgElement
+            in
+            S.g []
+                (m.user
+                    |> User.getEdges
+                    |> List.filter (\{ from, to } -> Set.member ( from, to ) m.highlightedEdges)
+                    |> List.map drawHL
+                )
 
         cursor =
-            case m.tool of
+            case m.selectedTool of
+                Hand HandIdle ->
+                    "grab"
+
+                Hand (Panning _) ->
+                    "grabbing"
+
                 Draw _ ->
                     "crosshair"
 
                 Select _ ->
                     "default"
+
+        fromPanAndZoom pan zoom =
+            [ Point2d.xCoordinate m.pan
+            , Point2d.yCoordinate m.pan
+            , toFloat m.windowSize.width / zoom
+            , toFloat m.windowSize.height / zoom
+            ]
+                |> List.map String.fromFloat
+                |> List.intersperse " "
+                |> String.concat
     in
     S.svg
         [ HA.style "background-color" "rgb(46, 46, 46)"
-        , HA.style "position" "absolute"
-        , HA.style "width" "100%"
-        , HA.style "height" "100%"
         , HA.style "cursor" cursor
+        , HA.style "position" "absolute"
+        , SA.width (String.fromInt m.windowSize.width)
+        , SA.height (String.fromInt m.windowSize.height)
+        , SA.viewBox (fromPanAndZoom m.pan m.zoom)
+        , SE.onMouseDown MouseDownOnMainSvg
+        , HE.on "wheel" (Decode.map WheelDeltaY wheelDeltaY)
         ]
-        [ viewHulls m.graph
+        [ pageA4WithRuler
+        , viewHulls m.user
         , maybeBrushedEdge
         , transparentInteractionRect
-        , viewPullCenters
         , maybeHighlightsOnSelectedEdges
-        , maybeHighlightOnMouseOveredEdge
+        , maybeHighlightOnMouseOveredEdges
         , maybeHighlightsOnSelectedVertices
-        , maybeHighlightOnMouseOveredVertex
-        , maybeHighlightOnVerticesOfMouseOveredBag
-        , viewEdges m.graph
-        , viewVertices m.graph
-        , maybeBrushedSelectionRect
+        , maybeHighlightOnMouseOveredVertices
+        , viewEdges m.user
+        , viewVertices m.user
+        , maybeBrushedSelector
         , maybeRectAroundSelectedVertices
         ]
 
@@ -2947,137 +2122,94 @@ mainSvg m =
 -- GRAPH VIEW
 
 
-viewEdges : Graph -> Html Msg
-viewEdges graph =
+viewEdges : User -> Html Msg
+viewEdges user =
     let
-        vertices =
-            graph |> Graph.getVertices
-
-        edges =
-            graph |> Graph.getEdges
-
-        drawEdge ( s, t ) { color, thickness } =
-            case ( Dict.get s vertices, Dict.get t vertices ) of
+        drawEdge { from, to, label } =
+            case ( User.getVertexProperties from user, User.getVertexProperties to user ) of
                 ( Just v, Just w ) ->
                     S.g
-                        [ HE.on "mousedown" <|
-                            Decode.map (MouseDownOnEdge ( s, t ))
-                                mousePosition
-                        , HE.on "mouseup" <|
-                            Decode.map (MouseUpOnEdge ( s, t ))
-                                mousePosition
-                        , SE.onMouseOver (MouseOverEdge ( s, t ))
-                        , SE.onMouseOut (MouseOutEdge ( s, t ))
+                        [ SE.onMouseDown (MouseDownOnEdge ( from, to ))
+                        , SE.onMouseUp (MouseUpOnEdge ( from, to ))
+                        , SE.onMouseOver (MouseOverEdge ( from, to ))
+                        , SE.onMouseOut (MouseOutEdge ( from, to ))
                         ]
-                        [ S.line
+                        [ Geometry.Svg.lineSegment2d
                             [ SA.stroke "red"
-                            , SA.strokeWidth (String.fromFloat (thickness + 6))
                             , SA.strokeOpacity "0"
-                            , SA.x1 (String.fromFloat v.x)
-                            , SA.y1 (String.fromFloat v.y)
-                            , SA.x2 (String.fromFloat w.x)
-                            , SA.y2 (String.fromFloat w.y)
+                            , SA.strokeWidth (String.fromFloat (label.thickness + 6))
                             ]
-                            []
-                        , S.line
-                            [ SA.stroke color
-                            , SA.strokeWidth (String.fromFloat thickness)
-                            , SA.x1 (String.fromFloat v.x)
-                            , SA.y1 (String.fromFloat v.y)
-                            , SA.x2 (String.fromFloat w.x)
-                            , SA.y2 (String.fromFloat w.y)
+                            (LineSegment2d.from v.position w.position)
+                        , Geometry.Svg.lineSegment2d
+                            [ SA.stroke label.color
+                            , SA.strokeWidth (String.fromFloat label.thickness)
                             ]
-                            []
+                            (LineSegment2d.from v.position w.position)
                         ]
 
                 _ ->
                     -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
                     emptySvgElement
-
-        es =
-            edges
-                |> Dict.map drawEdge
-                |> Dict.values
     in
-    S.g [] es
+    S.g [] (List.map drawEdge (User.getEdges user))
 
 
-viewVertices : Graph -> Html Msg
-viewVertices graph =
+viewVertices : User -> Html Msg
+viewVertices user =
     let
-        vertices =
-            graph |> Graph.getVertices
-
         pin fixed radius =
             if fixed then
-                S.circle
-                    [ SA.r (String.fromFloat (radius / 2))
-                    , SA.fill "red"
+                Geometry.Svg.circle2d
+                    [ SA.fill "red"
                     , SA.stroke "white"
                     ]
-                    []
+                    (Point2d.origin |> Circle2d.withRadius (radius / 2))
 
             else
-                S.g [] []
+                emptySvgElement
 
-        drawVertex id { x, y, color, radius, fixed } =
+        drawVertex { id, label } =
+            let
+                { position, color, radius, fixed } =
+                    label
+
+                ( x, y ) =
+                    Point2d.coordinates position
+            in
             S.g
                 [ SA.transform <| "translate(" ++ String.fromFloat x ++ "," ++ String.fromFloat y ++ ")"
-                , HE.on "mousedown" <| Decode.map (MouseDownOnVertex id) mousePosition
+                , SE.onMouseDown (MouseDownOnVertex id)
                 , SE.onMouseUp (MouseUpOnVertex id)
                 , SE.onMouseOver (MouseOverVertex id)
                 , SE.onMouseOut (MouseOutVertex id)
                 ]
-                [ S.circle
-                    [ SA.r (String.fromFloat radius)
-                    , SA.fill color
-                    ]
-                    []
+                [ Geometry.Svg.circle2d [ SA.fill color ]
+                    (Point2d.origin |> Circle2d.withRadius radius)
                 , pin fixed radius
                 ]
-
-        vs =
-            vertices
-                |> Dict.map drawVertex
-                |> Dict.values
     in
-    S.g [] vs
+    S.g [] (user |> User.getVertices |> List.map drawVertex)
 
 
-pointsForSvg : List ( Float, Float ) -> String
-pointsForSvg =
-    List.map (\( x, y ) -> String.fromFloat x ++ "," ++ String.fromFloat y ++ " ")
-        >> String.concat
-
-
-viewHulls : Graph -> Html Msg
-viewHulls graph =
+viewHulls : User -> Html Msg
+viewHulls user =
     let
-        hull : List ( Float, Float ) -> Html a
+        hull : List Point2d -> Html a
         hull positions =
-            S.polygon
-                [ SA.points <| pointsForSvg (ConvexHull.convexHull positions)
-                , SA.fill "lightGray"
+            Geometry.Svg.polygon2d
+                [ SA.fill "lightGray"
                 , SA.opacity "0.3"
                 , SA.stroke "lightGray"
                 , SA.strokeWidth "50"
                 , SA.strokeLinejoin "round"
                 ]
-                []
-
-        hasConvexHull bagId =
-            graph
-                |> Graph.getBags
-                |> Dict.get bagId
-                |> Maybe.map .hasConvexHull
-                |> Maybe.withDefault False
+                (Polygon2d.convexHull positions)
 
         hulls =
-            graph
-                |> Graph.getBagsWithVertices
-                |> Dict.filter (\bagId _ -> hasConvexHull bagId)
+            user
+                |> User.getBagsWithVertices
+                |> Dict.filter (\_ ( bP, _ ) -> bP.hasConvexHull)
                 |> Dict.values
-                |> List.map (List.map (\v -> ( v.x, v.y )))
-                |> List.map hull
+                |> List.map (\( _, l ) -> hull (l |> List.map (Tuple.second >> .position)))
     in
     S.g [] hulls
