@@ -271,6 +271,7 @@ type Msg
     | ColorPickerVertex Color
     | NumberInputRadius String
     | CheckBoxFixed Bool
+    | NumberInputVertexStrength String
       --
     | ClickOnEdgeContract
     | ClickOnEdgeTrash
@@ -760,6 +761,21 @@ update msg m =
                         m.user |> User.updateVertices m.selectedVertices updateRadius
             }
 
+        NumberInputVertexStrength str ->
+            let
+                updateStrength v =
+                    { v | strength = str |> String.toFloat |> Maybe.withDefault -60 |> clamp -1000 100 }
+            in
+            restartSimulationIfVaderIsOn
+                { m
+                    | user =
+                        if Set.isEmpty m.selectedVertices then
+                            m.user |> User.updateDefaultVertexProperties updateStrength
+
+                        else
+                            m.user |> User.updateVertices m.selectedVertices updateStrength
+                }
+
         ColorPickerEdge newColor ->
             let
                 updateColor e =
@@ -970,6 +986,9 @@ subscriptions m =
 toKeyDownMsg : Key -> Msg
 toKeyDownMsg key =
     case key of
+        Character 'h' ->
+            ClickOnHandTool
+
         Character 's' ->
             ClickOnSelectTool
 
@@ -1738,6 +1757,24 @@ vertexProperties m =
                             m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
                     )
                 )
+            , input "Strength" <|
+                numberInput
+                    [ HA.min "-1000"
+                    , HA.max "100"
+                    , HA.step "1"
+                    , HA.value <|
+                        if Set.isEmpty m.selectedVertices then
+                            m.user |> User.getDefaultVertexProperties |> .strength |> String.fromFloat
+
+                        else
+                            case m.user |> User.getCommonVertexProperty m.selectedVertices .strength of
+                                Just s ->
+                                    String.fromFloat s
+
+                                Nothing ->
+                                    ""
+                    , HE.onInput NumberInputVertexStrength
+                    ]
             ]
         ]
 
