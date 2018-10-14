@@ -10,30 +10,20 @@
             "elm/core": "1.0.0",
             "elm/html": "1.0.0",
             "elm/json": "1.0.0",
-            "elm/svg": "1.0.0",
+            "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm-community/graph": "6.0.0",
             "elm-community/intdict": "3.0.0",
-            "gampleman/elm-visualization": "2.0.0",
             "ianmackenzie/elm-geometry": "1.2.1",
             "ianmackenzie/elm-geometry-svg": "1.0.2"
         },
         "indirect": {
-            "avh4/elm-color": "1.0.0",
             "avh4/elm-fifo": "1.0.4",
-            "elm/parser": "1.1.0",
             "elm/url": "1.0.0",
-            "elm/virtual-dom": "1.0.0",
-            "elm-community/list-extra": "8.0.0",
-            "folkertdev/elm-deque": "3.0.0",
-            "folkertdev/one-true-path-experiment": "4.0.1",
-            "folkertdev/svg-path-lowlevel": "3.0.0",
+            "elm/virtual-dom": "1.0.2",
             "ianmackenzie/elm-float-extra": "1.0.1",
             "ianmackenzie/elm-interval": "1.0.1",
-            "ianmackenzie/elm-triangular-mesh": "1.0.2",
-            "justinmimbs/date": "3.1.2",
-            "justinmimbs/time-extra": "1.1.0",
-            "ryannhg/date-format": "2.0.1"
+            "ianmackenzie/elm-triangular-mesh": "1.0.2"
         }
     },
     "test-dependencies": {
