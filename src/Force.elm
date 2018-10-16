@@ -2,7 +2,7 @@ module Force exposing (Force(..), ForceEdge, ForceGraph, ForceVertex, State(..),
 
 import Dict exposing (Dict)
 import Force.ManyBody as ManyBody
-import Graph exposing (Graph, Node, NodeId)
+import Graph exposing (Edge, Graph, Node, NodeId)
 import Graph.Extra
 import Point2d exposing (Point2d)
 import Vector2d exposing (Vector2d)
@@ -29,9 +29,8 @@ type alias ForceGraph n e =
 
 
 type Force
-    = -- Links Int (List (LinkParam comparable))
-      -- |
-      ManyBody Float
+    = Links
+    | ManyBody Float
 
 
 {-| This only updates the vertex velocities but does not touch the positions.
@@ -39,29 +38,30 @@ type Force
 applyForce : Float -> Force -> ForceGraph n e -> ForceGraph n e
 applyForce alpha force forceGraph =
     case force of
-        -- Links iters lnks ->
-        --     List.foldl
-        --         (\{ source, target, distance, strength, bias } ents ->
-        --             case ( Dict.get source ents, Dict.get target ents ) of
-        --                 ( Just sourceNode, Just targetNode ) ->
-        --                     let
-        --                         x =
-        --                             targetNode.x + targetNode.vx - sourceNode.x - sourceNode.vx
-        --                         y =
-        --                             targetNode.y + targetNode.vy - sourceNode.y - sourceNode.vy
-        --                         d =
-        --                             sqrt (x ^ 2 + y ^ 2)
-        --                         l =
-        --                             (d - distance) / d * alpha * strength
-        --                     in
-        --                     ents
-        --                         |> Dict.update target (Maybe.map (\sn -> { sn | vx = sn.vx - x * l * bias, vy = sn.vy - y * l * bias }))
-        --                         |> Dict.update source (Maybe.map (\tn -> { tn | vx = tn.vx + x * l * (1 - bias), vy = tn.vy + y * l * (1 - bias) }))
-        --                 otherwise ->
-        --                     ents
-        --         )
-        --         entities
-        --         lnks
+        Links ->
+            -- let
+            --     x =
+            --         targetNode.x + targetNode.vx - sourceNode.x - sourceNode.vx
+            --     y =
+            --         targetNode.y + targetNode.vy - sourceNode.y - sourceNode.vy
+            --     d =
+            --         sqrt (x ^ 2 + y ^ 2)
+            --     l =
+            --         (d - distance) / d * alpha * strength
+            -- in
+            -- ents
+            --     |> Dict.update target (Maybe.map (\sn -> { sn | vx = sn.vx - x * l * 0.5,
+            --                                                     vy = sn.vy - y * l * 0.5 }))
+            --     |> Dict.update source (Maybe.map (\tn -> { tn | vx = tn.vx + x * l * 0.5,
+            --                                                     vy = tn.vy + y * l * 0.5 }))
+            let
+                up : Edge e -> ForceGraph n e -> ForceGraph n e
+                up { from, to, label } fG =
+                    fG
+            in
+            -- Graph.edges forceGraph |> List.foldr up forceGraph
+            forceGraph
+
         ManyBody theta ->
             let
                 toManyBodyVertex : Node (ForceVertex n) -> ManyBody.Vertex NodeId
@@ -72,6 +72,7 @@ applyForce alpha force forceGraph =
                     , strength = label.strength
                     }
 
+                manyBodyVerticesWithNewVelocities : List ( NodeId, ManyBody.Vertex NodeId )
                 manyBodyVerticesWithNewVelocities =
                     forceGraph
                         |> Graph.nodes
@@ -79,11 +80,11 @@ applyForce alpha force forceGraph =
                         |> ManyBody.manyBody alpha theta
                         |> List.map (\({ key } as mBV) -> ( key, mBV ))
 
+                updateVelocity : ManyBody.Vertex NodeId -> ForceVertex n -> ForceVertex n
                 updateVelocity { velocity } forceVertex =
                     { forceVertex | velocity = velocity }
             in
-            forceGraph
-                |> Graph.Extra.updateNodesBy manyBodyVerticesWithNewVelocities updateVelocity
+            forceGraph |> Graph.Extra.updateNodesBy manyBodyVerticesWithNewVelocities updateVelocity
 
 
 tick : State -> ForceGraph n e -> ( State, ForceGraph n e )
@@ -153,41 +154,3 @@ type State
         , alphaTarget : Float
         , velocityDecay : Float
         }
-
-
-
--- type alias LinkParam comparable =
---     { source : comparable
---     , target : comparable
---     , distance : Float
---     , strength : Float
---     , bias : Float
---     }
--- customLinks : Int -> List { source : comparable, target : comparable, distance : Float, strength : Maybe Float } -> Force
--- customLinks iters list =
---     let
---         counts =
---             List.foldr
---                 (\{ source, target } d ->
---                     d
---                         |> Dict.update source
---                             (Just << Maybe.withDefault 1 << Maybe.map ((+) 1))
---                         |> Dict.update target
---                             (Just << Maybe.withDefault 1 << Maybe.map ((+) 1))
---                 )
---                 Dict.empty
---                 list
---         count key =
---             Dict.get key counts |> Maybe.withDefault 0
---     in
---     list
---         |> List.map
---             (\{ source, target, distance, strength } ->
---                 { source = source
---                 , target = target
---                 , distance = distance
---                 , strength = Maybe.withDefault (1 / min (count source) (count target)) strength
---                 , bias = count source / (count source + count target)
---                 }
---             )
---         |> Links iters

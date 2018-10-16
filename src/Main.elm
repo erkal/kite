@@ -292,37 +292,6 @@ update msg m =
             let
                 ( newSimulationState, newUser ) =
                     m.user |> User.tick m.simulationState
-
-                -- newSimulationEntities =
-                --     case m.selectedTool of
-                --         Select (DraggingSelection { brushStart, vertexPositionsAtStart }) ->
-                --             let
-                --                 delta =
-                --                     Vector2d.from brushStart m.svgMousePosition
-                --                 newVertexPositions =
-                --                     vertexPositionsAtStart
-                --                         |> IntDict.map (\_ pos -> pos |> Point2d.translateBy delta)
-                --             in
-                --             newSimulationEntities_
-                --                 |> List.map
-                --                     (\ent ->
-                --                         let
-                --                             maybePos =
-                --                                 newVertexPositions |> IntDict.get ent.id
-                --                             maybeX =
-                --                                 maybePos |> Maybe.map Point2d.xCoordinate
-                --                             maybeY =
-                --                                 maybePos |> Maybe.map Point2d.yCoordinate
-                --                         in
-                --                         { ent
-                --                             | x = maybeX |> Maybe.withDefault ent.x
-                --                             , y = maybeY |> Maybe.withDefault ent.y
-                --                             , vx = 0
-                --                             , vy = 0
-                --                         }
-                --                     )
-                --         _ ->
-                --             newSimulationEntities_
             in
             { m
                 | user = newUser
