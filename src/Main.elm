@@ -58,8 +58,7 @@ type alias Model =
     { user : User
 
     --
-    , simulationEntities : List Entity
-    , simulationState : Force.State VertexId
+    , simulationState : Force.State
 
     --
     , windowSize : { width : Int, height : Int }
@@ -160,7 +159,6 @@ initialModel user =
     { user = user
 
     --
-    , simulationEntities = user |> User.toEntities
     , simulationState = user |> User.simulation
 
     --
@@ -284,18 +282,6 @@ type Msg
     | NumberInputEdgeStrength String
 
 
-restartSimulationIfVaderIsOn : Model -> Model
-restartSimulationIfVaderIsOn m =
-    if m.vaderIsOn then
-        { m
-            | simulationEntities = m.user |> User.toEntities
-            , simulationState = m.user |> User.simulation
-        }
-
-    else
-        m
-
-
 update : Msg -> Model -> Model
 update msg m =
     case msg of
@@ -304,50 +290,42 @@ update msg m =
 
         Tick _ ->
             let
-                ( newSimulationState, newSimulationEntities__ ) =
-                    Force.tick m.simulationState m.simulationEntities
+                ( newSimulationState, newUser ) =
+                    m.user |> User.tick m.simulationState
 
-                newSimulationEntities_ =
-                    newSimulationEntities__ |> User.bringBackIfFixed m.user
-
-                newSimulationEntities =
-                    case m.selectedTool of
-                        Select (DraggingSelection { brushStart, vertexPositionsAtStart }) ->
-                            let
-                                delta =
-                                    Vector2d.from brushStart m.svgMousePosition
-
-                                newVertexPositions =
-                                    vertexPositionsAtStart
-                                        |> IntDict.map (\_ pos -> pos |> Point2d.translateBy delta)
-                            in
-                            newSimulationEntities_
-                                |> List.map
-                                    (\ent ->
-                                        let
-                                            maybePos =
-                                                newVertexPositions |> IntDict.get ent.id
-
-                                            maybeX =
-                                                maybePos |> Maybe.map Point2d.xCoordinate
-
-                                            maybeY =
-                                                maybePos |> Maybe.map Point2d.yCoordinate
-                                        in
-                                        { ent
-                                            | x = maybeX |> Maybe.withDefault ent.x
-                                            , y = maybeY |> Maybe.withDefault ent.y
-                                            , vx = 0
-                                            , vy = 0
-                                        }
-                                    )
-
-                        _ ->
-                            newSimulationEntities_
+                -- newSimulationEntities =
+                --     case m.selectedTool of
+                --         Select (DraggingSelection { brushStart, vertexPositionsAtStart }) ->
+                --             let
+                --                 delta =
+                --                     Vector2d.from brushStart m.svgMousePosition
+                --                 newVertexPositions =
+                --                     vertexPositionsAtStart
+                --                         |> IntDict.map (\_ pos -> pos |> Point2d.translateBy delta)
+                --             in
+                --             newSimulationEntities_
+                --                 |> List.map
+                --                     (\ent ->
+                --                         let
+                --                             maybePos =
+                --                                 newVertexPositions |> IntDict.get ent.id
+                --                             maybeX =
+                --                                 maybePos |> Maybe.map Point2d.xCoordinate
+                --                             maybeY =
+                --                                 maybePos |> Maybe.map Point2d.yCoordinate
+                --                         in
+                --                         { ent
+                --                             | x = maybeX |> Maybe.withDefault ent.x
+                --                             , y = maybeY |> Maybe.withDefault ent.y
+                --                             , vx = 0
+                --                             , vy = 0
+                --                         }
+                --                     )
+                --         _ ->
+                --             newSimulationEntities_
             in
             { m
-                | user = m.user |> User.updateByEntities newSimulationEntities
-                , simulationEntities = newSimulationEntities
+                | user = newUser
                 , simulationState = newSimulationState
             }
 
@@ -412,8 +390,10 @@ update msg m =
             { m | selectedTool = Select SelectIdle }
 
         ClickOnVader ->
-            restartSimulationIfVaderIsOn
-                { m | vaderIsOn = not m.vaderIsOn }
+            { m
+                | simulationState = Force.reheat m.simulationState
+                , vaderIsOn = not m.vaderIsOn
+            }
 
         ClickOnRectSelector ->
             { m
@@ -521,8 +501,8 @@ update msg m =
                     }
 
                 Select (DraggingSelection _) ->
-                    restartSimulationIfVaderIsOn
-                        { m | selectedTool = Select SelectIdle }
+                    -- reheatSimulation
+                    { m | selectedTool = Select SelectIdle }
 
                 Hand (Panning _) ->
                     { m | selectedTool = Hand HandIdle }
@@ -560,11 +540,11 @@ update msg m =
                             userGraphWithAddedVertex
                                 |> User.addEdge ( sourceId, newId )
                     in
-                    restartSimulationIfVaderIsOn
-                        { m
-                            | user = newUser
-                            , selectedTool = Draw DrawIdle
-                        }
+                    -- reheatSimulation
+                    { m
+                        | user = newUser
+                        , selectedTool = Draw DrawIdle
+                    }
 
                 _ ->
                     m
@@ -638,11 +618,11 @@ update msg m =
                         { m | selectedTool = Draw DrawIdle }
 
                     else
-                        restartSimulationIfVaderIsOn
-                            { m
-                                | user = m.user |> User.addEdge ( sourceId, targetId )
-                                , selectedTool = Draw DrawIdle
-                            }
+                        -- reheatSimulation
+                        { m
+                            | user = m.user |> User.addEdge ( sourceId, targetId )
+                            , selectedTool = Draw DrawIdle
+                        }
 
                 _ ->
                     m
@@ -702,12 +682,12 @@ update msg m =
                         newUser =
                             newUser_ |> User.addEdge ( sourceId, newId )
                     in
-                    restartSimulationIfVaderIsOn
-                        { m
-                            | user = newUser
-                            , highlightedEdges = Set.empty
-                            , selectedTool = Draw DrawIdle
-                        }
+                    -- reheatSimulation
+                    { m
+                        | user = newUser
+                        , highlightedEdges = Set.empty
+                        , selectedTool = Draw DrawIdle
+                    }
 
                 _ ->
                     m
@@ -766,15 +746,15 @@ update msg m =
                 updateStrength v =
                     { v | strength = str |> String.toFloat |> Maybe.withDefault -60 |> clamp -1000 100 }
             in
-            restartSimulationIfVaderIsOn
-                { m
-                    | user =
-                        if Set.isEmpty m.selectedVertices then
-                            m.user |> User.updateDefaultVertexProperties updateStrength
+            -- reheatSimulation
+            { m
+                | user =
+                    if Set.isEmpty m.selectedVertices then
+                        m.user |> User.updateDefaultVertexProperties updateStrength
 
-                        else
-                            m.user |> User.updateVertices m.selectedVertices updateStrength
-                }
+                    else
+                        m.user |> User.updateVertices m.selectedVertices updateStrength
+            }
 
         ColorPickerEdge newColor ->
             let
@@ -795,15 +775,15 @@ update msg m =
                 updateFixed v =
                     { v | fixed = b }
             in
-            restartSimulationIfVaderIsOn
-                { m
-                    | user =
-                        if Set.isEmpty m.selectedVertices then
-                            m.user |> User.updateDefaultVertexProperties updateFixed
+            -- reheatSimulation
+            { m
+                | user =
+                    if Set.isEmpty m.selectedVertices then
+                        m.user |> User.updateDefaultVertexProperties updateFixed
 
-                        else
-                            m.user |> User.updateVertices m.selectedVertices updateFixed
-                }
+                    else
+                        m.user |> User.updateVertices m.selectedVertices updateFixed
+            }
 
         NumberInputThickness str ->
             let
@@ -824,56 +804,56 @@ update msg m =
                 updateDistance e =
                     { e | distance = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 2000 }
             in
-            restartSimulationIfVaderIsOn
-                { m
-                    | user =
-                        if Set.isEmpty m.selectedEdges then
-                            m.user |> User.updateDefaultEdgeProperties updateDistance
+            -- reheatSimulation
+            { m
+                | user =
+                    if Set.isEmpty m.selectedEdges then
+                        m.user |> User.updateDefaultEdgeProperties updateDistance
 
-                        else
-                            m.user |> User.updateEdges m.selectedEdges updateDistance
-                }
+                    else
+                        m.user |> User.updateEdges m.selectedEdges updateDistance
+            }
 
         NumberInputEdgeStrength str ->
             let
                 updateStrength e =
                     { e | strength = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 1 }
             in
-            restartSimulationIfVaderIsOn
-                { m
-                    | user =
-                        if Set.isEmpty m.selectedEdges then
-                            m.user |> User.updateDefaultEdgeProperties updateStrength
+            -- reheatSimulation
+            { m
+                | user =
+                    if Set.isEmpty m.selectedEdges then
+                        m.user |> User.updateDefaultEdgeProperties updateStrength
 
-                        else
-                            m.user |> User.updateEdges m.selectedEdges updateStrength
-                }
+                    else
+                        m.user |> User.updateEdges m.selectedEdges updateStrength
+            }
 
         ClickOnVertexTrash ->
             let
                 newUser =
                     m.user |> User.removeVertices m.selectedVertices
             in
-            restartSimulationIfVaderIsOn
-                { m
-                    | user = newUser
-                    , selectedVertices = Set.empty
-                    , highlightedVertices = Set.empty
-                    , selectedEdges = Set.empty
-                    , highlightedEdges = Set.empty
-                }
+            -- reheatSimulation
+            { m
+                | user = newUser
+                , selectedVertices = Set.empty
+                , highlightedVertices = Set.empty
+                , selectedEdges = Set.empty
+                , highlightedEdges = Set.empty
+            }
 
         ClickOnEdgeTrash ->
             let
                 newUser =
                     m.user |> User.removeEdges m.selectedEdges
             in
-            restartSimulationIfVaderIsOn
-                { m
-                    | user = newUser
-                    , highlightedEdges = Set.empty
-                    , selectedEdges = Set.empty
-                }
+            -- reheatSimulation
+            { m
+                | user = newUser
+                , highlightedEdges = Set.empty
+                , selectedEdges = Set.empty
+            }
 
         ClickOnEdgeContract ->
             case Set.toList m.selectedEdges of
@@ -882,12 +862,12 @@ update msg m =
                         newUser =
                             m.user |> User.contractEdge selectedEdge
                     in
-                    restartSimulationIfVaderIsOn
-                        { m
-                            | user = newUser
-                            , highlightedEdges = Set.empty
-                            , selectedEdges = Set.empty
-                        }
+                    -- reheatSimulation
+                    { m
+                        | user = newUser
+                        , highlightedEdges = Set.empty
+                        , selectedEdges = Set.empty
+                    }
 
                 _ ->
                     m
@@ -1073,8 +1053,7 @@ view m =
         , leftBar m
         , rightBar m
         , topBar m
-
-        -- , forDebugging m
+        , forDebugging m
         ]
 
 
@@ -1089,7 +1068,9 @@ forDebugging m =
                 ]
     in
     div [ HA.class "forDebugging" ]
-        [ show "pressed control keys" <|
+        [ show "simulationState" <|
+            Debug.toString m.simulationState
+        , show "pressed control keys" <|
             case ( m.shiftIsDown, m.altIsDown ) of
                 ( True, True ) ->
                     "Shift + Alt"

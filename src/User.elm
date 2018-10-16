@@ -12,7 +12,6 @@ module User exposing
     , addEdge
     , addVertex
     , bagElementsInCurlyBraces
-    , bringBackIfFixed
     , contractEdge
     , default
     , divideEdge
@@ -42,9 +41,8 @@ module User exposing
     , setCentroidY
     , setVertexPositions
     , simulation
-    , toEntities
+    , tick
     , updateBag
-    , updateByEntities
     , updateDefaultBag
     , updateDefaultEdgeProperties
     , updateDefaultVertexProperties
@@ -57,7 +55,7 @@ import BoundingBox2d exposing (BoundingBox2d)
 import Circle2d exposing (Circle2d)
 import Colors exposing (Color)
 import Dict exposing (Dict)
-import Force exposing (Force)
+import Force exposing (Force, ForceGraph)
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Graph.Extra
 import IntDict exposing (IntDict)
@@ -75,7 +73,7 @@ type User
     = User
         { graph : MyGraph
         , bags : BagDict
-        , myForces : List MyForce
+        , forces : List Force
         , defaultVertexProperties : VertexProperties
         , defaultEdgeProperties : EdgeProperties
         , defaultBagProperties : BagProperties
@@ -83,13 +81,7 @@ type User
 
 
 type alias MyGraph =
-    Graph VertexProperties EdgeProperties
-
-
-type MyForce
-    = ManyBody
-    | Center { x : Float, y : Float }
-    | Links
+    ForceGraph VertexProperties EdgeProperties
 
 
 type alias VertexId =
@@ -102,19 +94,20 @@ type alias EdgeId =
 
 type alias VertexProperties =
     { position : Point2d
+    , velocity : Vector2d
+    , strength : Float
+    , fixed : Bool
     , color : Color
     , radius : Float
     , inBags : Set BagId
-    , fixed : Bool
-    , strength : Float
     }
 
 
 type alias EdgeProperties =
-    { color : Color
-    , thickness : Float
-    , distance : Float
+    { distance : Float
     , strength : Float
+    , color : Color
+    , thickness : Float
     }
 
 
@@ -142,12 +135,14 @@ default =
     User
         { graph = Graph.empty
         , bags = Dict.empty
-        , myForces =
-            [ ManyBody
-            , Links
+        , forces =
+            [ Force.ManyBody 0.9
+
+            -- , TODO: Links
             ]
         , defaultVertexProperties =
             { position = Point2d.origin
+            , velocity = Vector2d.zero
             , strength = -60
             , color = "white"
             , radius = 5
@@ -170,6 +165,20 @@ default =
             , pullStrength = 0.1
             }
         }
+
+
+simulation : User -> Force.State
+simulation (User { forces }) =
+    Force.simulation forces
+
+
+tick : Force.State -> User -> ( Force.State, User )
+tick state (User p) =
+    let
+        ( newState, newGraph ) =
+            Force.tick state p.graph
+    in
+    ( newState, User { p | graph = newGraph } )
 
 
 mapGraph : (MyGraph -> MyGraph) -> User -> User
@@ -563,91 +572,3 @@ duplicateSubgraph vs es ((User p) as user) =
     , Set.fromList nvs
     , Set.fromList nes
     )
-
-
-
--- FOR FORCE
-
-
-simulation : User -> Force.State VertexId
-simulation (User { graph, myForces }) =
-    let
-        fromMyForceToForce : MyForce -> Force VertexId
-        fromMyForceToForce myForce =
-            case myForce of
-                ManyBody ->
-                    Force.customManyBody 0.9
-                        (graph
-                            |> Graph.nodes
-                            |> List.map (\{ id, label } -> ( id, label.strength ))
-                        )
-
-                Center { x, y } ->
-                    Force.center x y
-
-                Links ->
-                    let
-                        fromEdgeToLinkData { from, to, label } =
-                            { source = from
-                            , target = to
-                            , distance = label.distance
-                            , strength = Just label.strength
-                            }
-                    in
-                    Force.customLinks 1 (List.map fromEdgeToLinkData (Graph.edges graph))
-    in
-    myForces
-        |> List.map fromMyForceToForce
-        |> Force.simulation
-
-
-toEntities : User -> List { id : VertexId, x : Float, y : Float, vx : Float, vy : Float }
-toEntities (User { graph }) =
-    let
-        toEntity { id, label } =
-            { id = id
-            , x = label.position |> Point2d.xCoordinate
-            , y = label.position |> Point2d.yCoordinate
-            , vx = 0
-            , vy = 0
-            }
-    in
-    graph
-        |> Graph.nodes
-        |> List.map toEntity
-
-
-updateByEntities : List { a | id : VertexId, x : Float, y : Float } -> User -> User
-updateByEntities l =
-    mapGraph
-        (Graph.Extra.updateNodesBy
-            (List.map (\{ id, x, y } -> ( id, Point2d.fromCoordinates ( x, y ) )) l)
-            (\pos vP -> { vP | position = pos })
-        )
-
-
-bringBackIfFixed :
-    User
-    -> List { id : VertexId, x : Float, y : Float, vx : Float, vy : Float }
-    -> List { id : VertexId, x : Float, y : Float, vx : Float, vy : Float }
-bringBackIfFixed user =
-    List.map
-        (\({ id } as ent) ->
-            let
-                maybeVP =
-                    user |> getVertexProperties id
-
-                ( x, y ) =
-                    maybeVP |> Maybe.map .position |> Maybe.withDefault Point2d.origin |> Point2d.coordinates
-            in
-            if (maybeVP |> Maybe.map .fixed) == Just True then
-                { ent
-                    | x = x
-                    , y = y
-                    , vx = 0
-                    , vy = 0
-                }
-
-            else
-                ent
-        )
