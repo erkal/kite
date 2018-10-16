@@ -94,15 +94,6 @@ type alias Model =
     }
 
 
-type alias Entity =
-    { id : VertexId
-    , x : Float
-    , y : Float
-    , vx : Float
-    , vy : Float
-    }
-
-
 type Mode
     = Preferences
     | ListsOfBagsVerticesAndEdges
