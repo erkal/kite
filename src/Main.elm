@@ -273,6 +273,15 @@ type Msg
     | NumberInputEdgeStrength String
 
 
+reheatSimulation : Model -> Model
+reheatSimulation m =
+    if m.vaderIsOn then
+        { m | simulationState = Force.reheat m.simulationState }
+
+    else
+        m
+
+
 update : Msg -> Model -> Model
 update msg m =
     case msg of
@@ -333,9 +342,7 @@ update msg m =
             in
             { m
                 | zoom = newZoom
-                , pan =
-                    m.pan
-                        |> Point2d.scaleAbout m.svgMousePosition (m.zoom / newZoom)
+                , pan = m.pan |> Point2d.scaleAbout m.svgMousePosition (m.zoom / newZoom)
             }
 
         KeyDownAlt ->
@@ -381,10 +388,8 @@ update msg m =
             { m | selectedTool = Select SelectIdle }
 
         ClickOnVader ->
-            { m
-                | simulationState = Force.reheat m.simulationState
-                , vaderIsOn = not m.vaderIsOn
-            }
+            reheatSimulation
+                { m | vaderIsOn = not m.vaderIsOn }
 
         ClickOnRectSelector ->
             { m
@@ -492,8 +497,8 @@ update msg m =
                     }
 
                 Select (DraggingSelection _) ->
-                    -- reheatSimulation
-                    { m | selectedTool = Select SelectIdle }
+                    reheatSimulation
+                        { m | selectedTool = Select SelectIdle }
 
                 Hand (Panning _) ->
                     { m | selectedTool = Hand HandIdle }
@@ -531,11 +536,11 @@ update msg m =
                             userGraphWithAddedVertex
                                 |> User.addEdge ( sourceId, newId )
                     in
-                    -- reheatSimulation
-                    { m
-                        | user = newUser
-                        , selectedTool = Draw DrawIdle
-                    }
+                    reheatSimulation
+                        { m
+                            | user = newUser
+                            , selectedTool = Draw DrawIdle
+                        }
 
                 _ ->
                     m
@@ -609,11 +614,11 @@ update msg m =
                         { m | selectedTool = Draw DrawIdle }
 
                     else
-                        -- reheatSimulation
-                        { m
-                            | user = m.user |> User.addEdge ( sourceId, targetId )
-                            , selectedTool = Draw DrawIdle
-                        }
+                        reheatSimulation
+                            { m
+                                | user = m.user |> User.addEdge ( sourceId, targetId )
+                                , selectedTool = Draw DrawIdle
+                            }
 
                 _ ->
                     m
@@ -673,12 +678,12 @@ update msg m =
                         newUser =
                             newUser_ |> User.addEdge ( sourceId, newId )
                     in
-                    -- reheatSimulation
-                    { m
-                        | user = newUser
-                        , highlightedEdges = Set.empty
-                        , selectedTool = Draw DrawIdle
-                    }
+                    reheatSimulation
+                        { m
+                            | user = newUser
+                            , highlightedEdges = Set.empty
+                            , selectedTool = Draw DrawIdle
+                        }
 
                 _ ->
                     m
@@ -737,15 +742,15 @@ update msg m =
                 updateStrength v =
                     { v | strength = str |> String.toFloat |> Maybe.withDefault -60 |> clamp -1000 100 }
             in
-            -- reheatSimulation
-            { m
-                | user =
-                    if Set.isEmpty m.selectedVertices then
-                        m.user |> User.updateDefaultVertexProperties updateStrength
+            reheatSimulation
+                { m
+                    | user =
+                        if Set.isEmpty m.selectedVertices then
+                            m.user |> User.updateDefaultVertexProperties updateStrength
 
-                    else
-                        m.user |> User.updateVertices m.selectedVertices updateStrength
-            }
+                        else
+                            m.user |> User.updateVertices m.selectedVertices updateStrength
+                }
 
         ColorPickerEdge newColor ->
             let
@@ -766,15 +771,15 @@ update msg m =
                 updateFixed v =
                     { v | fixed = b }
             in
-            -- reheatSimulation
-            { m
-                | user =
-                    if Set.isEmpty m.selectedVertices then
-                        m.user |> User.updateDefaultVertexProperties updateFixed
+            reheatSimulation
+                { m
+                    | user =
+                        if Set.isEmpty m.selectedVertices then
+                            m.user |> User.updateDefaultVertexProperties updateFixed
 
-                    else
-                        m.user |> User.updateVertices m.selectedVertices updateFixed
-            }
+                        else
+                            m.user |> User.updateVertices m.selectedVertices updateFixed
+                }
 
         NumberInputThickness str ->
             let
@@ -795,56 +800,56 @@ update msg m =
                 updateDistance e =
                     { e | distance = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 2000 }
             in
-            -- reheatSimulation
-            { m
-                | user =
-                    if Set.isEmpty m.selectedEdges then
-                        m.user |> User.updateDefaultEdgeProperties updateDistance
+            reheatSimulation
+                { m
+                    | user =
+                        if Set.isEmpty m.selectedEdges then
+                            m.user |> User.updateDefaultEdgeProperties updateDistance
 
-                    else
-                        m.user |> User.updateEdges m.selectedEdges updateDistance
-            }
+                        else
+                            m.user |> User.updateEdges m.selectedEdges updateDistance
+                }
 
         NumberInputEdgeStrength str ->
             let
                 updateStrength e =
                     { e | strength = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 1 }
             in
-            -- reheatSimulation
-            { m
-                | user =
-                    if Set.isEmpty m.selectedEdges then
-                        m.user |> User.updateDefaultEdgeProperties updateStrength
+            reheatSimulation
+                { m
+                    | user =
+                        if Set.isEmpty m.selectedEdges then
+                            m.user |> User.updateDefaultEdgeProperties updateStrength
 
-                    else
-                        m.user |> User.updateEdges m.selectedEdges updateStrength
-            }
+                        else
+                            m.user |> User.updateEdges m.selectedEdges updateStrength
+                }
 
         ClickOnVertexTrash ->
             let
                 newUser =
                     m.user |> User.removeVertices m.selectedVertices
             in
-            -- reheatSimulation
-            { m
-                | user = newUser
-                , selectedVertices = Set.empty
-                , highlightedVertices = Set.empty
-                , selectedEdges = Set.empty
-                , highlightedEdges = Set.empty
-            }
+            reheatSimulation
+                { m
+                    | user = newUser
+                    , selectedVertices = Set.empty
+                    , highlightedVertices = Set.empty
+                    , selectedEdges = Set.empty
+                    , highlightedEdges = Set.empty
+                }
 
         ClickOnEdgeTrash ->
             let
                 newUser =
                     m.user |> User.removeEdges m.selectedEdges
             in
-            -- reheatSimulation
-            { m
-                | user = newUser
-                , highlightedEdges = Set.empty
-                , selectedEdges = Set.empty
-            }
+            reheatSimulation
+                { m
+                    | user = newUser
+                    , highlightedEdges = Set.empty
+                    , selectedEdges = Set.empty
+                }
 
         ClickOnEdgeContract ->
             case Set.toList m.selectedEdges of
@@ -853,12 +858,12 @@ update msg m =
                         newUser =
                             m.user |> User.contractEdge selectedEdge
                     in
-                    -- reheatSimulation
-                    { m
-                        | user = newUser
-                        , highlightedEdges = Set.empty
-                        , selectedEdges = Set.empty
-                    }
+                    reheatSimulation
+                        { m
+                            | user = newUser
+                            , highlightedEdges = Set.empty
+                            , selectedEdges = Set.empty
+                        }
 
                 _ ->
                     m
