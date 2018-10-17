@@ -412,7 +412,9 @@ update msg m =
                     in
                     { m
                         | user = m.user |> User.setVertexPositions newVertexPositions
-                        , simulationState = Force.reheat m.simulationState
+                        , simulationState =
+                            -- TODO: Do this with alphatarget like Mike Bostock
+                            Force.reheat m.simulationState
                     }
 
                 Hand (Panning { mousePositionAtPanStart, panAtStart }) ->

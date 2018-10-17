@@ -138,7 +138,7 @@ default =
         , forces =
             [ Force.ManyBody 0.9
 
-            -- , TODO: Links
+            -- , Force.Links
             ]
         , defaultVertexProperties =
             { position = Point2d.origin

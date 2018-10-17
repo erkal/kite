@@ -9,6 +9,7 @@ module Graph.Extra exposing
     , insertNode
     , removeEdge
     , updateEdges
+    , updateNodeBy
     , updateNodes
     , updateNodesBy
     )
@@ -99,6 +100,11 @@ updateNodesBy l upBy graph =
             Graph.update id (Maybe.map (ctxUpdater upData)) acc
     in
     List.foldr updateNodeProperties graph l
+
+
+updateNodeBy : NodeId -> a -> (a -> n -> n) -> Graph n e -> Graph n e
+updateNodeBy id data =
+    updateNodesBy [ ( id, data ) ]
 
 
 disjointUnion : Graph n e -> Graph n e -> { union : Graph n e, verticesOfTheFirstGraphShifted : List NodeId, edgesOfTheFirstGraphShifted : List ( NodeId, NodeId ) }
