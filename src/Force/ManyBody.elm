@@ -1,4 +1,4 @@
-module Force.ManyBody exposing (AggregateVertex, Vertex, applyForce, config, constructSuperPoint, manyBody)
+module Force.ManyBody exposing (Vertex, run)
 
 -- THIS FILE IS ORIGINALLY COPIED FROM THE SOURCE OF the package gampleman/elm-visualization
 
@@ -15,6 +15,19 @@ type alias Vertex comparable =
     , velocity : Vector2d
     , strength : Float
     }
+
+
+run : Float -> Float -> List (Vertex comparable) -> List (Vertex comparable)
+run alpha theta vertices =
+    let
+        withAggregates =
+            QuadTree.fromList .position vertices
+                |> QuadTree.performAggregate config
+
+        updateVertex vertex =
+            { vertex | velocity = Vector2d.sum vertex.velocity (applyForce alpha theta withAggregates vertex) }
+    in
+    List.map updateVertex vertices
 
 
 type alias AggregateVertex =
@@ -58,19 +71,6 @@ config =
     , combineVertices = constructSuperPoint
     , combineAggregates = constructSuperPoint
     }
-
-
-manyBody : Float -> Float -> List (Vertex comparable) -> List (Vertex comparable)
-manyBody alpha theta vertices =
-    let
-        withAggregates =
-            QuadTree.fromList .position vertices
-                |> QuadTree.performAggregate config
-
-        updateVertex vertex =
-            { vertex | velocity = Vector2d.sum vertex.velocity (applyForce alpha theta withAggregates vertex) }
-    in
-    List.map updateVertex vertices
 
 
 applyForce : Float -> Float -> QuadTree.QuadTree AggregateVertex (Vertex comparable) -> Vertex comparable -> Vector2d

@@ -20,17 +20,21 @@ type State
 
 
 type Force
-    = Links
+    = Link
     | ManyBody Float
 
 
 type alias ForceVertex n =
     { n
         | position : Point2d
-        , velocity : Vector2d
+        , velocity : Velocity
         , strength : Float
         , fixed : Bool
     }
+
+
+type alias Velocity =
+    Vector2d
 
 
 type alias ForceEdge e =
@@ -56,63 +60,24 @@ simulation forces =
         }
 
 
+applyVelocities : List ( NodeId, Velocity ) -> ForceGraph n e -> ForceGraph n e
+applyVelocities newVelocities =
+    let
+        applyVelocity : Velocity -> ForceVertex n -> ForceVertex n
+        applyVelocity velocity forceVertex =
+            { forceVertex | velocity = velocity }
+    in
+    Graph.Extra.updateNodesBy newVelocities applyVelocity
+
+
 {-| This ONLY UPDATES THE VERTEX VELOCITIES but does not touch the positions.
 -}
 applyForce : Float -> Force -> ForceGraph n e -> ForceGraph n e
 applyForce alpha force forceGraph =
     case force of
-        Links ->
-            -- let
-            --     x =
-            --         targetNode.x + targetNode.vx - sourceNode.x - sourceNode.vx
-            --     y =
-            --         targetNode.y + targetNode.vy - sourceNode.y - sourceNode.vy
-            --     d =
-            --         sqrt (x ^ 2 + y ^ 2)
-            --     l =
-            --         (d - distance) / d * alpha * strength
-            -- in
-            -- ents
-            --     |> Dict.update target (Maybe.map (\sn -> { sn | vx = sn.vx - x * l,
-            --                                                     vy = sn.vy - y * l }))
-            --     |> Dict.update source (Maybe.map (\tn -> { tn | vx = tn.vx + x * l,
-            --                                                     vy = tn.vy + y * l }))
-            let
-                up : Edge (ForceEdge e) -> ForceGraph n e -> ForceGraph n e
-                up { from, to, label } fG =
-                    let
-                        getPosition : NodeId -> Maybe Point2d
-                        getPosition id =
-                            forceGraph |> Graph.get id |> Maybe.map (.node >> .label >> .position)
+        Link ->
+            forceGraph
 
-                        updateVelocity : NodeId -> (Vector2d -> Vector2d) -> ForceGraph n e -> ForceGraph n e
-                        updateVelocity id velocityUpdater =
-                            -- TODO: Make this more beautiful
-                            Graph.Extra.updateNodeBy id velocityUpdater (\velocityUpdater_ vP -> { vP | velocity = velocityUpdater_ vP.velocity })
-                    in
-                    case ( getPosition from, getPosition to ) of
-                        ( Just sourcePosition, Just targetPosition ) ->
-                            let
-                                diff =
-                                    -- TODO: This is different than the original. If this this doesn't work properly, do it like in the original with the new vertex positions.
-                                    Vector2d.from sourcePosition targetPosition
-
-                                d =
-                                    Vector2d.length diff
-
-                                l =
-                                    (d - label.distance) / d * alpha * label.strength
-                            in
-                            fG
-                                |> updateVelocity from (Vector2d.sum (Vector2d.scaleBy -l diff))
-                                |> updateVelocity to (Vector2d.sum (Vector2d.scaleBy l diff))
-
-                        _ ->
-                            fG
-            in
-            Graph.edges forceGraph |> List.foldr up forceGraph
-
-        -- forceGraph
         ManyBody theta ->
             let
                 toManyBodyVertex : Node (ForceVertex n) -> ManyBody.Vertex NodeId
@@ -123,19 +88,15 @@ applyForce alpha force forceGraph =
                     , strength = label.strength
                     }
 
-                manyBodyVerticesWithNewVelocities : List ( NodeId, ManyBody.Vertex NodeId )
-                manyBodyVerticesWithNewVelocities =
+                newVelocities : List ( NodeId, Velocity )
+                newVelocities =
                     forceGraph
                         |> Graph.nodes
                         |> List.map toManyBodyVertex
-                        |> ManyBody.manyBody alpha theta
-                        |> List.map (\({ key } as mBV) -> ( key, mBV ))
-
-                updateVelocity : ManyBody.Vertex NodeId -> ForceVertex n -> ForceVertex n
-                updateVelocity { velocity } forceVertex =
-                    { forceVertex | velocity = velocity }
+                        |> ManyBody.run alpha theta
+                        |> List.map (\{ key, velocity } -> ( key, velocity ))
             in
-            forceGraph |> Graph.Extra.updateNodesBy manyBodyVerticesWithNewVelocities updateVelocity
+            forceGraph |> applyVelocities newVelocities
 
 
 tick : State -> ForceGraph n e -> ( State, ForceGraph n e )
