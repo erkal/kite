@@ -1,6 +1,7 @@
 module Force exposing (Force(..), ForceEdge, ForceGraph, ForceVertex, State(..), applyForce, isCompleted, reheat, simulation, tick)
 
 import Dict exposing (Dict)
+import Force.Link as Link
 import Force.ManyBody as ManyBody
 import Graph exposing (Edge, Graph, Node, NodeId)
 import Graph.Extra
@@ -60,8 +61,8 @@ simulation forces =
         }
 
 
-applyVelocities : List ( NodeId, Velocity ) -> ForceGraph n e -> ForceGraph n e
-applyVelocities newVelocities =
+updateVelocities : List ( NodeId, Velocity ) -> ForceGraph n e -> ForceGraph n e
+updateVelocities newVelocities =
     let
         applyVelocity : Velocity -> ForceVertex n -> ForceVertex n
         applyVelocity velocity forceVertex =
@@ -76,7 +77,37 @@ applyForce : Float -> Force -> ForceGraph n e -> ForceGraph n e
 applyForce alpha force forceGraph =
     case force of
         Link ->
-            forceGraph
+            let
+                getData id =
+                    case forceGraph |> Graph.get id of
+                        Just ctx ->
+                            --  TODO
+                            { id = id
+                            , position = ctx.node.label.position
+                            , velocity = ctx.node.label.velocity
+                            }
+
+                        _ ->
+                            -- Debug.log "This shouldn't happen!" <|
+                            { id = 0, position = Point2d.origin, velocity = Vector2d.zero }
+
+                toLinkParam : Edge (ForceEdge e) -> Link.Param
+                toLinkParam { from, to, label } =
+                    { source = getData from
+                    , target = getData to
+                    , distance = label.distance
+                    , strength = label.strength
+                    }
+
+                newVelocities : List ( NodeId, Velocity )
+                newVelocities =
+                    forceGraph
+                        |> Graph.edges
+                        |> List.map toLinkParam
+                        |> Link.run alpha
+                        |> List.map (\{ id, velocity } -> ( id, velocity ))
+            in
+            forceGraph |> updateVelocities newVelocities
 
         ManyBody theta ->
             let
@@ -96,7 +127,7 @@ applyForce alpha force forceGraph =
                         |> ManyBody.run alpha theta
                         |> List.map (\{ key, velocity } -> ( key, velocity ))
             in
-            forceGraph |> applyVelocities newVelocities
+            forceGraph |> updateVelocities newVelocities
 
 
 tick : State -> ForceGraph n e -> ( State, ForceGraph n e )

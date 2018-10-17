@@ -1,10 +1,10 @@
-module Force.Link exposing (LinkParam)
+module Force.Link exposing (Param, run)
 
 import Point2d exposing (Point2d)
 import Vector2d exposing (Vector2d)
 
 
-type alias LinkParam =
+type alias Param =
     { source : { id : Int, position : Point2d, velocity : Vector2d }
     , target : { id : Int, position : Point2d, velocity : Vector2d }
     , distance : Float
@@ -12,10 +12,10 @@ type alias LinkParam =
     }
 
 
-run : Float -> List LinkParam -> List { id : Int, velocity : Vector2d }
+run : Float -> List Param -> List { id : Int, velocity : Vector2d }
 run alpha =
     let
-        handle : LinkParam -> List { id : Int, velocity : Vector2d }
+        handle : Param -> List { id : Int, velocity : Vector2d }
         handle lP =
             let
                 diff =
