@@ -1,6 +1,6 @@
 module Force.ManyBody exposing (Vertex, run)
 
--- THIS FILE IS ORIGINALLY COPIED FROM THE SOURCE OF the package gampleman/elm-visualization
+-- THIS FILE IS ORIGINALLY COPIED FROM THE SOURCE OF THE PACKAGE gampleman/elm-visualization
 
 import BoundingBox2d exposing (BoundingBox2d)
 import Dict exposing (Dict)
