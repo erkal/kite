@@ -137,8 +137,7 @@ default =
         , bags = Dict.empty
         , forces =
             [ Force.ManyBody 0.9
-
-            -- , Force.Link
+            , Force.Link
             ]
         , defaultVertexProperties =
             { position = Point2d.origin
