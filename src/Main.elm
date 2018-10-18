@@ -282,6 +282,11 @@ reheatSimulation m =
         m
 
 
+stopSimulation : Model -> Model
+stopSimulation m =
+    { m | simulationState = Force.stop m.simulationState }
+
+
 update : Msg -> Model -> Model
 update msg m =
     case msg of
@@ -290,8 +295,25 @@ update msg m =
 
         Tick _ ->
             let
-                ( newSimulationState, newUser ) =
+                ( newSimulationState, newUser_ ) =
                     m.user |> User.tick m.simulationState
+
+                newUser =
+                    case m.selectedTool of
+                        Select (DraggingSelection { brushStart, vertexPositionsAtStart }) ->
+                            let
+                                delta =
+                                    Vector2d.from brushStart m.svgMousePosition
+
+                                newVertexPositions =
+                                    vertexPositionsAtStart
+                                        |> IntDict.toList
+                                        |> List.map (Tuple.mapSecond (Point2d.translateBy delta))
+                            in
+                            newUser_ |> User.setVertexPositions newVertexPositions
+
+                        _ ->
+                            newUser_
             in
             { m
                 | user = newUser
@@ -484,10 +506,11 @@ update msg m =
                         ( newUser, sourceId ) =
                             m.user |> User.addVertex m.svgMousePosition
                     in
-                    { m
-                        | user = newUser
-                        , selectedTool = Draw (BrushingNewEdgeWithSourceId sourceId)
-                    }
+                    stopSimulation
+                        { m
+                            | user = newUser
+                            , selectedTool = Draw (BrushingNewEdgeWithSourceId sourceId)
+                        }
 
                 Select SelectIdle ->
                     { m | selectedTool = Select (BrushingForSelection { brushStart = m.svgMousePosition }) }
@@ -582,7 +605,8 @@ update msg m =
             case m.selectedTool of
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     if sourceId == targetId then
-                        { m | selectedTool = Draw DrawIdle }
+                        reheatSimulation
+                            { m | selectedTool = Draw DrawIdle }
 
                     else
                         reheatSimulation
@@ -601,11 +625,12 @@ update msg m =
                         ( newUser, idOfTheNewVertex ) =
                             m.user |> User.divideEdge m.svgMousePosition ( s, t )
                     in
-                    { m
-                        | user = newUser
-                        , highlightedEdges = Set.empty
-                        , selectedTool = Draw (BrushingNewEdgeWithSourceId idOfTheNewVertex)
-                    }
+                    stopSimulation
+                        { m
+                            | user = newUser
+                            , highlightedEdges = Set.empty
+                            , selectedTool = Draw (BrushingNewEdgeWithSourceId idOfTheNewVertex)
+                        }
 
                 Select SelectIdle ->
                     let

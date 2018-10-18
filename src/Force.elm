@@ -1,4 +1,13 @@
-module Force exposing (Force(..), ForceEdge, ForceGraph, ForceVertex, State(..), applyForce, isCompleted, reheat, simulation, tick)
+module Force exposing
+    ( Force(..)
+    , ForceGraph
+    , State
+    , isCompleted
+    , reheat
+    , simulation
+    , stop
+    , tick
+    )
 
 import Dict exposing (Dict)
 import Force.Link as Link
@@ -157,6 +166,11 @@ tick (State state) forceGraph =
 reheat : State -> State
 reheat (State config) =
     State { config | alpha = 1.0 }
+
+
+stop : State -> State
+stop (State config) =
+    State { config | alpha = 0 }
 
 
 isCompleted : State -> Bool
