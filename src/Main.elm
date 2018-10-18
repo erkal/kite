@@ -584,19 +584,20 @@ update msg m =
                             else
                                 ( m.user, Set.singleton id, Set.empty )
                     in
-                    { m
-                        | user = newUser
-                        , selectedVertices = newSelectedVertices
-                        , selectedEdges = newSelectedEdges
-                        , selectedTool =
-                            Select
-                                (DraggingSelection
-                                    { brushStart = m.svgMousePosition
-                                    , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
-                                    }
-                                )
-                        , simulationState = m.simulationState |> Force.alphaTarget 0.3
-                    }
+                    reheatSimulation
+                        { m
+                            | user = newUser
+                            , selectedVertices = newSelectedVertices
+                            , selectedEdges = newSelectedEdges
+                            , selectedTool =
+                                Select
+                                    (DraggingSelection
+                                        { brushStart = m.svgMousePosition
+                                        , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
+                                        }
+                                    )
+                            , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                        }
 
                 _ ->
                     m
@@ -648,19 +649,20 @@ update msg m =
                                 , Set.singleton ( s, t )
                                 )
                     in
-                    { m
-                        | user = newUser
-                        , selectedVertices = newSelectedVertices
-                        , selectedEdges = newSelectedEdges
-                        , selectedTool =
-                            Select
-                                (DraggingSelection
-                                    { brushStart = m.svgMousePosition
-                                    , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
-                                    }
-                                )
-                        , simulationState = m.simulationState |> Force.alphaTarget 0.3
-                    }
+                    reheatSimulation
+                        { m
+                            | user = newUser
+                            , selectedVertices = newSelectedVertices
+                            , selectedEdges = newSelectedEdges
+                            , selectedTool =
+                                Select
+                                    (DraggingSelection
+                                        { brushStart = m.svgMousePosition
+                                        , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
+                                        }
+                                    )
+                            , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                        }
 
                 _ ->
                     m
