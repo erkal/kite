@@ -2,6 +2,7 @@ module Force exposing
     ( Force(..)
     , ForceGraph
     , State
+    , alphaTarget
     , isCompleted
     , reheat
     , simulation
@@ -166,6 +167,11 @@ tick (State state) forceGraph =
 reheat : State -> State
 reheat (State config) =
     State { config | alpha = 1.0 }
+
+
+alphaTarget : Float -> State -> State
+alphaTarget aT (State config) =
+    State { config | alphaTarget = aT }
 
 
 stop : State -> State

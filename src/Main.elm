@@ -434,9 +434,6 @@ update msg m =
                     in
                     { m
                         | user = m.user |> User.setVertexPositions newVertexPositions
-                        , simulationState =
-                            -- TODO: Do this with alphatarget like Mike Bostock
-                            Force.reheat m.simulationState
                     }
 
                 Hand (Panning { mousePositionAtPanStart, panAtStart }) ->
@@ -490,8 +487,10 @@ update msg m =
                     }
 
                 Select (DraggingSelection _) ->
-                    reheatSimulation
-                        { m | selectedTool = Select SelectIdle }
+                    { m
+                        | simulationState = m.simulationState |> Force.alphaTarget 0
+                        , selectedTool = Select SelectIdle
+                    }
 
                 Hand (Panning _) ->
                     { m | selectedTool = Hand HandIdle }
@@ -596,6 +595,7 @@ update msg m =
                                     , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
                                     }
                                 )
+                        , simulationState = m.simulationState |> Force.alphaTarget 0.3
                     }
 
                 _ ->
@@ -659,6 +659,7 @@ update msg m =
                                     , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
                                     }
                                 )
+                        , simulationState = m.simulationState |> Force.alphaTarget 0.3
                     }
 
                 _ ->
