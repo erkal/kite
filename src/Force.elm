@@ -82,13 +82,14 @@ applyForce alpha force forceGraph =
                     case forceGraph |> Graph.get id of
                         Just ctx ->
                             { id = id
+                            , degree = forceGraph |> Graph.Extra.degree id
                             , position = ctx.node.label.position
                             , velocity = ctx.node.label.velocity
                             }
 
                         _ ->
                             -- Debug.log "This shouldn't happen!" <|
-                            { id = 0, position = Point2d.origin, velocity = Vector2d.zero }
+                            { id = 0, degree = 0, position = Point2d.origin, velocity = Vector2d.zero }
 
                 toLinkParam : Edge (ForceEdge e) -> Link.Param
                 toLinkParam { from, to, label } =

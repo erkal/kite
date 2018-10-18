@@ -1,5 +1,6 @@
 module Graph.Extra exposing
     ( contractEdge
+    , degree
     , duplicateSubgraph
     , getCommonEdgeProperty
     , getCommonNodeProperty
@@ -17,6 +18,18 @@ module Graph.Extra exposing
 import Graph exposing (Graph, NodeId)
 import IntDict
 import Set exposing (Set)
+
+
+degree : NodeId -> Graph n e -> Int
+degree id graph =
+    let
+        numberOfIncomingEdges =
+            graph |> Graph.get id |> Maybe.map (.incoming >> IntDict.size) |> Maybe.withDefault 0
+
+        numberOfOutgoingEdges =
+            graph |> Graph.get id |> Maybe.map (.outgoing >> IntDict.size) |> Maybe.withDefault 0
+    in
+    numberOfIncomingEdges + numberOfOutgoingEdges
 
 
 insertNode : n -> Graph n e -> ( Graph n e, NodeId )
