@@ -1,5 +1,6 @@
 module Force.Link exposing (Param, run)
 
+import IntDict exposing (IntDict)
 import Point2d exposing (Point2d)
 import Vector2d exposing (Vector2d)
 
@@ -12,10 +13,10 @@ type alias Param =
     }
 
 
-run : Float -> List Param -> List { id : Int, velocity : Vector2d }
+run : Float -> List Param -> List ( Int, Vector2d )
 run alpha =
     let
-        handle : Param -> List { id : Int, velocity : Vector2d }
+        handle : Param -> IntDict Vector2d -> IntDict Vector2d
         handle { source, target, distance, strength } =
             let
                 diff =
@@ -34,13 +35,21 @@ run alpha =
 
                 bias =
                     toFloat source.degree / toFloat (source.degree + target.degree)
+
+                updateSourceVelocity mV =
+                    Just
+                        (Vector2d.sum
+                            (mV |> Maybe.withDefault source.velocity)
+                            (Vector2d.scaleBy (1 - bias) f)
+                        )
+
+                updateTargetVelocity mV =
+                    Just
+                        (Vector2d.difference
+                            (mV |> Maybe.withDefault target.velocity)
+                            (Vector2d.scaleBy bias f)
+                        )
             in
-            [ { id = source.id
-              , velocity = Vector2d.sum source.velocity (Vector2d.scaleBy (1 - bias) f)
-              }
-            , { id = target.id
-              , velocity = Vector2d.difference target.velocity (Vector2d.scaleBy bias f)
-              }
-            ]
+            IntDict.update source.id updateSourceVelocity >> IntDict.update target.id updateTargetVelocity
     in
-    List.concatMap handle
+    List.foldr handle IntDict.empty >> IntDict.toList

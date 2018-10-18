@@ -105,7 +105,6 @@ applyForce alpha force forceGraph =
                         |> Graph.edges
                         |> List.map toLinkParam
                         |> Link.run alpha
-                        |> List.map (\{ id, velocity } -> ( id, velocity ))
             in
             forceGraph |> updateVelocities newVelocities
 
