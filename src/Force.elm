@@ -99,7 +99,11 @@ applyForce alpha force forceGraph =
 
                         _ ->
                             -- Debug.log "This shouldn't happen!" <|
-                            { id = 0, degree = 0, position = Point2d.origin, velocity = Vector2d.zero }
+                            { id = 0
+                            , degree = 0
+                            , position = Point2d.origin
+                            , velocity = Vector2d.zero
+                            }
 
                 toLinkParam : Edge (ForceEdge e) -> Link.Param
                 toLinkParam { from, to, label } =
@@ -151,7 +155,9 @@ tick (State state) forceGraph =
                     forceVertex.velocity |> Vector2d.scaleBy state.velocityDecay
             in
             if forceVertex.fixed then
-                forceVertex
+                { forceVertex
+                    | velocity = Vector2d.zero
+                }
 
             else
                 { forceVertex
@@ -160,7 +166,9 @@ tick (State state) forceGraph =
                 }
     in
     ( State { state | alpha = newAlpha }
-    , state.forces |> List.foldl (applyForce newAlpha) forceGraph |> Graph.mapNodes applyVelocity
+    , state.forces
+        |> List.foldl (applyForce newAlpha) forceGraph
+        |> Graph.mapNodes applyVelocity
     )
 
 
@@ -169,14 +177,14 @@ reheat (State config) =
     State { config | alpha = 1.0 }
 
 
-alphaTarget : Float -> State -> State
-alphaTarget aT (State config) =
-    State { config | alphaTarget = aT }
-
-
 stop : State -> State
 stop (State config) =
     State { config | alpha = 0 }
+
+
+alphaTarget : Float -> State -> State
+alphaTarget aT (State config) =
+    State { config | alphaTarget = aT }
 
 
 isCompleted : State -> Bool
