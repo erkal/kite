@@ -27,16 +27,16 @@ run alpha =
                     Vector2d.length diff
 
                 l =
-                    (d - lP.distance) / 2 * d * alpha * lP.strength
+                    alpha * lP.strength * (d - lP.distance) / d
 
                 f =
                     diff |> Vector2d.scaleBy l
             in
             [ { id = lP.source.id
-              , velocity = Vector2d.difference lP.source.velocity f
+              , velocity = Vector2d.sum lP.source.velocity f
               }
             , { id = lP.target.id
-              , velocity = Vector2d.sum lP.target.velocity f
+              , velocity = Vector2d.difference lP.target.velocity f
               }
             ]
     in

@@ -81,7 +81,6 @@ applyForce alpha force forceGraph =
                 getData id =
                     case forceGraph |> Graph.get id of
                         Just ctx ->
-                            --  TODO
                             { id = id
                             , position = ctx.node.label.position
                             , velocity = ctx.node.label.velocity
