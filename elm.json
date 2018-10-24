@@ -15,7 +15,8 @@
             "elm-community/graph": "6.0.0",
             "elm-community/intdict": "3.0.0",
             "ianmackenzie/elm-geometry": "1.2.1",
-            "ianmackenzie/elm-geometry-svg": "1.0.2"
+            "ianmackenzie/elm-geometry-svg": "1.0.2",
+            "mdgriffith/elm-ui": "1.1.0"
         },
         "indirect": {
             "avh4/elm-fifo": "1.0.4",

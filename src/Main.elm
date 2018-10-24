@@ -9,6 +9,9 @@ import Circle2d exposing (Circle2d)
 import ColorPicker
 import Colors exposing (Color)
 import Dict exposing (Dict)
+import Element as E exposing (Element)
+import Element.Background as Background
+import Element.Border as Border
 import Force exposing (Force)
 import Geometry.Svg
 import Html as H exposing (Html, div)
@@ -30,6 +33,11 @@ import User exposing (BagId, BagProperties, EdgeId, EdgeProperties, User, Vertex
 import Vector2d exposing (Vector2d)
 
 
+
+-- TODO: After getting rid of all the css, compile directly to html with `elm make Main.elm --output=main.html`.
+-- TODO: Remove imports of Browser
+
+
 main : Program () Model Msg
 main =
     Browser.document
@@ -38,7 +46,7 @@ main =
                 ( initialModel User.default
                 , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
                 )
-        , view = \model -> { title = "Kite", body = [ view model ] }
+        , view = \model -> { title = "Kite", body = [ viewWithElmUi model ] }
         , update = \msg model -> ( update msg model, Cmd.none )
         , subscriptions = subscriptions
         }
@@ -48,6 +56,13 @@ getWindowSize viewPort =
     { width = round viewPort.scene.width
     , height = round viewPort.scene.height
     }
+
+
+mousePosition : Decoder MousePosition
+mousePosition =
+    Decode.map2 MousePosition
+        (Decode.field "clientX" Decode.int)
+        (Decode.field "clientY" Decode.int)
 
 
 
@@ -187,10 +202,7 @@ initialModel user =
 
 
 initialPan =
-    Point2d.fromCoordinates
-        ( -(leftBarWidth + 40)
-        , -(topBarHeight + 40)
-        )
+    Point2d.fromCoordinates ( -340, -100 )
 
 
 
@@ -1020,849 +1032,767 @@ toKey string =
 -- VIEW
 
 
-topBarHeight =
-    57
+viewWithElmUi : Model -> Html Msg
+viewWithElmUi m =
+    E.layout [ E.inFront (menu m) ] <|
+        E.html (mainSvg m)
 
 
-leftBarWidth =
-    300
-
-
-rightBarWidth =
-    300
-
-
-leftBarHeaderSize =
-    38
-
-
-leftBarHeaderTextSize =
-    10
-
-
-view : Model -> Html Msg
-view m =
-    div
-        [ HA.style "width" "100vw" ]
-        [ mainSvg m
+menu : Model -> Element Msg
+menu m =
+    E.row
+        [ E.width E.fill
+        , E.height E.fill
+        ]
+        [ leftStripe m
         , leftBar m
-        , rightBar m
         , topBar m
-        , forDebugging m
+        , rightBar m
         ]
 
 
-forDebugging : Model -> Html Msg
-forDebugging m =
-    let
-        show : String -> String -> Html Msg
-        show label content =
-            div []
-                [ H.span [ HA.style "color" "orange" ] [ H.text (label ++ ": ") ]
-                , H.span [] [ H.text content ]
-                ]
-    in
-    div [ HA.class "forDebugging" ]
-        [ show "simulationState" <|
-            Debug.toString m.simulationState
-        , show "pressed control keys" <|
-            case ( m.shiftIsDown, m.altIsDown ) of
-                ( True, True ) ->
-                    "Shift + Alt"
-
-                ( False, True ) ->
-                    "Alt"
-
-                ( True, False ) ->
-                    "Shift"
-
-                ( False, False ) ->
-                    ""
-        , show "svgMousePosition" <|
-            "{ x = "
-                ++ String.fromFloat (Point2d.xCoordinate m.svgMousePosition)
-                ++ ", y = "
-                ++ String.fromFloat (Point2d.yCoordinate m.svgMousePosition)
-                ++ " }"
-        , show "pan" <|
-            "{ x = "
-                ++ String.fromFloat (Point2d.xCoordinate m.pan)
-                ++ ", y = "
-                ++ String.fromFloat (Point2d.yCoordinate m.pan)
-                ++ " }"
-        , show "zoom" <|
-            String.fromFloat m.zoom
+leftStripe : Model -> Element Msg
+leftStripe m =
+    E.el
+        [ Background.color (E.rgb255 0 0 0)
+        , E.width (E.px 40)
+        , E.height E.fill
         ]
+        E.none
 
 
-
---top Bar
-
-
-topBar : Model -> Html Msg
-topBar m =
-    div
-        [ HA.id "topBar"
-        , HA.style "left" (String.fromFloat (leftBarWidth + 2) ++ "px")
-        , HA.style "width" (String.fromFloat (toFloat m.windowSize.width - leftBarWidth - rightBarWidth - 3) ++ "px")
-        , HA.style "height" (String.fromFloat topBarHeight ++ "px")
-        ]
-        [ zoomAndItsButtons m
-        , toolSelectionButtonGroup m
-        , vaderAsRadioButton m
-        ]
-
-
-zoomAndItsButtons : Model -> Html Msg
-zoomAndItsButtons m =
-    div
-        [ HA.class "button-group" ]
-        [ div
-            [ HA.title "Reset Zoom and Pan"
-            , HE.onClick ClickOnResetZoomAndPanButton
-            , HA.class "topbar-button"
-            ]
-            [ Icons.draw34px Icons.icons.resetZoomAndPan ]
-        ]
-
-
-toolSelectionButtonGroup : Model -> Html Msg
-toolSelectionButtonGroup m =
-    div
-        [ HA.class "radio-button-group" ]
-        [ div
-            [ HA.title "Hand (H)"
-            , HE.onClick ClickOnHandTool
-            , HA.class <|
-                case m.selectedTool of
-                    Hand _ ->
-                        "radio-button-selected"
-
-                    _ ->
-                        "radio-button"
-            ]
-            [ Icons.draw34px Icons.icons.hand ]
-        , div
-            [ HA.title "Selection (S)"
-            , HE.onClick ClickOnSelectTool
-            , HA.class <|
-                case m.selectedTool of
-                    Select _ ->
-                        "radio-button-selected"
-
-                    _ ->
-                        "radio-button"
-            ]
-            [ Icons.draw34px Icons.icons.pointer ]
-        , div
-            [ HA.title "Draw (D)"
-            , HE.onClick ClickOnDrawTool
-            , HA.class <|
-                case m.selectedTool of
-                    Draw _ ->
-                        "radio-button-selected"
-
-                    _ ->
-                        "radio-button"
-            ]
-            [ Icons.draw34px Icons.icons.pen ]
-        ]
-
-
-vaderAsRadioButton : Model -> Html Msg
-vaderAsRadioButton m =
-    div
-        [ HA.class "radio-button-group" ]
-        [ div
-            [ HA.title "Force (F)"
-            , HA.class <|
-                if m.vaderIsOn then
-                    "radio-button-selected"
-
-                else
-                    "radio-button"
-            , HE.onClick ClickOnVader
-            ]
-            [ Icons.draw34px Icons.icons.vader ]
-        ]
-
-
-
--- LEFT BAR
-
-
-leftBarHeader =
-    div
-        [ HA.id "header-in-left-bar"
-        , HA.style "height" (String.fromInt leftBarHeaderSize ++ "px")
-        ]
-
-
-leftBarHeaderText headerText =
-    div
-        [ HA.style "float" "left"
-        , HA.style "padding" (String.fromInt leftBarHeaderTextSize ++ "px")
-        ]
-        [ H.text headerText ]
-
-
-leftBarContentForPreferences : Model -> List (Html Msg)
-leftBarContentForPreferences m =
-    [ leftBarHeader
-        [ leftBarHeaderText "Preferences (coming soon)" ]
-    ]
-
-
-leftBarContentForListsOfBagsVerticesAndEdges : Model -> List (Html Msg)
-leftBarContentForListsOfBagsVerticesAndEdges m =
-    let
-        -- BAGS
-        viewBagList =
-            div []
-                [ bagsHeader
-                , listOfBags
-                ]
-
-        bagsHeader =
-            leftBarHeader
-                [ leftBarHeaderText "Bags"
-                , div
-                    [ HA.class "button"
-                    , HA.title "Remove Selected Bag"
-                    , HE.onClick ClickOnBagTrash
-                    ]
-                    [ Icons.draw24px Icons.icons.trash
-                    ]
-                , div
-                    [ HA.class "button"
-                    , HA.title "Add New Bag"
-                    , HE.onClick ClickOnBagPlus
-                    ]
-                    [ Icons.draw24px Icons.icons.plus ]
-                ]
-
-        listOfBags =
-            div []
-                (m.user
-                    |> User.getBags
-                    |> Dict.map bagItem
-                    |> Dict.values
-                    |> List.reverse
-                )
-
-        bagItem bagId _ =
-            div
-                [ HA.style "padding" "4px 20px 4px 20px"
-                , HA.class <|
-                    if Just bagId == m.maybeSelectedBag then
-                        "leftBarContent-item-selected"
-
-                    else
-                        "leftBarContent-item"
-                , HE.onMouseOver (MouseOverBagItem bagId)
-                , HE.onMouseOut (MouseOutBagItem bagId)
-                , HE.onClick (ClickOnBagItem bagId)
-                ]
-                [ H.text (m.user |> User.bagElementsInCurlyBraces bagId) ]
-
-        -- VERTICES
-        viewVertexList =
-            div []
-                [ verticesHeader
-                , listOfVertices
-                ]
-
-        verticesHeader =
-            leftBarHeader
-                [ leftBarHeaderText "Vertices"
-                , div
-                    [ HA.class "button"
-                    , HA.title "Remove Selected Vertices"
-                    , HE.onClick ClickOnVertexTrash
-                    ]
-                    [ Icons.draw24px Icons.icons.trash ]
-                ]
-
-        listOfVertices =
-            div []
-                (m.user
-                    |> User.getVertices
-                    |> List.map vertexItem
-                    |> List.reverse
-                )
-
-        vertexItem { id } =
-            div
-                [ HA.style "padding" "4px 20px 4px 20px"
-                , HA.class <|
-                    if Set.member id m.selectedVertices then
-                        "leftBarContent-item-selected"
-
-                    else
-                        "leftBarContent-item"
-                , if Set.member id m.highlightedVertices then
-                    HA.style "border-right" ("10px solid " ++ Colors.highlightColorForMouseOver)
-
-                  else
-                    HA.style "" ""
-                , HE.onMouseOver (MouseOverVertexItem id)
-                , HE.onMouseOut (MouseOutVertexItem id)
-                , HE.onClick (ClickOnVertexItem id)
-                ]
-                [ H.text (String.fromInt id) ]
-
-        -- EDGES
-        viewEdgeList =
-            div []
-                [ edgesHeader
-                , listOfEdges
-                ]
-
-        maybeEdgeContractButton =
-            if Set.size m.selectedEdges == 1 then
-                div
-                    [ HA.class "button"
-                    , HE.onClick ClickOnEdgeContract
-                    , HA.title "Contract the selected edge"
-                    ]
-                    [ Icons.draw24px Icons.icons.edgeContract
-                    ]
-
-            else
-                div [] []
-
-        edgesHeader =
-            leftBarHeader
-                [ leftBarHeaderText "Edges"
-                , div
-                    [ HA.class "button"
-                    , HA.title "Remove Selected Edges"
-                    , HE.onClick ClickOnEdgeTrash
-                    ]
-                    [ Icons.draw24px Icons.icons.trash
-                    ]
-                , maybeEdgeContractButton
-                ]
-
-        listOfEdges =
-            div []
-                (m.user
-                    |> User.getEdges
-                    |> List.map edgeItem
-                    |> List.reverse
-                )
-
-        edgeItem { from, to } =
-            div
-                [ HA.style "padding" "4px 20px 4px 20px"
-                , HA.class <|
-                    if Set.member ( from, to ) m.selectedEdges then
-                        "leftBarContent-item-selected"
-
-                    else
-                        "leftBarContent-item"
-                , if Set.member ( from, to ) m.highlightedEdges then
-                    HA.style "border-right" ("10px solid " ++ Colors.highlightColorForMouseOver)
-
-                  else
-                    HA.style "" ""
-                , HE.onMouseOver (MouseOverEdgeItem ( from, to ))
-                , HE.onMouseOut (MouseOutEdgeItem ( from, to ))
-                , HE.onClick (ClickOnEdgeItem ( from, to ))
-                ]
-                [ H.text <| String.fromInt from ++ " → " ++ String.fromInt to ]
-    in
-    [ viewBagList
-    , viewVertexList
-    , viewEdgeList
-    ]
-
-
-leftBarContentForGraphOperations : Model -> List (Html Msg)
-leftBarContentForGraphOperations m =
-    [ leftBarHeader
-        [ leftBarHeaderText "Graph Operations (coming soon)" ]
-    ]
-
-
-leftBarContentForGraphQueries : Model -> List (Html Msg)
-leftBarContentForGraphQueries m =
-    [ leftBarHeader
-        [ leftBarHeaderText "Graph Queries (coming soon)" ]
-    ]
-
-
-leftBarContentForGraphGenerators : Model -> List (Html Msg)
-leftBarContentForGraphGenerators m =
-    [ leftBarHeader
-        [ leftBarHeaderText "Graph Generators (coming soon)" ]
-    ]
-
-
-leftBarContentForAlgorithmVisualizations : Model -> List (Html Msg)
-leftBarContentForAlgorithmVisualizations m =
-    [ leftBarHeader
-        [ leftBarHeaderText "Algorithm Visualizations (coming soon)" ]
-    ]
-
-
-leftBarContentForGamesOnGraphs : Model -> List (Html Msg)
-leftBarContentForGamesOnGraphs m =
-    [ leftBarHeader
-        [ leftBarHeaderText "Games on Graphs (coming soon)" ]
-    ]
-
-
-leftBar : Model -> Html Msg
+leftBar : Model -> Element Msg
 leftBar m =
-    let
-        thinBandWidth =
-            40
-
-        thinBandButton title selectedMode icon =
-            let
-                color =
-                    if selectedMode == m.selectedMode then
-                        "white"
-
-                    else
-                        "rgb(46, 46, 46)"
-            in
-            div
-                [ HA.title title
-                , HA.class "thinBandButton"
-                , HE.onClick (ClickOnLeftMostBarRadioButton selectedMode)
-                ]
-                [ Icons.draw40pxWithColor color icon ]
-
-        githubButton =
-            H.a
-                [ HA.title "Source Code"
-                , HA.href "https://github.com/erkal/kite"
-                , HA.target "_blank"
-                ]
-                [ Icons.draw40pxWithColor "yellow" Icons.icons.githubCat ]
-
-        -- donateButton =
-        --     div
-        --         [ HA.title "Donate"
-        --         , HE.onClick (DonateButtonClicked)
-        --         ]
-        --         [ Icons.draw40pxWithColor "orchid" Icons.icons.donateHeart ]
-        --
-        --
-        thinBandRadioButtons =
-            div [ HA.id "thinBarButtonGroup" ]
-                [ thinBandButton "Preferences" Preferences Icons.icons.preferencesGear
-                , thinBandButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
-                , thinBandButton "Graph Operations" GraphOperations Icons.icons.magicStick
-                , thinBandButton "Graph Queries" GraphQueries Icons.icons.qForQuery
-                , thinBandButton "Graph Generators" GraphGenerators Icons.icons.lightning
-                , thinBandButton "Algorithm Visualizations" AlgorithmVisualizations Icons.icons.algoVizPlay
-                , thinBandButton "Games on Graphs" GamesOnGraphs Icons.icons.chessHorse
-                ]
-
-        thinBand =
-            div
-                [ HA.id "leftBarThinBand"
-                , HA.style "position" "absolute"
-                , HA.style "width" (String.fromInt thinBandWidth ++ "px")
-                , HA.style "height" "100%"
-                , HA.style "overflow" "scroll"
-                ]
-                [ thinBandRadioButtons
-                , githubButton
-                ]
-
-        content =
-            div
-                [ HA.id "leftBarContent"
-                , HA.style "position" "absolute"
-                , HA.style "left" (String.fromInt thinBandWidth ++ "px")
-                , HA.style "width" (String.fromInt (leftBarWidth - thinBandWidth) ++ "px")
-                , HA.style "height" "100%"
-                , HA.style "overflow" "scroll"
-                ]
-                (case m.selectedMode of
-                    Preferences ->
-                        leftBarContentForPreferences m
-
-                    ListsOfBagsVerticesAndEdges ->
-                        leftBarContentForListsOfBagsVerticesAndEdges m
-
-                    GraphOperations ->
-                        leftBarContentForGraphOperations m
-
-                    GraphQueries ->
-                        leftBarContentForGraphQueries m
-
-                    GraphGenerators ->
-                        leftBarContentForGraphGenerators m
-
-                    AlgorithmVisualizations ->
-                        leftBarContentForAlgorithmVisualizations m
-
-                    GamesOnGraphs ->
-                        leftBarContentForGamesOnGraphs m
-                )
-    in
-    div []
-        [ thinBand
-        , content
+    E.el
+        [ Background.color (E.rgb255 83 83 83)
+        , Border.widthEach { bottom = 0, left = 0, right = 1, top = 0 }
+        , Border.color (E.rgb255 56 56 56)
+        , E.width (E.px 260)
+        , E.height E.fill
         ]
+        E.none
 
 
-
--- RIGHT BAR
-
-
-subMenu : String -> List (Html Msg) -> Html Msg
-subMenu header rest =
-    div [ HA.class "right-bar-submenu" ] <|
-        div [ HA.style "margin-bottom" "20px" ]
-            [ div [ HA.class "right-bar-submenu-header" ] [ H.text header ] ]
-            :: rest
-
-
-lineWithColumns : Int -> List (Html Msg) -> Html Msg
-lineWithColumns columnSize columns =
-    let
-        item content =
-            div
-                [ HA.style "display" "inline-block"
-                , HA.style "width" (String.fromInt columnSize ++ "px")
-                ]
-                [ content ]
-    in
-    div
-        [ HA.style "margin-bottom" "10px"
-        , HA.style "display" "block"
+topBar : Model -> Element Msg
+topBar m =
+    E.el
+        [ Background.color (E.rgb255 83 83 83)
+        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+        , Border.color (E.rgb255 56 56 56)
+        , E.alignTop
+        , E.width E.fill
+        , E.height (E.px 56)
         ]
-        (List.map item columns)
+        E.none
 
 
-input : String -> Html Msg -> Html Msg
-input label inputField =
-    div []
-        [ H.label
-            [ HA.style "width" "80px"
-            , HA.style "padding-right" "8px"
-            , HA.style "vertical-align" "middle"
-            , HA.style "display" "inline-block"
-            , HA.style "text-align" "right"
-            ]
-            [ H.text label ]
-        , div [ HA.style "display" "inline-block" ] [ inputField ]
-        ]
-
-
-numberInput : List (H.Attribute msg) -> Html msg
-numberInput attributes =
-    H.input
-        ([ HA.style "width" "40px"
-         , HA.style "padding-left" "4px"
-         , HA.style "padding-top" "4px"
-         , HA.style "padding-bottom" "4px"
-         , HA.type_ "number"
-         ]
-            ++ attributes
-        )
-        []
-
-
-selectionType : Model -> Html Msg
-selectionType m =
-    let
-        rectSelector =
-            div
-                [ HA.style "float" "left"
-                , HA.style "margin" "1px"
-                , HA.title "Rectangle Selector"
-                , HE.onClick ClickOnRectSelector
-                , HA.class <|
-                    case m.selectedSelector of
-                        RectSelector ->
-                            "radio-button-selected"
-
-                        _ ->
-                            "radio-button"
-                ]
-                [ Icons.draw24px Icons.icons.selectionRect ]
-
-        lineSelector =
-            div
-                [ HA.style "float" "left"
-                , HA.style "margin" "1px"
-                , HA.title "Line Selector"
-                , HE.onClick ClickOnLineSelector
-                , HA.class <|
-                    case m.selectedSelector of
-                        LineSelector ->
-                            "radio-button-selected"
-
-                        _ ->
-                            "radio-button"
-                ]
-                [ Icons.draw24px Icons.icons.selectionLine ]
-    in
-    subMenu "Selection"
-        [ lineWithColumns 280
-            [ input "Selector" <|
-                div
-                    [ HA.style "vertical-align" "middle"
-                    , HA.style "display" "inline-block"
-                    ]
-                    [ div [ HA.class "radio-button-group" ]
-                        [ rectSelector
-                        , lineSelector
-                        ]
-                    ]
-            ]
-        ]
-
-
-headerForBagProperties : Model -> String
-headerForBagProperties m =
-    case m.maybeSelectedBag of
-        Nothing ->
-            "Bag Preferences"
-
-        Just bagId ->
-            "Selected Bag"
-
-
-bagProperties : Model -> Html Msg
-bagProperties m =
-    subMenu (headerForBagProperties m)
-        [ lineWithColumns 140
-            [ input "Convex Hull" <|
-                H.map CheckBoxConvexHull <|
-                    CheckBox.view <|
-                        case m.maybeSelectedBag of
-                            Just bagId ->
-                                case User.getBagProperties bagId m.user of
-                                    Just bag ->
-                                        Just bag.hasConvexHull
-
-                                    Nothing ->
-                                        Nothing
-
-                            Nothing ->
-                                Just (m.user |> User.getDefaultBagProperties |> .hasConvexHull)
-            ]
-        ]
-
-
-vertexProperties : Model -> Html Msg
-vertexProperties m =
-    let
-        headerForVertexProperties =
-            case Set.size m.selectedVertices of
-                0 ->
-                    "Vertex Preferences"
-
-                1 ->
-                    "Selected Vertex"
-
-                _ ->
-                    "Selected Vertices"
-    in
-    subMenu headerForVertexProperties
-        [ lineWithColumns 140
-            [ input "X" <|
-                numberInput
-                    [ HA.value
-                        (m.user
-                            |> User.getCentroid m.selectedVertices
-                            |> Maybe.map Point2d.xCoordinate
-                            |> Maybe.map round
-                            |> Maybe.map String.fromInt
-                            |> Maybe.withDefault ""
-                        )
-                    , HE.onInput NumberInputVertexX
-                    ]
-            , input "Y" <|
-                numberInput
-                    [ HA.value
-                        (m.user
-                            |> User.getCentroid m.selectedVertices
-                            |> Maybe.map Point2d.yCoordinate
-                            |> Maybe.map round
-                            |> Maybe.map String.fromInt
-                            |> Maybe.withDefault ""
-                        )
-                    , HE.onInput NumberInputVertexY
-                    ]
-            ]
-        , lineWithColumns 140
-            [ input "Color" <|
-                H.map ColorPickerVertex <|
-                    ColorPicker.view <|
-                        if Set.isEmpty m.selectedVertices then
-                            Just (m.user |> User.getDefaultVertexProperties |> .color)
-
-                        else
-                            m.user |> User.getCommonVertexProperty m.selectedVertices .color
-            , input "Radius" <|
-                numberInput
-                    [ HA.min "4"
-                    , HA.max "20"
-                    , HA.step "1"
-                    , HA.value <|
-                        if Set.isEmpty m.selectedVertices then
-                            m.user |> User.getDefaultVertexProperties |> .radius |> String.fromFloat
-
-                        else
-                            case m.user |> User.getCommonVertexProperty m.selectedVertices .radius of
-                                Just r ->
-                                    String.fromFloat r
-
-                                Nothing ->
-                                    ""
-                    , HE.onInput NumberInputRadius
-                    ]
-            ]
-        , lineWithColumns 140
-            [ input "Fixed"
-                (H.map CheckBoxFixed
-                    (CheckBox.view <|
-                        if Set.isEmpty m.selectedVertices then
-                            Just (m.user |> User.getDefaultVertexProperties |> .fixed)
-
-                        else
-                            m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
-                    )
-                )
-            , input "Strength" <|
-                numberInput
-                    [ HA.min "-1000"
-                    , HA.max "100"
-                    , HA.step "1"
-                    , HA.value <|
-                        if Set.isEmpty m.selectedVertices then
-                            m.user |> User.getDefaultVertexProperties |> .strength |> String.fromFloat
-
-                        else
-                            case m.user |> User.getCommonVertexProperty m.selectedVertices .strength of
-                                Just s ->
-                                    String.fromFloat s
-
-                                Nothing ->
-                                    ""
-                    , HE.onInput NumberInputVertexStrength
-                    ]
-            ]
-        ]
-
-
-edgeProperties : Model -> Html Msg
-edgeProperties m =
-    let
-        headerForEdgeProperties =
-            case Set.size m.selectedEdges of
-                0 ->
-                    "Edge Preferences"
-
-                1 ->
-                    "Selected Edge"
-
-                _ ->
-                    "Selected Edges"
-    in
-    subMenu headerForEdgeProperties
-        [ lineWithColumns 140
-            [ input "Color" <|
-                H.map ColorPickerEdge <|
-                    ColorPicker.view <|
-                        if Set.isEmpty m.selectedEdges then
-                            Just (m.user |> User.getDefaultEdgeProperties |> .color)
-
-                        else
-                            m.user |> User.getCommonEdgeProperty m.selectedEdges .color
-            , input "thickness" <|
-                numberInput
-                    [ HA.value <|
-                        if Set.isEmpty m.selectedEdges then
-                            m.user |> User.getDefaultEdgeProperties |> .thickness |> String.fromFloat
-
-                        else
-                            case m.user |> User.getCommonEdgeProperty m.selectedEdges .thickness of
-                                Just r ->
-                                    String.fromFloat r
-
-                                Nothing ->
-                                    ""
-                    , HE.onInput NumberInputThickness
-                    , HA.min "1"
-                    , HA.max "20"
-                    , HA.step "1"
-                    ]
-            ]
-        , lineWithColumns 140
-            [ input "distance" <|
-                numberInput
-                    [ HA.value <|
-                        if Set.isEmpty m.selectedEdges then
-                            m.user |> User.getDefaultEdgeProperties |> .distance |> String.fromFloat
-
-                        else
-                            case m.user |> User.getCommonEdgeProperty m.selectedEdges .distance of
-                                Just r ->
-                                    String.fromFloat r
-
-                                Nothing ->
-                                    ""
-                    , HE.onInput NumberInputDistance
-                    , HA.min "0"
-                    , HA.max "2000"
-                    , HA.step "1"
-                    ]
-            , input "strength" <|
-                numberInput
-                    [ HA.value <|
-                        if Set.isEmpty m.selectedEdges then
-                            m.user |> User.getDefaultEdgeProperties |> .strength |> String.fromFloat
-
-                        else
-                            case m.user |> User.getCommonEdgeProperty m.selectedEdges .strength of
-                                Just r ->
-                                    String.fromFloat r
-
-                                Nothing ->
-                                    ""
-                    , HE.onInput NumberInputEdgeStrength
-                    , HA.min "0"
-                    , HA.max "1"
-                    , HA.step "0.05"
-                    ]
-            ]
-        ]
-
-
-rightBar : Model -> Html Msg
+rightBar : Model -> Element Msg
 rightBar m =
-    div
-        [ HA.id "rightBar"
-        , HA.style "right" "0px"
-        , HA.style "width" (String.fromInt rightBarWidth ++ "px")
-        , HA.style "height" "100%"
+    E.el
+        [ Background.color (E.rgb255 83 83 83)
+        , Border.widthEach { bottom = 0, left = 1, right = 0, top = 0 }
+        , Border.color (E.rgb255 56 56 56)
+        , E.width (E.px 300)
+        , E.height E.fill
         ]
-        [ selectionType m
-        , bagProperties m
-        , vertexProperties m
-        , edgeProperties m
-        ]
+        E.none
 
 
 
+--view : Model -> Html Msg
+--view m =
+--    div
+--        [ HA.style "width" "100vw" ]
+--        [ mainSvg m
+--        , leftBar m
+--        , rightBar m
+--        , topBar m
+--        , forDebugging m
+--        ]
+--forDebugging : Model -> Html Msg
+--forDebugging m =
+--    let
+--        show : String -> String -> Html Msg
+--        show label content =
+--            div []
+--                [ H.span [ HA.style "color" "orange" ] [ H.text (label ++ ": ") ]
+--                , H.span [] [ H.text content ]
+--                ]
+--    in
+--    div [ HA.class "forDebugging" ]
+--        [ show "simulationState" <|
+--            Debug.toString m.simulationState
+--        , show "pressed control keys" <|
+--            case ( m.shiftIsDown, m.altIsDown ) of
+--                ( True, True ) ->
+--                    "Shift + Alt"
+--                ( False, True ) ->
+--                    "Alt"
+--                ( True, False ) ->
+--                    "Shift"
+--                ( False, False ) ->
+--                    ""
+--        , show "svgMousePosition" <|
+--            "{ x = "
+--                ++ String.fromFloat (Point2d.xCoordinate m.svgMousePosition)
+--                ++ ", y = "
+--                ++ String.fromFloat (Point2d.yCoordinate m.svgMousePosition)
+--                ++ " }"
+--        , show "pan" <|
+--            "{ x = "
+--                ++ String.fromFloat (Point2d.xCoordinate m.pan)
+--                ++ ", y = "
+--                ++ String.fromFloat (Point2d.yCoordinate m.pan)
+--                ++ " }"
+--        , show "zoom" <|
+--            String.fromFloat m.zoom
+--        ]
+----top Bar
+--topBar : Model -> Html Msg
+--topBar m =
+--    div
+--        [ HA.id "topBar"
+--        , HA.style "left" (String.fromFloat (300 + 2) ++ "px")
+--        , HA.style "width" (String.fromFloat (toFloat m.windowSize.width - 300 - 300 - 3) ++ "px")
+--        , HA.style "height" (String.fromFloat 57 ++ "px")
+--        ]
+--        [ zoomAndItsButtons m
+--        , toolSelectionButtonGroup m
+--        , vaderAsRadioButton m
+--        ]
+--zoomAndItsButtons : Model -> Html Msg
+--zoomAndItsButtons m =
+--    div
+--        [ HA.class "button-group" ]
+--        [ div
+--            [ HA.title "Reset Zoom and Pan"
+--            , HE.onClick ClickOnResetZoomAndPanButton
+--            , HA.class "topbar-button"
+--            ]
+--            [ Icons.draw34px Icons.icons.resetZoomAndPan ]
+--        ]
+--toolSelectionButtonGroup : Model -> Html Msg
+--toolSelectionButtonGroup m =
+--    div
+--        [ HA.class "radio-button-group" ]
+--        [ div
+--            [ HA.title "Hand (H)"
+--            , HE.onClick ClickOnHandTool
+--            , HA.class <|
+--                case m.selectedTool of
+--                    Hand _ ->
+--                        "radio-button-selected"
+--                    _ ->
+--                        "radio-button"
+--            ]
+--            [ Icons.draw34px Icons.icons.hand ]
+--        , div
+--            [ HA.title "Selection (S)"
+--            , HE.onClick ClickOnSelectTool
+--            , HA.class <|
+--                case m.selectedTool of
+--                    Select _ ->
+--                        "radio-button-selected"
+--                    _ ->
+--                        "radio-button"
+--            ]
+--            [ Icons.draw34px Icons.icons.pointer ]
+--        , div
+--            [ HA.title "Draw (D)"
+--            , HE.onClick ClickOnDrawTool
+--            , HA.class <|
+--                case m.selectedTool of
+--                    Draw _ ->
+--                        "radio-button-selected"
+--                    _ ->
+--                        "radio-button"
+--            ]
+--            [ Icons.draw34px Icons.icons.pen ]
+--        ]
+--vaderAsRadioButton : Model -> Html Msg
+--vaderAsRadioButton m =
+--    div
+--        [ HA.class "radio-button-group" ]
+--        [ div
+--            [ HA.title "Force (F)"
+--            , HA.class <|
+--                if m.vaderIsOn then
+--                    "radio-button-selected"
+--                else
+--                    "radio-button"
+--            , HE.onClick ClickOnVader
+--            ]
+--            [ Icons.draw34px Icons.icons.vader ]
+--        ]
+---- LEFT BAR
+--leftBarHeader =
+--    div
+--        [ HA.id "header-in-left-bar"
+--        , HA.style "height" "38px"
+--        ]
+--leftBarHeaderText headerText =
+--    div
+--        [ HA.style "float" "left"
+--        , HA.style "padding" "10px"
+--        ]
+--        [ H.text headerText ]
+--leftBarContentForPreferences : Model -> List (Html Msg)
+--leftBarContentForPreferences m =
+--    [ leftBarHeader
+--        [ leftBarHeaderText "Preferences (coming soon)" ]
+--    ]
+--leftBarContentForListsOfBagsVerticesAndEdges : Model -> List (Html Msg)
+--leftBarContentForListsOfBagsVerticesAndEdges m =
+--    let
+--        -- BAGS
+--        viewBagList =
+--            div []
+--                [ bagsHeader
+--                , listOfBags
+--                ]
+--        bagsHeader =
+--            leftBarHeader
+--                [ leftBarHeaderText "Bags"
+--                , div
+--                    [ HA.class "button"
+--                    , HA.title "Remove Selected Bag"
+--                    , HE.onClick ClickOnBagTrash
+--                    ]
+--                    [ Icons.draw24px Icons.icons.trash
+--                    ]
+--                , div
+--                    [ HA.class "button"
+--                    , HA.title "Add New Bag"
+--                    , HE.onClick ClickOnBagPlus
+--                    ]
+--                    [ Icons.draw24px Icons.icons.plus ]
+--                ]
+--        listOfBags =
+--            div []
+--                (m.user
+--                    |> User.getBags
+--                    |> Dict.map bagItem
+--                    |> Dict.values
+--                    |> List.reverse
+--                )
+--        bagItem bagId _ =
+--            div
+--                [ HA.style "padding" "4px 20px 4px 20px"
+--                , HA.class <|
+--                    if Just bagId == m.maybeSelectedBag then
+--                        "leftBarContent-item-selected"
+--                    else
+--                        "leftBarContent-item"
+--                , HE.onMouseOver (MouseOverBagItem bagId)
+--                , HE.onMouseOut (MouseOutBagItem bagId)
+--                , HE.onClick (ClickOnBagItem bagId)
+--                ]
+--                [ H.text (m.user |> User.bagElementsInCurlyBraces bagId) ]
+--        -- VERTICES
+--        viewVertexList =
+--            div []
+--                [ verticesHeader
+--                , listOfVertices
+--                ]
+--        verticesHeader =
+--            leftBarHeader
+--                [ leftBarHeaderText "Vertices"
+--                , div
+--                    [ HA.class "button"
+--                    , HA.title "Remove Selected Vertices"
+--                    , HE.onClick ClickOnVertexTrash
+--                    ]
+--                    [ Icons.draw24px Icons.icons.trash ]
+--                ]
+--        listOfVertices =
+--            div []
+--                (m.user
+--                    |> User.getVertices
+--                    |> List.map vertexItem
+--                    |> List.reverse
+--                )
+--        vertexItem { id } =
+--            div
+--                [ HA.style "padding" "4px 20px 4px 20px"
+--                , HA.class <|
+--                    if Set.member id m.selectedVertices then
+--                        "leftBarContent-item-selected"
+--                    else
+--                        "leftBarContent-item"
+--                , if Set.member id m.highlightedVertices then
+--                    HA.style "border-right" ("10px solid " ++ Colors.highlightColorForMouseOver)
+--                  else
+--                    HA.style "" ""
+--                , HE.onMouseOver (MouseOverVertexItem id)
+--                , HE.onMouseOut (MouseOutVertexItem id)
+--                , HE.onClick (ClickOnVertexItem id)
+--                ]
+--                [ H.text (String.fromInt id) ]
+--        -- EDGES
+--        viewEdgeList =
+--            div []
+--                [ edgesHeader
+--                , listOfEdges
+--                ]
+--        maybeEdgeContractButton =
+--            if Set.size m.selectedEdges == 1 then
+--                div
+--                    [ HA.class "button"
+--                    , HE.onClick ClickOnEdgeContract
+--                    , HA.title "Contract the selected edge"
+--                    ]
+--                    [ Icons.draw24px Icons.icons.edgeContract
+--                    ]
+--            else
+--                div [] []
+--        edgesHeader =
+--            leftBarHeader
+--                [ leftBarHeaderText "Edges"
+--                , div
+--                    [ HA.class "button"
+--                    , HA.title "Remove Selected Edges"
+--                    , HE.onClick ClickOnEdgeTrash
+--                    ]
+--                    [ Icons.draw24px Icons.icons.trash
+--                    ]
+--                , maybeEdgeContractButton
+--                ]
+--        listOfEdges =
+--            div []
+--                (m.user
+--                    |> User.getEdges
+--                    |> List.map edgeItem
+--                    |> List.reverse
+--                )
+--        edgeItem { from, to } =
+--            div
+--                [ HA.style "padding" "4px 20px 4px 20px"
+--                , HA.class <|
+--                    if Set.member ( from, to ) m.selectedEdges then
+--                        "leftBarContent-item-selected"
+--                    else
+--                        "leftBarContent-item"
+--                , if Set.member ( from, to ) m.highlightedEdges then
+--                    HA.style "border-right" ("10px solid " ++ Colors.highlightColorForMouseOver)
+--                  else
+--                    HA.style "" ""
+--                , HE.onMouseOver (MouseOverEdgeItem ( from, to ))
+--                , HE.onMouseOut (MouseOutEdgeItem ( from, to ))
+--                , HE.onClick (ClickOnEdgeItem ( from, to ))
+--                ]
+--                [ H.text <| String.fromInt from ++ " → " ++ String.fromInt to ]
+--    in
+--    [ viewBagList
+--    , viewVertexList
+--    , viewEdgeList
+--    ]
+--leftBarContentForGraphOperations : Model -> List (Html Msg)
+--leftBarContentForGraphOperations m =
+--    [ leftBarHeader
+--        [ leftBarHeaderText "Graph Operations (coming soon)" ]
+--    ]
+--leftBarContentForGraphQueries : Model -> List (Html Msg)
+--leftBarContentForGraphQueries m =
+--    [ leftBarHeader
+--        [ leftBarHeaderText "Graph Queries (coming soon)" ]
+--    ]
+--leftBarContentForGraphGenerators : Model -> List (Html Msg)
+--leftBarContentForGraphGenerators m =
+--    [ leftBarHeader
+--        [ leftBarHeaderText "Graph Generators (coming soon)" ]
+--    ]
+--leftBarContentForAlgorithmVisualizations : Model -> List (Html Msg)
+--leftBarContentForAlgorithmVisualizations m =
+--    [ leftBarHeader
+--        [ leftBarHeaderText "Algorithm Visualizations (coming soon)" ]
+--    ]
+--leftBarContentForGamesOnGraphs : Model -> List (Html Msg)
+--leftBarContentForGamesOnGraphs m =
+--    [ leftBarHeader
+--        [ leftBarHeaderText "Games on Graphs (coming soon)" ]
+--    ]
+--leftBar : Model -> Html Msg
+--leftBar m =
+--    let
+--        thinBandWidth =
+--            40
+--        thinBandButton title selectedMode icon =
+--            let
+--                color =
+--                    if selectedMode == m.selectedMode then
+--                        "white"
+--                    else
+--                        "rgb(46, 46, 46)"
+--            in
+--            div
+--                [ HA.title title
+--                , HA.class "thinBandButton"
+--                , HE.onClick (ClickOnLeftMostBarRadioButton selectedMode)
+--                ]
+--                [ Icons.draw40pxWithColor color icon ]
+--        githubButton =
+--            H.a
+--                [ HA.title "Source Code"
+--                , HA.href "https://github.com/erkal/kite"
+--                , HA.target "_blank"
+--                ]
+--                [ Icons.draw40pxWithColor "yellow" Icons.icons.githubCat ]
+--        -- donateButton =
+--        --     div
+--        --         [ HA.title "Donate"
+--        --         , HE.onClick (DonateButtonClicked)
+--        --         ]
+--        --         [ Icons.draw40pxWithColor "orchid" Icons.icons.donateHeart ]
+--        --
+--        --
+--        thinBandRadioButtons =
+--            div [ HA.id "thinBarButtonGroup" ]
+--                [ thinBandButton "Preferences" Preferences Icons.icons.preferencesGear
+--                , thinBandButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
+--                , thinBandButton "Graph Operations" GraphOperations Icons.icons.magicStick
+--                , thinBandButton "Graph Queries" GraphQueries Icons.icons.qForQuery
+--                , thinBandButton "Graph Generators" GraphGenerators Icons.icons.lightning
+--                , thinBandButton "Algorithm Visualizations" AlgorithmVisualizations Icons.icons.algoVizPlay
+--                , thinBandButton "Games on Graphs" GamesOnGraphs Icons.icons.chessHorse
+--                ]
+--        thinBand =
+--            div
+--                [ HA.id "leftBarThinBand"
+--                , HA.style "position" "absolute"
+--                , HA.style "width" (String.fromInt thinBandWidth ++ "px")
+--                , HA.style "height" "100%"
+--                , HA.style "overflow" "scroll"
+--                ]
+--                [ thinBandRadioButtons
+--                , githubButton
+--                ]
+--        content =
+--            div
+--                [ HA.id "leftBarContent"
+--                , HA.style "position" "absolute"
+--                , HA.style "left" (String.fromInt thinBandWidth ++ "px")
+--                , HA.style "width" (String.fromInt (300 - thinBandWidth) ++ "px")
+--                , HA.style "height" "100%"
+--                , HA.style "overflow" "scroll"
+--                ]
+--                (case m.selectedMode of
+--                    Preferences ->
+--                        leftBarContentForPreferences m
+--                    ListsOfBagsVerticesAndEdges ->
+--                        leftBarContentForListsOfBagsVerticesAndEdges m
+--                    GraphOperations ->
+--                        leftBarContentForGraphOperations m
+--                    GraphQueries ->
+--                        leftBarContentForGraphQueries m
+--                    GraphGenerators ->
+--                        leftBarContentForGraphGenerators m
+--                    AlgorithmVisualizations ->
+--                        leftBarContentForAlgorithmVisualizations m
+--                    GamesOnGraphs ->
+--                        leftBarContentForGamesOnGraphs m
+--                )
+--    in
+--    div []
+--        [ thinBand
+--        , content
+--        ]
+---- RIGHT BAR
+--subMenu : String -> List (Html Msg) -> Html Msg
+--subMenu header rest =
+--    div [ HA.class "right-bar-submenu" ] <|
+--        div [ HA.style "margin-bottom" "20px" ]
+--            [ div [ HA.class "right-bar-submenu-header" ] [ H.text header ] ]
+--            :: rest
+--lineWithColumns : Int -> List (Html Msg) -> Html Msg
+--lineWithColumns columnSize columns =
+--    let
+--        item content =
+--            div
+--                [ HA.style "display" "inline-block"
+--                , HA.style "width" (String.fromInt columnSize ++ "px")
+--                ]
+--                [ content ]
+--    in
+--    div
+--        [ HA.style "margin-bottom" "10px"
+--        , HA.style "display" "block"
+--        ]
+--        (List.map item columns)
+--input : String -> Html Msg -> Html Msg
+--input label inputField =
+--    div []
+--        [ H.label
+--            [ HA.style "width" "80px"
+--            , HA.style "padding-right" "8px"
+--            , HA.style "vertical-align" "middle"
+--            , HA.style "display" "inline-block"
+--            , HA.style "text-align" "right"
+--            ]
+--            [ H.text label ]
+--        , div [ HA.style "display" "inline-block" ] [ inputField ]
+--        ]
+--numberInput : List (H.Attribute msg) -> Html msg
+--numberInput attributes =
+--    H.input
+--        ([ HA.style "width" "40px"
+--         , HA.style "padding-left" "4px"
+--         , HA.style "padding-top" "4px"
+--         , HA.style "padding-bottom" "4px"
+--         , HA.type_ "number"
+--         ]
+--            ++ attributes
+--        )
+--        []
+--selectionType : Model -> Html Msg
+--selectionType m =
+--    let
+--        rectSelector =
+--            div
+--                [ HA.style "float" "left"
+--                , HA.style "margin" "1px"
+--                , HA.title "Rectangle Selector"
+--                , HE.onClick ClickOnRectSelector
+--                , HA.class <|
+--                    case m.selectedSelector of
+--                        RectSelector ->
+--                            "radio-button-selected"
+--                        _ ->
+--                            "radio-button"
+--                ]
+--                [ Icons.draw24px Icons.icons.selectionRect ]
+--        lineSelector =
+--            div
+--                [ HA.style "float" "left"
+--                , HA.style "margin" "1px"
+--                , HA.title "Line Selector"
+--                , HE.onClick ClickOnLineSelector
+--                , HA.class <|
+--                    case m.selectedSelector of
+--                        LineSelector ->
+--                            "radio-button-selected"
+--                        _ ->
+--                            "radio-button"
+--                ]
+--                [ Icons.draw24px Icons.icons.selectionLine ]
+--    in
+--    subMenu "Selection"
+--        [ lineWithColumns 280
+--            [ input "Selector" <|
+--                div
+--                    [ HA.style "vertical-align" "middle"
+--                    , HA.style "display" "inline-block"
+--                    ]
+--                    [ div [ HA.class "radio-button-group" ]
+--                        [ rectSelector
+--                        , lineSelector
+--                        ]
+--                    ]
+--            ]
+--        ]
+--headerForBagProperties : Model -> String
+--headerForBagProperties m =
+--    case m.maybeSelectedBag of
+--        Nothing ->
+--            "Bag Preferences"
+--        Just bagId ->
+--            "Selected Bag"
+--bagProperties : Model -> Html Msg
+--bagProperties m =
+--    subMenu (headerForBagProperties m)
+--        [ lineWithColumns 140
+--            [ input "Convex Hull" <|
+--                H.map CheckBoxConvexHull <|
+--                    CheckBox.view <|
+--                        case m.maybeSelectedBag of
+--                            Just bagId ->
+--                                case User.getBagProperties bagId m.user of
+--                                    Just bag ->
+--                                        Just bag.hasConvexHull
+--                                    Nothing ->
+--                                        Nothing
+--                            Nothing ->
+--                                Just (m.user |> User.getDefaultBagProperties |> .hasConvexHull)
+--            ]
+--        ]
+--vertexProperties : Model -> Html Msg
+--vertexProperties m =
+--    let
+--        headerForVertexProperties =
+--            case Set.size m.selectedVertices of
+--                0 ->
+--                    "Vertex Preferences"
+--                1 ->
+--                    "Selected Vertex"
+--                _ ->
+--                    "Selected Vertices"
+--    in
+--    subMenu headerForVertexProperties
+--        [ lineWithColumns 140
+--            [ input "X" <|
+--                numberInput
+--                    [ HA.value
+--                        (m.user
+--                            |> User.getCentroid m.selectedVertices
+--                            |> Maybe.map Point2d.xCoordinate
+--                            |> Maybe.map round
+--                            |> Maybe.map String.fromInt
+--                            |> Maybe.withDefault ""
+--                        )
+--                    , HE.onInput NumberInputVertexX
+--                    ]
+--            , input "Y" <|
+--                numberInput
+--                    [ HA.value
+--                        (m.user
+--                            |> User.getCentroid m.selectedVertices
+--                            |> Maybe.map Point2d.yCoordinate
+--                            |> Maybe.map round
+--                            |> Maybe.map String.fromInt
+--                            |> Maybe.withDefault ""
+--                        )
+--                    , HE.onInput NumberInputVertexY
+--                    ]
+--            ]
+--        , lineWithColumns 140
+--            [ input "Color" <|
+--                H.map ColorPickerVertex <|
+--                    ColorPicker.view <|
+--                        if Set.isEmpty m.selectedVertices then
+--                            Just (m.user |> User.getDefaultVertexProperties |> .color)
+--                        else
+--                            m.user |> User.getCommonVertexProperty m.selectedVertices .color
+--            , input "Radius" <|
+--                numberInput
+--                    [ HA.min "4"
+--                    , HA.max "20"
+--                    , HA.step "1"
+--                    , HA.value <|
+--                        if Set.isEmpty m.selectedVertices then
+--                            m.user |> User.getDefaultVertexProperties |> .radius |> String.fromFloat
+--                        else
+--                            case m.user |> User.getCommonVertexProperty m.selectedVertices .radius of
+--                                Just r ->
+--                                    String.fromFloat r
+--                                Nothing ->
+--                                    ""
+--                    , HE.onInput NumberInputRadius
+--                    ]
+--            ]
+--        , lineWithColumns 140
+--            [ input "Fixed"
+--                (H.map CheckBoxFixed
+--                    (CheckBox.view <|
+--                        if Set.isEmpty m.selectedVertices then
+--                            Just (m.user |> User.getDefaultVertexProperties |> .fixed)
+--                        else
+--                            m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
+--                    )
+--                )
+--            , input "Strength" <|
+--                numberInput
+--                    [ HA.min "-1000"
+--                    , HA.max "100"
+--                    , HA.step "1"
+--                    , HA.value <|
+--                        if Set.isEmpty m.selectedVertices then
+--                            m.user |> User.getDefaultVertexProperties |> .strength |> String.fromFloat
+--                        else
+--                            case m.user |> User.getCommonVertexProperty m.selectedVertices .strength of
+--                                Just s ->
+--                                    String.fromFloat s
+--                                Nothing ->
+--                                    ""
+--                    , HE.onInput NumberInputVertexStrength
+--                    ]
+--            ]
+--        ]
+--edgeProperties : Model -> Html Msg
+--edgeProperties m =
+--    let
+--        headerForEdgeProperties =
+--            case Set.size m.selectedEdges of
+--                0 ->
+--                    "Edge Preferences"
+--                1 ->
+--                    "Selected Edge"
+--                _ ->
+--                    "Selected Edges"
+--    in
+--    subMenu headerForEdgeProperties
+--        [ lineWithColumns 140
+--            [ input "Color" <|
+--                H.map ColorPickerEdge <|
+--                    ColorPicker.view <|
+--                        if Set.isEmpty m.selectedEdges then
+--                            Just (m.user |> User.getDefaultEdgeProperties |> .color)
+--                        else
+--                            m.user |> User.getCommonEdgeProperty m.selectedEdges .color
+--            , input "thickness" <|
+--                numberInput
+--                    [ HA.value <|
+--                        if Set.isEmpty m.selectedEdges then
+--                            m.user |> User.getDefaultEdgeProperties |> .thickness |> String.fromFloat
+--                        else
+--                            case m.user |> User.getCommonEdgeProperty m.selectedEdges .thickness of
+--                                Just r ->
+--                                    String.fromFloat r
+--                                Nothing ->
+--                                    ""
+--                    , HE.onInput NumberInputThickness
+--                    , HA.min "1"
+--                    , HA.max "20"
+--                    , HA.step "1"
+--                    ]
+--            ]
+--        , lineWithColumns 140
+--            [ input "distance" <|
+--                numberInput
+--                    [ HA.value <|
+--                        if Set.isEmpty m.selectedEdges then
+--                            m.user |> User.getDefaultEdgeProperties |> .distance |> String.fromFloat
+--                        else
+--                            case m.user |> User.getCommonEdgeProperty m.selectedEdges .distance of
+--                                Just r ->
+--                                    String.fromFloat r
+--                                Nothing ->
+--                                    ""
+--                    , HE.onInput NumberInputDistance
+--                    , HA.min "0"
+--                    , HA.max "2000"
+--                    , HA.step "1"
+--                    ]
+--            , input "strength" <|
+--                numberInput
+--                    [ HA.value <|
+--                        if Set.isEmpty m.selectedEdges then
+--                            m.user |> User.getDefaultEdgeProperties |> .strength |> String.fromFloat
+--                        else
+--                            case m.user |> User.getCommonEdgeProperty m.selectedEdges .strength of
+--                                Just r ->
+--                                    String.fromFloat r
+--                                Nothing ->
+--                                    ""
+--                    , HE.onInput NumberInputEdgeStrength
+--                    , HA.min "0"
+--                    , HA.max "1"
+--                    , HA.step "0.05"
+--                    ]
+--            ]
+--        ]
+--rightBar : Model -> Html Msg
+--rightBar m =
+--    div
+--        [ HA.id "rightBar"
+--        , HA.style "right" "0px"
+--        , HA.style "width" (String.fromInt 300 ++ "px")
+--        , HA.style "height" "100%"
+--        ]
+--        [ selectionType m
+--        , bagProperties m
+--        , vertexProperties m
+--        , edgeProperties m
+--        ]
 --MAIN SVG
-
-
-mousePosition : Decoder MousePosition
-mousePosition =
-    Decode.map2 MousePosition
-        (Decode.field "clientX" Decode.int)
-        (Decode.field "clientY" Decode.int)
 
 
 wheelDeltaY : Decoder Int
