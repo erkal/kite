@@ -12,6 +12,7 @@ import Dict exposing (Dict)
 import Element as E exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events as Events
 import Force exposing (Force)
 import Geometry.Svg
 import Html as H exposing (Html, div)
@@ -34,7 +35,6 @@ import Vector2d exposing (Vector2d)
 
 
 
--- TODO: Remove imports of Browser
 -- TODO: Use Element.Keyed for the vertex edge and bag lists.
 -- TODO: Use Svg.Keyed for the vertices and edges
 -- TODO: Remove style.css after elm-ui
@@ -1093,22 +1093,15 @@ leftBar m =
 topBar : Model -> Element Msg
 topBar m =
     let
-        oneClickButton iconPath =
+        oneClickButton title iconPath onClickMsg =
             E.el
                 [ Border.width 1
                 , Border.rounded 4
                 , Border.color colors.menuBorder
                 , E.mouseDown [ Background.color colors.selectedItem ]
                 , E.mouseOver [ Background.color colors.menuBorder ]
-                ]
-            <|
-                E.html (Icons.draw34px iconPath)
-
-        radioButton iconPath =
-            E.el
-                [ E.mouseDown [ Background.color colors.selectedItem ]
-                , E.mouseOver [ Background.color colors.menuBorder ]
-                , Border.rounded 4
+                , Events.onClick onClickMsg
+                , E.htmlAttribute <| HA.title title
                 ]
             <|
                 E.html (Icons.draw34px iconPath)
@@ -1122,20 +1115,17 @@ topBar m =
                 ]
                 buttonList
 
-        --
-        resetZoomAndPanButton =
-            oneClickButton Icons.icons.resetZoomAndPan
-
-        toolSelectionButtonGroup =
-            radioButtonGroup
-                [ radioButton Icons.icons.hand
-                , radioButton Icons.icons.pointer
-                , radioButton Icons.icons.pen
+        radioButton title iconPath onClickMsg backgroundColor =
+            E.el
+                [ Background.color backgroundColor
+                , E.mouseDown [ Background.color colors.selectedItem ]
+                , E.mouseOver [ Background.color colors.menuBorder ]
+                , Border.rounded 4
+                , Events.onClick onClickMsg
+                , E.htmlAttribute <| HA.title title
                 ]
-
-        vaderAsRadioButton =
-            radioButtonGroup
-                [ radioButton Icons.icons.vader ]
+            <|
+                E.html (Icons.draw34px iconPath)
     in
     E.el
         [ Background.color colors.menuBackground
@@ -1146,9 +1136,52 @@ topBar m =
         ]
     <|
         E.row [ E.centerY, E.paddingXY 16 0, E.spacing 16 ] <|
-            [ resetZoomAndPanButton
-            , toolSelectionButtonGroup
-            , vaderAsRadioButton
+            [ oneClickButton "Reset Zoom and Pan"
+                Icons.icons.resetZoomAndPan
+                ClickOnResetZoomAndPanButton
+            , radioButtonGroup
+                [ radioButton "Hand (H)"
+                    Icons.icons.hand
+                    ClickOnHandTool
+                  <|
+                    case m.selectedTool of
+                        Hand _ ->
+                            colors.selectedItem
+
+                        _ ->
+                            colors.menuBackground
+                , radioButton "Selection (S)"
+                    Icons.icons.pointer
+                    ClickOnSelectTool
+                  <|
+                    case m.selectedTool of
+                        Select _ ->
+                            colors.selectedItem
+
+                        _ ->
+                            colors.menuBackground
+                , radioButton "Draw (D)"
+                    Icons.icons.pen
+                    ClickOnDrawTool
+                  <|
+                    case m.selectedTool of
+                        Draw _ ->
+                            colors.selectedItem
+
+                        _ ->
+                            colors.menuBackground
+                ]
+            , radioButtonGroup
+                [ radioButton "Force (F)"
+                    Icons.icons.vader
+                    ClickOnVader
+                  <|
+                    if m.vaderIsOn then
+                        colors.selectedItem
+
+                    else
+                        colors.menuBackground
+                ]
             ]
 
 
@@ -1165,78 +1198,6 @@ rightBar m =
 
 
 
---view : Model -> Html Msg
---view m =
---    div
---        [ HA.style "width" "100vw" ]
---        [ mainSvg m
---        , leftBar m
---        , rightBar m
---        , topBar m
---        , forDebugging m
---        ]
---forDebugging : Model -> Html Msg
---forDebugging m =
---    let
---        show : String -> String -> Html Msg
---        show label content =
---            div []
---                [ H.span [ HA.style "color" "orange" ] [ H.text (label ++ ": ") ]
---                , H.span [] [ H.text content ]
---                ]
---    in
---    div [ HA.class "forDebugging" ]
---        [ show "simulationState" <|
---            Debug.toString m.simulationState
---        , show "pressed control keys" <|
---            case ( m.shiftIsDown, m.altIsDown ) of
---                ( True, True ) ->
---                    "Shift + Alt"
---                ( False, True ) ->
---                    "Alt"
---                ( True, False ) ->
---                    "Shift"
---                ( False, False ) ->
---                    ""
---        , show "svgMousePosition" <|
---            "{ x = "
---                ++ String.fromFloat (Point2d.xCoordinate m.svgMousePosition)
---                ++ ", y = "
---                ++ String.fromFloat (Point2d.yCoordinate m.svgMousePosition)
---                ++ " }"
---        , show "pan" <|
---            "{ x = "
---                ++ String.fromFloat (Point2d.xCoordinate m.pan)
---                ++ ", y = "
---                ++ String.fromFloat (Point2d.yCoordinate m.pan)
---                ++ " }"
---        , show "zoom" <|
---            String.fromFloat m.zoom
---        ]
-----top Bar
---topBar : Model -> Html Msg
---topBar m =
---    div
---        [ HA.id "topBar"
---        , HA.style "left" (String.fromFloat (300 + 2) ++ "px")
---        , HA.style "width" (String.fromFloat (toFloat m.windowSize.width - 300 - 300 - 3) ++ "px")
---        , HA.style "height" (String.fromFloat 57 ++ "px")
---        ]
---        [ zoomAndItsButtons m
---        , toolSelectionButtonGroup m
---        , vaderAsRadioButton m
---        ]
---zoomAndItsButtons : Model -> Html Msg
---zoomAndItsButtons m =
---    div
---        [ HA.class "button-group" ]
---        [ div
---            [ HA.title "Reset Zoom and Pan"
---            , HE.onClick ClickOnResetZoomAndPanButton
---            , HA.class "topbar-button"
---            ]
---            [ Icons.draw34px Icons.icons.resetZoomAndPan ]
---        ]
 --toolSelectionButtonGroup : Model -> Html Msg
 --toolSelectionButtonGroup m =
 --    div
