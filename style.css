@@ -1,4 +1,4 @@
-/*body, html {
+body, html {
     margin: 0px;
     padding: 0px;
     font-size: 11px;
@@ -9,7 +9,7 @@
     -webkit-font-smoothing: antialiased;
     user-select: none;
 }
-*/
+
 input[type="number"] {
     background-color: #454545;
     border-radius: 2px;

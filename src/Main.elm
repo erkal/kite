@@ -34,8 +34,10 @@ import Vector2d exposing (Vector2d)
 
 
 
--- TODO: After getting rid of all the css, compile directly to html with `elm make Main.elm --output=main.html`.
 -- TODO: Remove imports of Browser
+-- TODO: Use Element.Keyed for the vertex edge and bag lists.
+-- TODO: Use Svg.Keyed for the vertices and edges
+-- TODO: Remove style.css after elm-ui
 
 
 main : Program () Model Msg
@@ -46,7 +48,7 @@ main =
                 ( initialModel User.default
                 , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
                 )
-        , view = \model -> { title = "Kite", body = [ viewWithElmUi model ] }
+        , view = \model -> { title = "Kite", body = [ view model ] }
         , update = \msg model -> ( update msg model, Cmd.none )
         , subscriptions = subscriptions
         }
@@ -202,7 +204,7 @@ initialModel user =
 
 
 initialPan =
-    Point2d.fromCoordinates ( -340, -100 )
+    Point2d.fromCoordinates ( -50, -50 )
 
 
 
@@ -472,7 +474,10 @@ update msg m =
                     m.pan |> Point2d.coordinates |> Vector2d.fromComponents
 
                 newSvgMousePosition =
-                    Point2d.fromCoordinates ( toFloat newMousePosition.x, toFloat newMousePosition.y )
+                    Point2d.fromCoordinates
+                        ( toFloat newMousePosition.x - layoutParams.leftStripeWidth - layoutParams.leftBarWidth
+                        , toFloat newMousePosition.y - layoutParams.topBarHeight
+                        )
                         |> Point2d.scaleAbout Point2d.origin (1 / m.zoom)
                         |> Point2d.translateBy panAsVector
             in
@@ -1032,46 +1037,42 @@ toKey string =
 -- VIEW
 
 
-menuBackgroundColor =
-    E.rgb255 83 83 83
+colors =
+    { black = E.rgb255 0 0 0
+    , menuBackground = E.rgb255 83 83 83
+    , menuBorder = E.rgb255 56 56 56
+    , selectedItem = E.rgb255 48 48 48
+    }
 
 
-menuBorderColor =
-    E.rgb255 56 56 56
+layoutParams =
+    { leftStripeWidth = 40
+    , leftBarWidth = 260
+    , topBarHeight = 54
+    , rightBarWidth = 300
+    }
 
 
-black =
-    E.rgb255 0 0 0
-
-
-selectedItemColor =
-    E.rgb255 48 48 48
-
-
-viewWithElmUi : Model -> Html Msg
-viewWithElmUi m =
-    E.layout [ E.inFront (menu m) ] <|
-        E.html (mainSvg m)
-
-
-menu : Model -> Element Msg
-menu m =
-    E.row
-        [ E.width E.fill
-        , E.height E.fill
-        ]
-        [ leftStripe m
-        , leftBar m
-        , topBar m
-        , rightBar m
-        ]
+view : Model -> Html Msg
+view m =
+    E.layout [] <|
+        E.row [ E.width E.fill, E.height E.fill ] <|
+            [ leftStripe m
+            , leftBar m
+            , E.column [ E.width E.fill, E.height E.fill ] <|
+                [ topBar m
+                , E.el [ E.width E.fill, E.height E.fill ] <|
+                    E.html (mainSvg m)
+                ]
+            , rightBar m
+            ]
 
 
 leftStripe : Model -> Element Msg
 leftStripe m =
     E.el
-        [ Background.color black
-        , E.width (E.px 40)
+        [ Background.color colors.black
+        , E.width (E.px layoutParams.leftStripeWidth)
         , E.height E.fill
         ]
         E.none
@@ -1080,10 +1081,10 @@ leftStripe m =
 leftBar : Model -> Element Msg
 leftBar m =
     E.el
-        [ Background.color menuBackgroundColor
+        [ Background.color colors.menuBackground
         , Border.widthEach { bottom = 0, left = 0, right = 1, top = 0 }
-        , Border.color menuBorderColor
-        , E.width (E.px 260)
+        , Border.color colors.menuBorder
+        , E.width (E.px layoutParams.leftBarWidth)
         , E.height E.fill
         ]
         E.none
@@ -1096,17 +1097,17 @@ topBar m =
             E.el
                 [ Border.width 1
                 , Border.rounded 4
-                , Border.color menuBorderColor
-                , E.mouseDown [ Background.color selectedItemColor ]
-                , E.mouseOver [ Background.color menuBorderColor ]
+                , Border.color colors.menuBorder
+                , E.mouseDown [ Background.color colors.selectedItem ]
+                , E.mouseOver [ Background.color colors.menuBorder ]
                 ]
             <|
                 E.html (Icons.draw34px iconPath)
 
         radioButton iconPath =
             E.el
-                [ E.mouseDown [ Background.color selectedItemColor ]
-                , E.mouseOver [ Background.color menuBorderColor ]
+                [ E.mouseDown [ Background.color colors.selectedItem ]
+                , E.mouseOver [ Background.color colors.menuBorder ]
                 , Border.rounded 4
                 ]
             <|
@@ -1115,7 +1116,7 @@ topBar m =
         radioButtonGroup buttonList =
             E.row
                 [ Border.width 1
-                , Border.color menuBorderColor
+                , Border.color colors.menuBorder
                 , E.padding 4
                 , E.spacing 4
                 ]
@@ -1137,15 +1138,14 @@ topBar m =
                 [ radioButton Icons.icons.vader ]
     in
     E.el
-        [ Background.color menuBackgroundColor
+        [ Background.color colors.menuBackground
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        , Border.color menuBorderColor
-        , E.alignTop
+        , Border.color colors.menuBorder
         , E.width E.fill
-        , E.height (E.px 54)
+        , E.height (E.px layoutParams.topBarHeight)
         ]
     <|
-        E.row [ E.centerY, E.paddingXY 20 0, E.spacing 20 ] <|
+        E.row [ E.centerY, E.paddingXY 16 0, E.spacing 16 ] <|
             [ resetZoomAndPanButton
             , toolSelectionButtonGroup
             , vaderAsRadioButton
@@ -1155,10 +1155,10 @@ topBar m =
 rightBar : Model -> Element Msg
 rightBar m =
     E.el
-        [ Background.color menuBackgroundColor
+        [ Background.color colors.menuBackground
         , Border.widthEach { bottom = 0, left = 1, right = 0, top = 0 }
-        , Border.color menuBorderColor
-        , E.width (E.px 300)
+        , Border.color colors.menuBorder
+        , E.width (E.px layoutParams.rightBarWidth)
         , E.height E.fill
         ]
         E.none
@@ -2092,11 +2092,17 @@ mainSvg m =
                 Select _ ->
                     "default"
 
+        mainSvgWidth =
+            m.windowSize.width - layoutParams.leftStripeWidth - layoutParams.leftBarWidth - layoutParams.rightBarWidth
+
+        mainSvgHeight =
+            m.windowSize.height - layoutParams.topBarHeight
+
         fromPanAndZoom pan zoom =
             [ Point2d.xCoordinate m.pan
             , Point2d.yCoordinate m.pan
-            , toFloat m.windowSize.width / zoom
-            , toFloat m.windowSize.height / zoom
+            , toFloat mainSvgWidth / zoom
+            , toFloat mainSvgHeight / zoom
             ]
                 |> List.map String.fromFloat
                 |> List.intersperse " "
@@ -2106,8 +2112,8 @@ mainSvg m =
         [ HA.style "background-color" "rgb(46, 46, 46)"
         , HA.style "cursor" cursor
         , HA.style "position" "absolute"
-        , SA.width (String.fromInt m.windowSize.width)
-        , SA.height (String.fromInt m.windowSize.height)
+        , SA.width (String.fromInt mainSvgWidth)
+        , SA.height (String.fromInt mainSvgHeight)
         , SA.viewBox (fromPanAndZoom m.pan m.zoom)
         , SE.onMouseDown MouseDownOnMainSvg
         , HE.on "wheel" (Decode.map WheelDeltaY wheelDeltaY)
