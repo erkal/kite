@@ -1032,6 +1032,22 @@ toKey string =
 -- VIEW
 
 
+menuBackgroundColor =
+    E.rgb255 83 83 83
+
+
+menuBorderColor =
+    E.rgb255 56 56 56
+
+
+black =
+    E.rgb255 0 0 0
+
+
+selectedItemColor =
+    E.rgb255 48 48 48
+
+
 viewWithElmUi : Model -> Html Msg
 viewWithElmUi m =
     E.layout [ E.inFront (menu m) ] <|
@@ -1054,7 +1070,7 @@ menu m =
 leftStripe : Model -> Element Msg
 leftStripe m =
     E.el
-        [ Background.color (E.rgb255 0 0 0)
+        [ Background.color black
         , E.width (E.px 40)
         , E.height E.fill
         ]
@@ -1064,9 +1080,9 @@ leftStripe m =
 leftBar : Model -> Element Msg
 leftBar m =
     E.el
-        [ Background.color (E.rgb255 83 83 83)
+        [ Background.color menuBackgroundColor
         , Border.widthEach { bottom = 0, left = 0, right = 1, top = 0 }
-        , Border.color (E.rgb255 56 56 56)
+        , Border.color menuBorderColor
         , E.width (E.px 260)
         , E.height E.fill
         ]
@@ -1075,23 +1091,73 @@ leftBar m =
 
 topBar : Model -> Element Msg
 topBar m =
+    let
+        oneClickButton iconPath =
+            E.el
+                [ Border.width 1
+                , Border.rounded 4
+                , Border.color menuBorderColor
+                , E.mouseDown [ Background.color selectedItemColor ]
+                , E.mouseOver [ Background.color menuBorderColor ]
+                ]
+            <|
+                E.html (Icons.draw34px iconPath)
+
+        radioButton iconPath =
+            E.el
+                [ E.mouseDown [ Background.color selectedItemColor ]
+                , E.mouseOver [ Background.color menuBorderColor ]
+                , Border.rounded 4
+                ]
+            <|
+                E.html (Icons.draw34px iconPath)
+
+        radioButtonGroup buttonList =
+            E.row
+                [ Border.width 1
+                , Border.color menuBorderColor
+                , E.padding 4
+                , E.spacing 4
+                ]
+                buttonList
+
+        --
+        resetZoomAndPanButton =
+            oneClickButton Icons.icons.resetZoomAndPan
+
+        toolSelectionButtonGroup =
+            radioButtonGroup
+                [ radioButton Icons.icons.hand
+                , radioButton Icons.icons.pointer
+                , radioButton Icons.icons.pen
+                ]
+
+        vaderAsRadioButton =
+            radioButtonGroup
+                [ radioButton Icons.icons.vader ]
+    in
     E.el
-        [ Background.color (E.rgb255 83 83 83)
+        [ Background.color menuBackgroundColor
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        , Border.color (E.rgb255 56 56 56)
+        , Border.color menuBorderColor
         , E.alignTop
         , E.width E.fill
-        , E.height (E.px 56)
+        , E.height (E.px 54)
         ]
-        E.none
+    <|
+        E.row [ E.centerY, E.paddingXY 20 0, E.spacing 20 ] <|
+            [ resetZoomAndPanButton
+            , toolSelectionButtonGroup
+            , vaderAsRadioButton
+            ]
 
 
 rightBar : Model -> Element Msg
 rightBar m =
     E.el
-        [ Background.color (E.rgb255 83 83 83)
+        [ Background.color menuBackgroundColor
         , Border.widthEach { bottom = 0, left = 1, right = 0, top = 0 }
-        , Border.color (E.rgb255 56 56 56)
+        , Border.color menuBorderColor
         , E.width (E.px 300)
         , E.height E.fill
         ]
