@@ -44,38 +44,6 @@ input:focus {
     margin-bottom: 2px;
 }
 
-#leftBarContent {
-    background-color: #535353;
-    border-left: 1px solid #383838;
-    border-right: 1px solid #383838;
-}
-
-.leftBarContent-item {
-    border-bottom: 1px solid #383838;
-}
-
-.leftBarContent-item:hover {
-    cursor: pointer;
-    border-bottom: 1px solid #383838;
-}
-
-.leftBarContent-item-selected {
-    border-bottom: 1px solid #383838;
-    background-color: #303030;
-}
-
-.leftBarContent-item-selected:hover {
-    cursor: pointer;
-    border-bottom: 1px solid #383838;
-    background-color: #303030;
-}
-
-#header-in-left-bar {
-    font-size: 12px;
-    background-color: #424242;
-    border-bottom: 1px solid #383838;
-}
-
 #rightBar {
     overflow: scroll;
     position: absolute;

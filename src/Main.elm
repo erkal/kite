@@ -1158,11 +1158,6 @@ leftStripe m =
 -- LEFT BAR
 
 
-leftBarMenu : String -> Element Msg
-leftBarMenu header =
-    E.text header
-
-
 leftBar : Model -> Element Msg
 leftBar m =
     E.el
@@ -1197,39 +1192,94 @@ leftBar m =
                 leftBarContentForGamesOnGraphs m
 
 
+leftBarMenu : List (Element Msg) -> Element Msg -> Element Msg
+leftBarMenu headerItems content =
+    let
+        header =
+            E.row
+                [ Background.color colors.leftBarHeader
+                , Font.size 12
+                , E.width E.fill
+                , E.padding 8
+                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Border.color colors.menuBorder
+                ]
+            <|
+                headerItems
+    in
+    E.column [ E.width E.fill ] <|
+        [ header, content ]
+
+
+leftBarHeaderButton title onClickMsg iconPath =
+    E.el
+        [ E.htmlAttribute <| HA.title title
+        , Events.onClick onClickMsg
+        , E.alignRight
+        , Border.rounded 4
+        , E.mouseDown [ Background.color colors.selectedItem ]
+        , E.mouseOver [ Background.color colors.menuBorder ]
+        , E.pointer
+        ]
+    <|
+        E.html (Icons.draw24px iconPath)
+
+
 leftBarContentForPreferences : Model -> Element Msg
 leftBarContentForPreferences m =
-    leftBarMenu "Preferences (coming soon)"
+    leftBarMenu [ E.text "Preferences (coming soon)" ] <| E.none
 
 
 leftBarContentForListsOfBagsVerticesAndEdges : Model -> Element Msg
 leftBarContentForListsOfBagsVerticesAndEdges m =
-    leftBarMenu "TODO"
+    let
+        a =
+            42
+    in
+    E.column [ E.width E.fill ]
+        [ leftBarMenu [ E.text "Bags" ] <| E.none
+        , leftBarMenu
+            [ E.text "Vertices"
+            , leftBarHeaderButton "Remove Selected Vertices"
+                ClickOnVertexTrash
+                Icons.icons.trash
+            ]
+          <|
+            E.none
+        , leftBarMenu
+            [ E.text "Edges"
+            , leftBarHeaderButton "Remove Selected Edges"
+                ClickOnEdgeTrash
+                Icons.icons.trash
+            ]
+          <|
+            E.none
+        ]
 
 
 leftBarContentForGraphOperations : Model -> Element Msg
 leftBarContentForGraphOperations m =
-    leftBarMenu "Graph Operations (coming soon)"
+    leftBarMenu [ E.text "Graph Operations (coming soon)" ] <| E.none
 
 
 leftBarContentForGraphQueries : Model -> Element Msg
 leftBarContentForGraphQueries m =
-    leftBarMenu "Graph Queries (coming soon)"
+    leftBarMenu [ E.text "Graph Queries (coming soon)" ] <| E.none
 
 
 leftBarContentForGraphGenerators : Model -> Element Msg
 leftBarContentForGraphGenerators m =
-    leftBarMenu "Graph Generators (coming soon)"
+    leftBarMenu [ E.text "Graph Generators (coming soon)" ] <| E.none
 
 
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
 leftBarContentForAlgorithmVisualizations m =
-    leftBarMenu "Algorithm Visualizations (coming soon)"
+    leftBarMenu [ E.text "Algorithm Visualizations (coming soon)" ] <| E.none
 
 
 leftBarContentForGamesOnGraphs : Model -> Element Msg
 leftBarContentForGamesOnGraphs m =
-    leftBarMenu "Games on Graphs (coming soon)"
+    leftBarMenu [ E.text "Games on Graphs (coming soon)" ] <| E.none
 
 
 
@@ -1350,17 +1400,6 @@ rightBar m =
 
 
 
---leftBarHeader =
---    div
---        [ HA.id "header-in-left-bar"
---        , HA.style "height" "38px"
---        ]
---leftBarHeaderText headerText =
---    div
---        [ HA.style "float" "left"
---        , HA.style "padding" "10px"
---        ]
---        [ H.text headerText ]
 --leftBarContentForListsOfBagsVerticesAndEdges : Model -> List (Html Msg)
 --leftBarContentForListsOfBagsVerticesAndEdges m =
 --    let
@@ -1413,16 +1452,6 @@ rightBar m =
 --            div []
 --                [ verticesHeader
 --                , listOfVertices
---                ]
---        verticesHeader =
---            leftBarHeader
---                [ leftBarHeaderText "Vertices"
---                , div
---                    [ HA.class "button"
---                    , HA.title "Remove Selected Vertices"
---                    , HE.onClick ClickOnVertexTrash
---                    ]
---                    [ Icons.draw24px Icons.icons.trash ]
 --                ]
 --        listOfVertices =
 --            div []
