@@ -1038,7 +1038,8 @@ toKey string =
 
 
 colors =
-    { black = E.rgb255 0 0 0
+    { white = E.rgb255 255 255 255
+    , black = E.rgb255 0 0 0
     , menuBackground = E.rgb255 83 83 83
     , menuBorder = E.rgb255 56 56 56
     , selectedItem = E.rgb255 48 48 48
@@ -1070,12 +1071,63 @@ view m =
 
 leftStripe : Model -> Element Msg
 leftStripe m =
-    E.el
+    let
+        a =
+            42
+
+        modeButton title selectedMode iconPath =
+            let
+                color =
+                    if selectedMode == m.selectedMode then
+                        "white"
+
+                    else
+                        "rgb(48,48,48)"
+            in
+            E.el
+                [ E.htmlAttribute <| HA.title title
+                , Events.onClick (ClickOnLeftMostBarRadioButton selectedMode)
+                ]
+            <|
+                E.html (Icons.draw40pxWithColor color iconPath)
+
+        radioButtonsForMode =
+            E.column [ E.alignTop ]
+                [ modeButton "Preferences" Preferences Icons.icons.preferencesGear
+                , modeButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
+                , modeButton "Graph Operations" GraphOperations Icons.icons.magicStick
+                , modeButton "Graph Queries" GraphQueries Icons.icons.qForQuery
+                , modeButton "Graph Generators" GraphGenerators Icons.icons.lightning
+                , modeButton "Algorithm Visualizations" AlgorithmVisualizations Icons.icons.algoVizPlay
+                , modeButton "Games on Graphs" GamesOnGraphs Icons.icons.chessHorse
+                ]
+
+        githubButton =
+            E.newTabLink
+                [ E.htmlAttribute <| HA.title "Source Code"
+                , E.alignBottom
+                ]
+                { url = "https://github.com/erkal/kite"
+                , label = E.html (Icons.draw40pxWithColor "yellow" Icons.icons.githubCat)
+                }
+    in
+    E.column
         [ Background.color colors.black
         , E.width (E.px layoutParams.leftStripeWidth)
         , E.height E.fill
         ]
-        E.none
+        [ radioButtonsForMode
+        , githubButton
+        ]
+
+
+
+-- LEFT BAR
+
+
+leftBarMenu : String -> Element Msg
+leftBarMenu header =
+    E.text header
 
 
 leftBar : Model -> Element Msg
@@ -1088,6 +1140,45 @@ leftBar m =
         , E.height E.fill
         ]
         E.none
+
+
+leftBarContentForPreferences : Model -> List (Element Msg)
+leftBarContentForPreferences m =
+    [ leftBarMenu "Preferences (coming soon)" ]
+
+
+leftBarContentForListsOfBagsVerticesAndEdges : Model -> List (Element Msg)
+leftBarContentForListsOfBagsVerticesAndEdges m =
+    [ leftBarMenu "TODO" ]
+
+
+leftBarContentForGraphOperations : Model -> List (Element Msg)
+leftBarContentForGraphOperations m =
+    [ leftBarMenu "Graph Operations (coming soon)" ]
+
+
+leftBarContentForGraphQueries : Model -> List (Element Msg)
+leftBarContentForGraphQueries m =
+    [ leftBarMenu "Graph Queries (coming soon)" ]
+
+
+leftBarContentForGraphGenerators : Model -> List (Element Msg)
+leftBarContentForGraphGenerators m =
+    [ leftBarMenu "Graph Generators (coming soon)" ]
+
+
+leftBarContentForAlgorithmVisualizations : Model -> List (Element Msg)
+leftBarContentForAlgorithmVisualizations m =
+    [ leftBarMenu "Algorithm Visualizations (coming soon)" ]
+
+
+leftBarContentForGamesOnGraphs : Model -> List (Element Msg)
+leftBarContentForGamesOnGraphs m =
+    [ leftBarMenu "Games on Graphs (coming soon)" ]
+
+
+
+-- TOP BAR
 
 
 topBar : Model -> Element Msg
@@ -1185,6 +1276,10 @@ topBar m =
             ]
 
 
+
+--RIGHT BAR
+
+
 rightBar : Model -> Element Msg
 rightBar m =
     E.el
@@ -1198,60 +1293,6 @@ rightBar m =
 
 
 
---toolSelectionButtonGroup : Model -> Html Msg
---toolSelectionButtonGroup m =
---    div
---        [ HA.class "radio-button-group" ]
---        [ div
---            [ HA.title "Hand (H)"
---            , HE.onClick ClickOnHandTool
---            , HA.class <|
---                case m.selectedTool of
---                    Hand _ ->
---                        "radio-button-selected"
---                    _ ->
---                        "radio-button"
---            ]
---            [ Icons.draw34px Icons.icons.hand ]
---        , div
---            [ HA.title "Selection (S)"
---            , HE.onClick ClickOnSelectTool
---            , HA.class <|
---                case m.selectedTool of
---                    Select _ ->
---                        "radio-button-selected"
---                    _ ->
---                        "radio-button"
---            ]
---            [ Icons.draw34px Icons.icons.pointer ]
---        , div
---            [ HA.title "Draw (D)"
---            , HE.onClick ClickOnDrawTool
---            , HA.class <|
---                case m.selectedTool of
---                    Draw _ ->
---                        "radio-button-selected"
---                    _ ->
---                        "radio-button"
---            ]
---            [ Icons.draw34px Icons.icons.pen ]
---        ]
---vaderAsRadioButton : Model -> Html Msg
---vaderAsRadioButton m =
---    div
---        [ HA.class "radio-button-group" ]
---        [ div
---            [ HA.title "Force (F)"
---            , HA.class <|
---                if m.vaderIsOn then
---                    "radio-button-selected"
---                else
---                    "radio-button"
---            , HE.onClick ClickOnVader
---            ]
---            [ Icons.draw34px Icons.icons.vader ]
---        ]
----- LEFT BAR
 --leftBarHeader =
 --    div
 --        [ HA.id "header-in-left-bar"
@@ -1263,11 +1304,6 @@ rightBar m =
 --        , HA.style "padding" "10px"
 --        ]
 --        [ H.text headerText ]
---leftBarContentForPreferences : Model -> List (Html Msg)
---leftBarContentForPreferences m =
---    [ leftBarHeader
---        [ leftBarHeaderText "Preferences (coming soon)" ]
---    ]
 --leftBarContentForListsOfBagsVerticesAndEdges : Model -> List (Html Msg)
 --leftBarContentForListsOfBagsVerticesAndEdges m =
 --    let
@@ -1413,57 +1449,10 @@ rightBar m =
 --    , viewVertexList
 --    , viewEdgeList
 --    ]
---leftBarContentForGraphOperations : Model -> List (Html Msg)
---leftBarContentForGraphOperations m =
---    [ leftBarHeader
---        [ leftBarHeaderText "Graph Operations (coming soon)" ]
---    ]
---leftBarContentForGraphQueries : Model -> List (Html Msg)
---leftBarContentForGraphQueries m =
---    [ leftBarHeader
---        [ leftBarHeaderText "Graph Queries (coming soon)" ]
---    ]
---leftBarContentForGraphGenerators : Model -> List (Html Msg)
---leftBarContentForGraphGenerators m =
---    [ leftBarHeader
---        [ leftBarHeaderText "Graph Generators (coming soon)" ]
---    ]
---leftBarContentForAlgorithmVisualizations : Model -> List (Html Msg)
---leftBarContentForAlgorithmVisualizations m =
---    [ leftBarHeader
---        [ leftBarHeaderText "Algorithm Visualizations (coming soon)" ]
---    ]
---leftBarContentForGamesOnGraphs : Model -> List (Html Msg)
---leftBarContentForGamesOnGraphs m =
---    [ leftBarHeader
---        [ leftBarHeaderText "Games on Graphs (coming soon)" ]
---    ]
 --leftBar : Model -> Html Msg
 --leftBar m =
 --    let
---        thinBandWidth =
---            40
---        thinBandButton title selectedMode icon =
---            let
---                color =
---                    if selectedMode == m.selectedMode then
---                        "white"
---                    else
---                        "rgb(46, 46, 46)"
---            in
---            div
---                [ HA.title title
---                , HA.class "thinBandButton"
---                , HE.onClick (ClickOnLeftMostBarRadioButton selectedMode)
---                ]
---                [ Icons.draw40pxWithColor color icon ]
---        githubButton =
---            H.a
---                [ HA.title "Source Code"
---                , HA.href "https://github.com/erkal/kite"
---                , HA.target "_blank"
---                ]
---                [ Icons.draw40pxWithColor "yellow" Icons.icons.githubCat ]
+--
 --        -- donateButton =
 --        --     div
 --        --         [ HA.title "Donate"
