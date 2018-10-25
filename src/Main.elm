@@ -13,6 +13,7 @@ import Element as E exposing (Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
+import Element.Font as Font
 import Force exposing (Force)
 import Geometry.Svg
 import Html as H exposing (Html, div)
@@ -35,8 +36,6 @@ import Vector2d exposing (Vector2d)
 
 
 
--- TODO: Use Element.Keyed for the vertex edge and bag lists.
--- TODO: Use Svg.Keyed for the vertices and edges
 -- TODO: Remove style.css after elm-ui
 
 
@@ -1043,11 +1042,14 @@ colors =
     , menuBackground = E.rgb255 83 83 83
     , menuBorder = E.rgb255 56 56 56
     , selectedItem = E.rgb255 48 48 48
+    , text = E.rgb255 243 243 243
+    , leftBarHeader = E.rgb255 66 66 66
     }
 
 
 layoutParams =
-    { leftStripeWidth = 40
+    { minimumTotalWidth = 1000
+    , leftStripeWidth = 40
     , leftBarWidth = 260
     , topBarHeight = 54
     , rightBarWidth = 300
@@ -1056,8 +1058,26 @@ layoutParams =
 
 view : Model -> Html Msg
 view m =
-    E.layout [] <|
-        E.row [ E.width E.fill, E.height E.fill ] <|
+    E.layout
+        [ Font.color colors.text
+        , Font.family
+            [ Font.typeface "-apple-system"
+            , Font.typeface "BlinkMacSystemFont"
+            , Font.typeface "Segoe UI"
+            , Font.typeface "Roboto"
+            , Font.typeface "Oxygen"
+            , Font.typeface "Ubuntu"
+            , Font.typeface "Cantarell"
+            , Font.typeface "Fira Sans"
+            , Font.typeface "Droid Sans"
+            , Font.typeface "Helvetica Neue"
+            , Font.sansSerif
+            ]
+        , E.htmlAttribute <| HA.style "-webkit-font-smoothing" "antialiased"
+        , E.htmlAttribute <| HA.style "user-select" "none"
+        ]
+    <|
+        E.row [ E.width (E.fill |> E.minimum layoutParams.minimumTotalWidth), E.height E.fill ] <|
             [ leftStripe m
             , leftBar m
             , E.column [ E.width E.fill, E.height E.fill ] <|
@@ -1087,6 +1107,7 @@ leftStripe m =
             E.el
                 [ E.htmlAttribute <| HA.title title
                 , Events.onClick (ClickOnLeftMostBarRadioButton selectedMode)
+                , E.pointer
                 ]
             <|
                 E.html (Icons.draw40pxWithColor color iconPath)
@@ -1106,10 +1127,20 @@ leftStripe m =
             E.newTabLink
                 [ E.htmlAttribute <| HA.title "Source Code"
                 , E.alignBottom
+                , E.pointer
                 ]
                 { url = "https://github.com/erkal/kite"
                 , label = E.html (Icons.draw40pxWithColor "yellow" Icons.icons.githubCat)
                 }
+
+        --donateButton =
+        --    E.newTabLink
+        --        [ E.htmlAttribute <| HA.title "Donate"
+        --        , E.alignBottom
+        --        ]
+        --        { url = "lalala"
+        --        , label = E.html (Icons.draw40pxWithColor "orchid" Icons.icons.donateHeart)
+        --        }
     in
     E.column
         [ Background.color colors.black
@@ -1118,6 +1149,8 @@ leftStripe m =
         ]
         [ radioButtonsForMode
         , githubButton
+
+        --, donateButton
         ]
 
 
@@ -1138,43 +1171,65 @@ leftBar m =
         , Border.color colors.menuBorder
         , E.width (E.px layoutParams.leftBarWidth)
         , E.height E.fill
+        , E.scrollbarY
         ]
-        E.none
+    <|
+        case m.selectedMode of
+            Preferences ->
+                leftBarContentForPreferences m
+
+            ListsOfBagsVerticesAndEdges ->
+                leftBarContentForListsOfBagsVerticesAndEdges m
+
+            GraphOperations ->
+                leftBarContentForGraphOperations m
+
+            GraphQueries ->
+                leftBarContentForGraphQueries m
+
+            GraphGenerators ->
+                leftBarContentForGraphGenerators m
+
+            AlgorithmVisualizations ->
+                leftBarContentForAlgorithmVisualizations m
+
+            GamesOnGraphs ->
+                leftBarContentForGamesOnGraphs m
 
 
-leftBarContentForPreferences : Model -> List (Element Msg)
+leftBarContentForPreferences : Model -> Element Msg
 leftBarContentForPreferences m =
-    [ leftBarMenu "Preferences (coming soon)" ]
+    leftBarMenu "Preferences (coming soon)"
 
 
-leftBarContentForListsOfBagsVerticesAndEdges : Model -> List (Element Msg)
+leftBarContentForListsOfBagsVerticesAndEdges : Model -> Element Msg
 leftBarContentForListsOfBagsVerticesAndEdges m =
-    [ leftBarMenu "TODO" ]
+    leftBarMenu "TODO"
 
 
-leftBarContentForGraphOperations : Model -> List (Element Msg)
+leftBarContentForGraphOperations : Model -> Element Msg
 leftBarContentForGraphOperations m =
-    [ leftBarMenu "Graph Operations (coming soon)" ]
+    leftBarMenu "Graph Operations (coming soon)"
 
 
-leftBarContentForGraphQueries : Model -> List (Element Msg)
+leftBarContentForGraphQueries : Model -> Element Msg
 leftBarContentForGraphQueries m =
-    [ leftBarMenu "Graph Queries (coming soon)" ]
+    leftBarMenu "Graph Queries (coming soon)"
 
 
-leftBarContentForGraphGenerators : Model -> List (Element Msg)
+leftBarContentForGraphGenerators : Model -> Element Msg
 leftBarContentForGraphGenerators m =
-    [ leftBarMenu "Graph Generators (coming soon)" ]
+    leftBarMenu "Graph Generators (coming soon)"
 
 
-leftBarContentForAlgorithmVisualizations : Model -> List (Element Msg)
+leftBarContentForAlgorithmVisualizations : Model -> Element Msg
 leftBarContentForAlgorithmVisualizations m =
-    [ leftBarMenu "Algorithm Visualizations (coming soon)" ]
+    leftBarMenu "Algorithm Visualizations (coming soon)"
 
 
-leftBarContentForGamesOnGraphs : Model -> List (Element Msg)
+leftBarContentForGamesOnGraphs : Model -> Element Msg
 leftBarContentForGamesOnGraphs m =
-    [ leftBarMenu "Games on Graphs (coming soon)" ]
+    leftBarMenu "Games on Graphs (coming soon)"
 
 
 
@@ -1193,6 +1248,7 @@ topBar m =
                 , E.mouseOver [ Background.color colors.menuBorder ]
                 , Events.onClick onClickMsg
                 , E.htmlAttribute <| HA.title title
+                , E.pointer
                 ]
             <|
                 E.html (Icons.draw34px iconPath)
@@ -1214,6 +1270,7 @@ topBar m =
                 , Border.rounded 4
                 , Events.onClick onClickMsg
                 , E.htmlAttribute <| HA.title title
+                , E.pointer
                 ]
             <|
                 E.html (Icons.draw34px iconPath)
@@ -1449,69 +1506,6 @@ rightBar m =
 --    , viewVertexList
 --    , viewEdgeList
 --    ]
---leftBar : Model -> Html Msg
---leftBar m =
---    let
---
---        -- donateButton =
---        --     div
---        --         [ HA.title "Donate"
---        --         , HE.onClick (DonateButtonClicked)
---        --         ]
---        --         [ Icons.draw40pxWithColor "orchid" Icons.icons.donateHeart ]
---        --
---        --
---        thinBandRadioButtons =
---            div [ HA.id "thinBarButtonGroup" ]
---                [ thinBandButton "Preferences" Preferences Icons.icons.preferencesGear
---                , thinBandButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
---                , thinBandButton "Graph Operations" GraphOperations Icons.icons.magicStick
---                , thinBandButton "Graph Queries" GraphQueries Icons.icons.qForQuery
---                , thinBandButton "Graph Generators" GraphGenerators Icons.icons.lightning
---                , thinBandButton "Algorithm Visualizations" AlgorithmVisualizations Icons.icons.algoVizPlay
---                , thinBandButton "Games on Graphs" GamesOnGraphs Icons.icons.chessHorse
---                ]
---        thinBand =
---            div
---                [ HA.id "leftBarThinBand"
---                , HA.style "position" "absolute"
---                , HA.style "width" (String.fromInt thinBandWidth ++ "px")
---                , HA.style "height" "100%"
---                , HA.style "overflow" "scroll"
---                ]
---                [ thinBandRadioButtons
---                , githubButton
---                ]
---        content =
---            div
---                [ HA.id "leftBarContent"
---                , HA.style "position" "absolute"
---                , HA.style "left" (String.fromInt thinBandWidth ++ "px")
---                , HA.style "width" (String.fromInt (300 - thinBandWidth) ++ "px")
---                , HA.style "height" "100%"
---                , HA.style "overflow" "scroll"
---                ]
---                (case m.selectedMode of
---                    Preferences ->
---                        leftBarContentForPreferences m
---                    ListsOfBagsVerticesAndEdges ->
---                        leftBarContentForListsOfBagsVerticesAndEdges m
---                    GraphOperations ->
---                        leftBarContentForGraphOperations m
---                    GraphQueries ->
---                        leftBarContentForGraphQueries m
---                    GraphGenerators ->
---                        leftBarContentForGraphGenerators m
---                    AlgorithmVisualizations ->
---                        leftBarContentForAlgorithmVisualizations m
---                    GamesOnGraphs ->
---                        leftBarContentForGamesOnGraphs m
---                )
---    in
---    div []
---        [ thinBand
---        , content
---        ]
 ---- RIGHT BAR
 --subMenu : String -> List (Html Msg) -> Html Msg
 --subMenu header rest =
@@ -2043,7 +2037,10 @@ mainSvg m =
                     "default"
 
         mainSvgWidth =
-            m.windowSize.width - layoutParams.leftStripeWidth - layoutParams.leftBarWidth - layoutParams.rightBarWidth
+            max m.windowSize.width layoutParams.minimumTotalWidth
+                - layoutParams.leftStripeWidth
+                - layoutParams.leftBarWidth
+                - layoutParams.rightBarWidth
 
         mainSvgHeight =
             m.windowSize.height - layoutParams.topBarHeight
