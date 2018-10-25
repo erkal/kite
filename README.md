@@ -19,7 +19,7 @@ You should have the latest version of Elm installed.
 ```shell
 git clone https://github.com/erkal/kite.git
 cd kite
-elm make src/Main.elm --optimize --output=elm.js
+elm make src/Main.elm --output=elm.js
 open index.html
 ```
 
