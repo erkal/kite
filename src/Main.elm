@@ -14,6 +14,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
+import Element.Input as Input
 import Force exposing (Force)
 import Geometry.Svg
 import Html as H exposing (Html, div)
@@ -268,22 +269,24 @@ type Msg
     | MouseOverVertexItem VertexId
     | MouseOutVertexItem VertexId
     | ClickOnVertexItem VertexId
-    | NumberInputVertexX String
-    | NumberInputVertexY String
-    | ColorPickerVertex Color
-    | NumberInputRadius String
-    | CheckBoxFixed Bool
-    | NumberInputVertexStrength String
+      --
+    | InputVertexX String
+    | InputVertexY String
+    | InputVertexRadius Float
+    | InputVertexStrength Float
+    | InputFixedFixed Bool
+    | InputVertexColor Color
       --
     | ClickOnEdgeContract
     | ClickOnEdgeTrash
     | MouseOverEdgeItem EdgeId
     | MouseOutEdgeItem EdgeId
     | ClickOnEdgeItem EdgeId
-    | ColorPickerEdge Color
-    | NumberInputThickness String
-    | NumberInputDistance String
-    | NumberInputEdgeStrength String
+      --
+    | InputEdgeThickness String
+    | InputEdgeDistance String
+    | InputEdgeStrength String
+    | InputEdgeColor Color
 
 
 reheatSimulation : Model -> Model
@@ -718,13 +721,13 @@ update msg m =
                             m.user |> User.updateDefaultBag updateCH
             }
 
-        NumberInputVertexX str ->
+        InputVertexX str ->
             { m | user = m.user |> User.setCentroidX m.selectedVertices (str |> String.toFloat |> Maybe.withDefault 0) }
 
-        NumberInputVertexY str ->
+        InputVertexY str ->
             { m | user = m.user |> User.setCentroidY m.selectedVertices (str |> String.toFloat |> Maybe.withDefault 0) }
 
-        ColorPickerVertex newColor ->
+        InputVertexColor newColor ->
             let
                 updateColor v =
                     { v | color = newColor }
@@ -738,10 +741,10 @@ update msg m =
                         m.user |> User.updateVertices m.selectedVertices updateColor
             }
 
-        NumberInputRadius str ->
+        InputVertexRadius num ->
             let
                 updateRadius v =
-                    { v | radius = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 4 20 }
+                    { v | radius = num }
             in
             { m
                 | user =
@@ -752,10 +755,10 @@ update msg m =
                         m.user |> User.updateVertices m.selectedVertices updateRadius
             }
 
-        NumberInputVertexStrength str ->
+        InputVertexStrength num ->
             let
                 updateStrength v =
-                    { v | strength = str |> String.toFloat |> Maybe.withDefault -60 |> clamp -1000 100 }
+                    { v | strength = num }
             in
             reheatSimulation
                 { m
@@ -767,7 +770,7 @@ update msg m =
                             m.user |> User.updateVertices m.selectedVertices updateStrength
                 }
 
-        ColorPickerEdge newColor ->
+        InputEdgeColor newColor ->
             let
                 updateColor e =
                     { e | color = newColor }
@@ -781,7 +784,7 @@ update msg m =
                         m.user |> User.updateEdges m.selectedEdges updateColor
             }
 
-        CheckBoxFixed b ->
+        InputFixedFixed b ->
             let
                 updateFixed v =
                     { v | fixed = b }
@@ -796,7 +799,7 @@ update msg m =
                             m.user |> User.updateVertices m.selectedVertices updateFixed
                 }
 
-        NumberInputThickness str ->
+        InputEdgeThickness str ->
             let
                 updateThickness e =
                     { e | thickness = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 1 20 }
@@ -810,7 +813,7 @@ update msg m =
                         m.user |> User.updateEdges m.selectedEdges updateThickness
             }
 
-        NumberInputDistance str ->
+        InputEdgeDistance str ->
             let
                 updateDistance e =
                     { e | distance = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 2000 }
@@ -825,7 +828,7 @@ update msg m =
                             m.user |> User.updateEdges m.selectedEdges updateDistance
                 }
 
-        NumberInputEdgeStrength str ->
+        InputEdgeStrength str ->
             let
                 updateStrength e =
                     { e | strength = str |> String.toFloat |> Maybe.withDefault 0 |> clamp 0 1 }
@@ -1042,8 +1045,10 @@ colors =
     , menuBackground = El.rgb255 83 83 83
     , menuBorder = El.rgb255 56 56 56
     , selectedItem = El.rgb255 48 48 48
-    , text = El.rgb255 243 243 243
+    , lightText = El.rgb255 243 243 243
+    , darkText = El.rgb255 23 23 23
     , leftBarHeader = El.rgb255 66 66 66
+    , inputBackground = El.rgb255 69 69 69
     }
 
 
@@ -1058,8 +1063,18 @@ layoutParams =
 
 view : Model -> Html Msg
 view m =
-    El.layout
-        [ Font.color colors.text
+    El.layoutWith
+        { options =
+            [ El.focusStyle
+                { borderColor = Nothing
+                , backgroundColor = Nothing
+                , shadow = Nothing
+                }
+            ]
+        }
+        [ Font.color colors.lightText
+        , Font.size 12
+        , Font.regular
         , Font.family
             [ Font.typeface "-apple-system"
             , Font.typeface "BlinkMacSystemFont"
@@ -1200,11 +1215,11 @@ leftBarMenu headerItems content =
         header =
             El.row
                 [ Background.color colors.leftBarHeader
-                , Font.size 12
                 , El.width El.fill
                 , El.padding 8
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color colors.menuBorder
+                , Font.medium
                 ]
                 headerItems
     in
@@ -1246,7 +1261,6 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             El.el
                 [ El.width El.fill
                 , El.paddingXY 10 6
-                , Font.size 10
                 , Background.color <|
                     if Just bagId == m.maybeSelectedBag then
                         colors.selectedItem
@@ -1272,7 +1286,6 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             El.el
                 [ El.width El.fill
                 , El.paddingXY 10 6
-                , Font.size 10
                 , Background.color <|
                     if Set.member id m.selectedVertices then
                         colors.selectedItem
@@ -1298,7 +1311,6 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             El.el
                 [ El.width El.fill
                 , El.paddingXY 10 6
-                , Font.size 10
                 , Background.color <|
                     if Set.member ( from, to ) m.selectedEdges then
                         colors.selectedItem
@@ -1478,8 +1490,7 @@ rightBar m =
         ]
         [ selectionType m
         , vertexProperties m
-
-        --, edgeProperties m
+        , edgeProperties m
         ]
 
 
@@ -1488,28 +1499,37 @@ subMenu header contentLines =
     let
         headerBar =
             El.el
-                [ Font.size 12
-                , El.width El.fill
-                , El.paddingEach { top = 0, right = 0, bottom = 10, left = 0 }
+                [ El.width El.fill
+                , Font.medium
                 ]
                 (El.text header)
+
+        content =
+            El.column
+                [ El.width El.fill
+                , El.paddingXY 20 20
+                , El.spacing 8
+                ]
+                contentLines
     in
     El.column
-        [ El.padding 10
-        , El.width El.fill
+        [ El.width El.fill
+        , El.padding 12
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
         , Border.color colors.menuBorder
         ]
-        (headerBar :: contentLines)
+        [ headerBar
+        , content
+        ]
 
 
 inputLine : String -> Element Msg -> Element Msg
 inputLine label inputField =
+    -- TODO: Remove this and use Element.Input for every input
     El.row [ El.padding 10, El.spacing 10 ]
         [ El.el
             [ El.width (El.px 80)
             , Font.alignRight
-            , Font.size 10
             ]
             (El.text label)
         , El.el
@@ -1570,6 +1590,70 @@ selectionType m =
         ]
 
 
+textInput :
+    { label : String
+    , text : String
+    , onChange : String -> Msg
+    }
+    -> Element Msg
+textInput { label, text, onChange } =
+    Input.text
+        [ El.width (El.px 40)
+        , El.height (El.px 10)
+        , Background.color colors.inputBackground
+        , El.paddingXY 6 10
+        , El.spacing 8
+        , Font.size 10
+        , Border.width 0
+        , El.focused
+            [ Font.color colors.darkText
+            , Background.color colors.white
+            ]
+        ]
+        { onChange = onChange
+        , text = text
+        , placeholder = Nothing
+        , label =
+            Input.labelLeft
+                [ El.centerY
+                ]
+                (El.text label)
+        }
+
+
+sliderInput :
+    { label : String
+    , value : Float
+    , min : Float
+    , max : Float
+    , step : Float
+    , onChange : Float -> Msg
+    }
+    -> Element Msg
+sliderInput { label, value, min, max, step, onChange } =
+    Input.slider
+        [ El.height (El.px 30)
+        , El.behindContent
+            (El.el
+                [ El.width El.fill
+                , El.height (El.px 4)
+                , El.centerY
+                , Background.color colors.inputBackground
+                , Border.rounded 2
+                ]
+                El.none
+            )
+        ]
+        { onChange = onChange
+        , label = Input.labelLeft [ El.centerY ] (El.text label)
+        , min = min
+        , max = max
+        , step = Just step
+        , value = value
+        , thumb = Input.defaultThumb
+        }
+
+
 vertexProperties : Model -> Element Msg
 vertexProperties m =
     let
@@ -1585,7 +1669,93 @@ vertexProperties m =
                     "Selected Vertices"
     in
     subMenu headerForVertexProperties
-        [ inputLine "X" <| El.none ]
+        [ textInput
+            { label = "X"
+            , text =
+                m.user
+                    |> User.getCentroid m.selectedVertices
+                    |> Maybe.map Point2d.xCoordinate
+                    |> Maybe.map round
+                    |> Maybe.map String.fromInt
+                    |> Maybe.withDefault "?"
+            , onChange = InputVertexX
+            }
+        , textInput
+            { label = "Y"
+            , text =
+                m.user
+                    |> User.getCentroid m.selectedVertices
+                    |> Maybe.map Point2d.yCoordinate
+                    |> Maybe.map round
+                    |> Maybe.map String.fromInt
+                    |> Maybe.withDefault "?"
+            , onChange = InputVertexY
+            }
+        , sliderInput
+            { label = "Radius"
+            , value =
+                if Set.isEmpty m.selectedVertices then
+                    m.user |> User.getDefaultVertexProperties |> .radius
+
+                else
+                    case m.user |> User.getCommonVertexProperty m.selectedVertices .radius of
+                        Just r ->
+                            r
+
+                        Nothing ->
+                            4
+            , min = 4
+            , max = 20
+            , step = 1
+            , onChange = InputVertexRadius
+            }
+        , sliderInput
+            { label = "Strength"
+            , value =
+                let
+                    defaultVertexStrength =
+                        m.user |> User.getDefaultVertexProperties |> .strength
+                in
+                if Set.isEmpty m.selectedVertices then
+                    defaultVertexStrength
+
+                else
+                    case m.user |> User.getCommonVertexProperty m.selectedVertices .strength of
+                        Just s ->
+                            s
+
+                        Nothing ->
+                            defaultVertexStrength
+            , min = -2000
+            , max = 0
+            , step = 1
+            , onChange = InputVertexStrength
+            }
+        , El.text "Fixed (TODO)"
+        , El.text "Color (TODO)"
+        ]
+
+
+edgeProperties : Model -> Element Msg
+edgeProperties m =
+    let
+        headerForEdgeProperties =
+            case Set.size m.selectedEdges of
+                0 ->
+                    "Edge Preferences"
+
+                1 ->
+                    "Selected Edge"
+
+                _ ->
+                    "Selected Edges"
+    in
+    subMenu headerForEdgeProperties
+        [ El.text "Thickness (TODO)"
+        , El.text "Distance (TODO)"
+        , El.text "Strength (TODO)"
+        , El.text "Color (TODO)"
+        ]
 
 
 
@@ -1600,7 +1770,7 @@ vertexProperties m =
 --                    |> Maybe.map String.fromInt
 --                    |> Maybe.withDefault ""
 --                )
---            , HE.onInput NumberInputVertexX
+--            , HE.onInput InputVertexX
 --            ]
 --    , input "Y" <|
 --        numberInput
@@ -1612,12 +1782,12 @@ vertexProperties m =
 --                    |> Maybe.map String.fromInt
 --                    |> Maybe.withDefault ""
 --                )
---            , HE.onInput NumberInputVertexY
+--            , HE.onInput InputVertexY
 --            ]
 --    ]
 --, lineWithColumns 140
 --    [ input "Color" <|
---        H.map ColorPickerVertex <|
+--        H.map InputVertexColor <|
 --            ColorPicker.view <|
 --                if Set.isEmpty m.selectedVertices then
 --                    Just (m.user |> User.getDefaultVertexProperties |> .color)
@@ -1637,12 +1807,12 @@ vertexProperties m =
 --                            String.fromFloat r
 --                        Nothing ->
 --                            ""
---            , HE.onInput NumberInputRadius
+--            , HE.onInput InputVertexRadius
 --            ]
 --    ]
 --, lineWithColumns 140
 --    [ input "Fixed"
---        (H.map CheckBoxFixed
+--        (H.map InputFixedFixed
 --            (CheckBox.view <|
 --                if Set.isEmpty m.selectedVertices then
 --                    Just (m.user |> User.getDefaultVertexProperties |> .fixed)
@@ -1664,7 +1834,7 @@ vertexProperties m =
 --                            String.fromFloat s
 --                        Nothing ->
 --                            ""
---            , HE.onInput NumberInputVertexStrength
+--            , HE.onInput InputVertexStrength
 --            ]
 --    ]
 --]
@@ -1683,7 +1853,7 @@ vertexProperties m =
 --    subMenu headerForEdgeProperties
 --        [ lineWithColumns 140
 --            [ input "Color" <|
---                H.map ColorPickerEdge <|
+--                H.map InputEdgeColor <|
 --                    ColorPicker.view <|
 --                        if Set.isEmpty m.selectedEdges then
 --                            Just (m.user |> User.getDefaultEdgeProperties |> .color)
@@ -1700,7 +1870,7 @@ vertexProperties m =
 --                                    String.fromFloat r
 --                                Nothing ->
 --                                    ""
---                    , HE.onInput NumberInputThickness
+--                    , HE.onInput InputEdgeThickness
 --                    , HA.min "1"
 --                    , HA.max "20"
 --                    , HA.step "1"
@@ -1718,7 +1888,7 @@ vertexProperties m =
 --                                    String.fromFloat r
 --                                Nothing ->
 --                                    ""
---                    , HE.onInput NumberInputDistance
+--                    , HE.onInput InputEdgeDistance
 --                    , HA.min "0"
 --                    , HA.max "2000"
 --                    , HA.step "1"
@@ -1734,7 +1904,7 @@ vertexProperties m =
 --                                    String.fromFloat r
 --                                Nothing ->
 --                                    ""
---                    , HE.onInput NumberInputEdgeStrength
+--                    , HE.onInput InputEdgeStrength
 --                    , HA.min "0"
 --                    , HA.max "1"
 --                    , HA.step "0.05"
