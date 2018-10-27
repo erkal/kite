@@ -1,34 +1,102 @@
-module Colors exposing (Color, colorHighlightForSelection, highlightColorForMouseOver, vertexAndEdgeColors)
+module Colors exposing
+    ( black
+    , darkText
+    , highlightPink
+    , icon
+    , inputBackground
+    , leftBarHeader
+    , lightText
+    , menuBackground
+    , menuBorder
+    , mouseOveredItem
+    , selectBlue
+    , selectedItem
+    , toString
+    , vertexAndEdgeColors
+    , white
+    )
+
+import Element as El exposing (Color, Element)
 
 
-type alias Color =
-    String
+toString : Color -> String
+toString color =
+    let
+        { red, green, blue, alpha } =
+            El.toRgb color
+    in
+    "rgba("
+        ++ String.fromInt (round (red * 255))
+        ++ ("," ++ String.fromInt (round (green * 255)))
+        ++ ("," ++ String.fromInt (round (blue * 255)))
+        ++ ("," ++ String.fromFloat alpha ++ ")")
 
 
-highlightColorForMouseOver =
-    "rgb(255, 47, 146)"
+highlightPink =
+    El.rgb255 255 47 146
 
 
-colorHighlightForSelection =
-    "rgb(0, 150, 255)"
+selectBlue =
+    El.rgb255 0 150 255
+
+
+white =
+    El.rgb255 255 255 255
+
+
+black =
+    El.rgb255 0 0 0
+
+
+icon =
+    El.rgb255 195 195 195
+
+
+menuBackground =
+    El.rgb255 83 83 83
+
+
+menuBorder =
+    El.rgba255 56 56 56 0.25
+
+
+selectedItem =
+    El.rgb255 48 48 48
+
+
+mouseOveredItem =
+    El.rgb255 56 56 56
+
+
+lightText =
+    El.rgb255 195 195 195
+
+
+darkText =
+    El.rgb255 23 23 23
+
+
+leftBarHeader =
+    El.rgb255 66 66 66
+
+
+inputBackground =
+    El.rgb255 69 69 69
 
 
 vertexAndEdgeColors =
-    [ "black"
-    , "white"
-    , "lightgray"
-    , "darkgray"
-    , "gray"
-    , "rgb(199, 0, 57)"
-    , "rgb(144, 12, 63)"
-    , "rgb(81, 24, 73)"
-    , "rgb(61, 61, 106)"
-    , "rgb(42, 123, 154)"
-    , "rgb(0, 187, 173)"
-    , "rgb(86, 199, 133)"
-    , "rgb(173, 213, 91)"
-    , "rgb(237, 221, 83)"
-    , "rgb(255, 195, 0)"
-    , "rgb(255, 140, 26)"
-    , "rgb(255, 87, 51)"
+    [ white
+    , black
+    , El.rgb255 199 0 57
+    , El.rgb255 144 12 63
+    , El.rgb255 81 24 73
+    , El.rgb255 61 61 106
+    , El.rgb255 42 123 154
+    , El.rgb255 0 187 173
+    , El.rgb255 86 199 133
+    , El.rgb255 173 213 91
+    , El.rgb255 237 221 83
+    , El.rgb255 255 195 0
+    , El.rgb255 255 140 26
+    , El.rgb255 255 87 51
     ]

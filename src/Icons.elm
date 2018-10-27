@@ -1,5 +1,5 @@
 module Icons exposing
-    ( draw20px
+    ( draw18px
     , draw24px
     , draw34px
     , draw40pxWithColor
@@ -10,9 +10,9 @@ import Svg as S exposing (Svg)
 import Svg.Attributes as SA
 
 
-draw20px : String -> Svg msg
-draw20px =
-    draw 20
+draw18px : String -> Svg msg
+draw18px =
+    draw 18
 
 
 draw24px : String -> Svg msg

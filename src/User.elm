@@ -53,7 +53,6 @@ module User exposing
 
 import BoundingBox2d exposing (BoundingBox2d)
 import Circle2d exposing (Circle2d)
-import Colors exposing (Color)
 import Dict exposing (Dict)
 import Force exposing (Force, ForceGraph)
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
@@ -97,7 +96,7 @@ type alias VertexProperties =
     , velocity : Vector2d
     , strength : Float
     , fixed : Bool
-    , color : Color
+    , color : String
     , radius : Float
     , inBags : Set BagId
     }
@@ -106,7 +105,7 @@ type alias VertexProperties =
 type alias EdgeProperties =
     { distance : Float
     , strength : Float
-    , color : Color
+    , color : String
     , thickness : Float
     }
 

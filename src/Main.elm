@@ -5,10 +5,9 @@ import Browser
 import Browser.Dom as Dom
 import Browser.Events exposing (Visibility(..))
 import Circle2d exposing (Circle2d)
-import ColorPicker
-import Colors exposing (Color)
+import Colors
 import Dict exposing (Dict)
-import Element as El exposing (Element)
+import Element as El exposing (Color, Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
@@ -729,7 +728,7 @@ update msg m =
         InputVertexColor newColor ->
             let
                 updateColor v =
-                    { v | color = newColor }
+                    { v | color = Colors.toString newColor }
             in
             { m
                 | user =
@@ -772,7 +771,7 @@ update msg m =
         InputEdgeColor newColor ->
             let
                 updateColor e =
-                    { e | color = newColor }
+                    { e | color = Colors.toString newColor }
             in
             { m
                 | user =
@@ -1038,21 +1037,6 @@ toKey string =
 -- VIEW
 
 
-colors =
-    { white = El.rgb255 255 255 255
-    , black = El.rgb255 0 0 0
-    , icon = El.rgb255 195 195 195
-    , menuBackground = El.rgb255 83 83 83
-    , menuBorder = El.rgba255 56 56 56 0.25
-    , selectedItem = El.rgb255 48 48 48
-    , mouseOveredItem = El.rgb255 56 56 56
-    , lightText = El.rgb255 243 243 243
-    , darkText = El.rgb255 23 23 23
-    , leftBarHeader = El.rgb255 66 66 66
-    , inputBackground = El.rgb255 69 69 69
-    }
-
-
 layoutParams =
     { minimumTotalWidth = 1000
     , leftStripeWidth = 40
@@ -1073,7 +1057,7 @@ view m =
                 }
             ]
         }
-        [ Font.color colors.lightText
+        [ Font.color Colors.lightText
         , Font.size 12
         , Font.regular
         , Font.family
@@ -1161,7 +1145,7 @@ leftStripe m =
         --        }
     in
     El.column
-        [ Background.color colors.black
+        [ Background.color Colors.black
         , El.width (El.px layoutParams.leftStripeWidth)
         , El.height El.fill
         ]
@@ -1179,9 +1163,9 @@ leftStripe m =
 leftBar : Model -> Element Msg
 leftBar m =
     El.el
-        [ Background.color colors.menuBackground
+        [ Background.color Colors.menuBackground
         , Border.widthEach { bottom = 0, left = 0, right = 1, top = 0 }
-        , Border.color colors.menuBorder
+        , Border.color Colors.menuBorder
         , El.width (El.px layoutParams.leftBarWidth)
         , El.height El.fill
         , {- TODO: Scrollbar doesn't work. -} El.scrollbarY
@@ -1215,11 +1199,11 @@ leftBarMenu headerItems content =
     let
         header =
             El.row
-                [ Background.color colors.leftBarHeader
+                [ Background.color Colors.leftBarHeader
                 , El.width El.fill
                 , El.padding 8
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                , Border.color colors.menuBorder
+                , Border.color Colors.menuBorder
                 , Font.medium
                 ]
                 headerItems
@@ -1234,8 +1218,8 @@ leftBarHeaderButton title onClickMsg iconPath =
         , Events.onClick onClickMsg
         , El.alignRight
         , Border.rounded 4
-        , El.mouseDown [ Background.color colors.selectedItem ]
-        , El.mouseOver [ Background.color colors.mouseOveredItem ]
+        , El.mouseDown [ Background.color Colors.selectedItem ]
+        , El.mouseOver [ Background.color Colors.mouseOveredItem ]
         , El.pointer
         ]
         (El.html (Icons.draw24px iconPath))
@@ -1264,10 +1248,12 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 , El.paddingXY 10 6
                 , Background.color <|
                     if Just bagId == m.maybeSelectedBag then
-                        colors.selectedItem
+                        Colors.selectedItem
 
                     else
-                        colors.menuBackground
+                        Colors.menuBackground
+                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Border.color Colors.menuBorder
                 , Events.onMouseEnter (MouseOverBagItem bagId)
                 , Events.onMouseLeave (MouseOutBagItem bagId)
                 , Events.onClick (ClickOnBagItem bagId)
@@ -1284,20 +1270,32 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 )
 
         vertexItem { id } =
-            El.el
+            El.row
                 [ El.width El.fill
-                , El.paddingXY 10 6
-                , Background.color <|
-                    if Set.member id m.selectedVertices then
-                        colors.selectedItem
-
-                    else
-                        colors.menuBackground
+                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Border.color Colors.menuBorder
                 , Events.onMouseEnter (MouseOverVertexItem id)
                 , Events.onMouseLeave (MouseOutVertexItem id)
                 , Events.onClick (ClickOnVertexItem id)
                 ]
-                (El.text (String.fromInt id))
+                [ El.el [ El.paddingXY 10 6 ]
+                    (El.text (String.fromInt id))
+                , El.el
+                    [ El.width (El.px 10)
+                    , El.height El.fill
+                    , El.alignRight
+                    , Background.color <|
+                        if Set.member id m.highlightedVertices then
+                            Colors.highlightPink
+
+                        else if Set.member id m.selectedVertices then
+                            Colors.selectBlue
+
+                        else
+                            Colors.menuBackground
+                    ]
+                    El.none
+                ]
 
         --
         listOfEdges =
@@ -1309,20 +1307,32 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 )
 
         edgeItem { from, to } =
-            El.el
+            El.row
                 [ El.width El.fill
-                , El.paddingXY 10 6
-                , Background.color <|
-                    if Set.member ( from, to ) m.selectedEdges then
-                        colors.selectedItem
-
-                    else
-                        colors.menuBackground
+                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Border.color Colors.menuBorder
                 , Events.onMouseEnter (MouseOverEdgeItem ( from, to ))
                 , Events.onMouseLeave (MouseOutEdgeItem ( from, to ))
                 , Events.onClick (ClickOnEdgeItem ( from, to ))
                 ]
-                (El.text (String.fromInt from ++ " → " ++ String.fromInt to))
+                [ El.el [ El.paddingXY 10 6 ]
+                    (El.text (String.fromInt from ++ " → " ++ String.fromInt to))
+                , El.el
+                    [ El.width (El.px 10)
+                    , El.height El.fill
+                    , El.alignRight
+                    , Background.color <|
+                        if Set.member ( from, to ) m.highlightedEdges then
+                            Colors.highlightPink
+
+                        else if Set.member ( from, to ) m.selectedEdges then
+                            Colors.selectBlue
+
+                        else
+                            Colors.menuBackground
+                    ]
+                    El.none
+                ]
     in
     El.column [ El.width El.fill ]
         [ leftBarMenu
@@ -1388,9 +1398,9 @@ topBar m =
             El.el
                 [ Border.width 1
                 , Border.rounded 4
-                , Border.color colors.menuBorder
-                , El.mouseDown [ Background.color colors.selectedItem ]
-                , El.mouseOver [ Background.color colors.mouseOveredItem ]
+                , Border.color Colors.menuBorder
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
                 , Events.onClick onClickMsg
                 , El.htmlAttribute (HA.title title)
                 , El.pointer
@@ -1400,7 +1410,7 @@ topBar m =
         radioButtonGroup buttonList =
             El.row
                 [ Border.width 1
-                , Border.color colors.menuBorder
+                , Border.color Colors.menuBorder
                 , El.padding 4
                 , El.spacing 4
                 ]
@@ -1409,8 +1419,8 @@ topBar m =
         radioButton title iconPath onClickMsg backgroundColor =
             El.el
                 [ Background.color backgroundColor
-                , El.mouseDown [ Background.color colors.selectedItem ]
-                , El.mouseOver [ Background.color colors.mouseOveredItem ]
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
                 , Border.rounded 4
                 , Events.onClick onClickMsg
                 , El.htmlAttribute (HA.title title)
@@ -1419,9 +1429,9 @@ topBar m =
                 (El.html (Icons.draw34px iconPath))
     in
     El.el
-        [ Background.color colors.menuBackground
+        [ Background.color Colors.menuBackground
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        , Border.color colors.menuBorder
+        , Border.color Colors.menuBorder
         , El.width El.fill
         , El.height (El.px layoutParams.topBarHeight)
         ]
@@ -1437,30 +1447,30 @@ topBar m =
                   <|
                     case m.selectedTool of
                         Hand _ ->
-                            colors.selectedItem
+                            Colors.selectedItem
 
                         _ ->
-                            colors.menuBackground
+                            Colors.menuBackground
                 , radioButton "Selection (S)"
                     Icons.icons.pointer
                     ClickOnSelectTool
                   <|
                     case m.selectedTool of
                         Select _ ->
-                            colors.selectedItem
+                            Colors.selectedItem
 
                         _ ->
-                            colors.menuBackground
+                            Colors.menuBackground
                 , radioButton "Draw (D)"
                     Icons.icons.pen
                     ClickOnDrawTool
                   <|
                     case m.selectedTool of
                         Draw _ ->
-                            colors.selectedItem
+                            Colors.selectedItem
 
                         _ ->
-                            colors.menuBackground
+                            Colors.menuBackground
                 ]
             , radioButtonGroup
                 [ radioButton "Force (F)"
@@ -1468,10 +1478,10 @@ topBar m =
                     ClickOnVader
                   <|
                     if m.vaderIsOn then
-                        colors.selectedItem
+                        Colors.selectedItem
 
                     else
-                        colors.menuBackground
+                        Colors.menuBackground
                 ]
             ]
 
@@ -1483,9 +1493,9 @@ topBar m =
 rightBar : Model -> Element Msg
 rightBar m =
     El.column
-        [ Background.color colors.menuBackground
+        [ Background.color Colors.menuBackground
         , Border.widthEach { bottom = 0, left = 1, right = 0, top = 0 }
-        , Border.color colors.menuBorder
+        , Border.color Colors.menuBorder
         , El.width (El.px layoutParams.rightBarWidth)
         , El.height El.fill
         ]
@@ -1517,7 +1527,7 @@ subMenu header contentLines =
         [ El.width El.fill
         , El.padding 12
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        , Border.color colors.menuBorder
+        , Border.color Colors.menuBorder
         ]
         [ headerBar
         , content
@@ -1533,15 +1543,15 @@ selectionType m =
                 , Background.color <|
                     case m.selectedSelector of
                         RectSelector ->
-                            colors.selectedItem
+                            Colors.selectedItem
 
                         _ ->
-                            colors.menuBackground
+                            Colors.menuBackground
                 , El.pointer
                 , Border.rounded 4
                 , Events.onClick ClickOnRectSelector
-                , El.mouseDown [ Background.color colors.selectedItem ]
-                , El.mouseOver [ Background.color colors.mouseOveredItem ]
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
                 ]
                 (El.html (Icons.draw24px Icons.icons.selectionRect))
 
@@ -1551,15 +1561,15 @@ selectionType m =
                 , Background.color <|
                     case m.selectedSelector of
                         LineSelector ->
-                            colors.selectedItem
+                            Colors.selectedItem
 
                         _ ->
-                            colors.menuBackground
+                            Colors.menuBackground
                 , El.pointer
                 , Border.rounded 4
                 , Events.onClick ClickOnLineSelector
-                , El.mouseDown [ Background.color colors.selectedItem ]
-                , El.mouseOver [ Background.color colors.mouseOveredItem ]
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
                 ]
                 (El.html (Icons.draw24px Icons.icons.selectionLine))
     in
@@ -1575,7 +1585,7 @@ selectionType m =
                 [ El.spacing 4
                 , El.padding 4
                 , Border.width 1
-                , Border.color colors.menuBorder
+                , Border.color Colors.menuBorder
                 ]
                 [ rectSelector
                 , lineSelector
@@ -1613,14 +1623,14 @@ textInput { labelText, text, onChange } =
     Input.text
         [ El.width (El.px 40)
         , El.height (El.px 10)
-        , Background.color colors.inputBackground
+        , Background.color Colors.inputBackground
         , El.paddingXY 6 10
         , El.spacing 8
         , Font.size 10
         , Border.width 0
         , El.focused
-            [ Font.color colors.darkText
-            , Background.color colors.white
+            [ Font.color Colors.darkText
+            , Background.color Colors.white
             ]
         ]
         { onChange = onChange
@@ -1648,7 +1658,7 @@ sliderInput { labelText, value, min, max, step, onChange } =
                 [ El.width El.fill
                 , El.height (El.px 4)
                 , El.centerY
-                , Background.color colors.inputBackground
+                , Background.color Colors.inputBackground
                 , Border.rounded 2
                 ]
                 El.none
@@ -1667,7 +1677,7 @@ sliderInput { labelText, value, min, max, step, onChange } =
                 , Border.rounded 4
                 , Border.width 0
                 , Border.color (El.rgb 0.5 0.5 0.5)
-                , Background.color colors.icon
+                , Background.color Colors.icon
                 ]
         }
 
@@ -1683,7 +1693,7 @@ checkbox { labelText, state, onChange } =
         ( icon, b ) =
             case state of
                 Just True ->
-                    ( El.html <| Icons.draw20px Icons.icons.checkMark
+                    ( El.html <| Icons.draw18px Icons.icons.checkMark
                     , False
                     )
 
@@ -1693,7 +1703,7 @@ checkbox { labelText, state, onChange } =
                     )
 
                 Nothing ->
-                    ( El.html <| Icons.draw20px Icons.icons.questionMark
+                    ( El.html <| Icons.draw18px Icons.icons.questionMark
                     , True
                     )
     in
@@ -1708,13 +1718,23 @@ checkbox { labelText, state, onChange } =
             ]
             (El.text "Fixed")
         , El.el
-            [ El.width (El.px 20)
-            , El.height (El.px 20)
+            [ El.width (El.px 18)
+            , El.height (El.px 18)
             , Border.rounded 4
-            , Background.color colors.inputBackground
+            , Background.color Colors.inputBackground
             ]
             icon
         ]
+
+
+colorPicker :
+    { labelText : String
+    , selectedColor : Maybe Color
+    , onChange : Color -> Msg
+    }
+    -> Element Msg
+colorPicker { labelText, selectedColor, onChange } =
+    El.none
 
 
 vertexProperties : Model -> Element Msg
@@ -1851,7 +1871,7 @@ edgeProperties m =
                     m.user
                         |> User.getCommonEdgeProperty m.selectedEdges .distance
                         |> Maybe.withDefault 40
-            , min = 1
+            , min = 10
             , max = 200
             , step = 1
             , onChange = InputEdgeDistance
@@ -2048,7 +2068,7 @@ mainSvg m =
             let
                 drawHL { position, radius } =
                     Geometry.Svg.circle2d
-                        [ SA.fill Colors.colorHighlightForSelection ]
+                        [ SA.fill (Colors.toString Colors.selectBlue) ]
                         (position |> Circle2d.withRadius (radius + 4))
             in
             S.g []
@@ -2062,7 +2082,7 @@ mainSvg m =
             let
                 drawHL { position, radius } =
                     Geometry.Svg.circle2d
-                        [ SA.fill Colors.highlightColorForMouseOver ]
+                        [ SA.fill (Colors.toString Colors.highlightPink) ]
                         (position |> Circle2d.withRadius (radius + 4))
             in
             S.g []
@@ -2078,7 +2098,7 @@ mainSvg m =
                     case ( User.getVertexProperties from m.user, User.getVertexProperties to m.user ) of
                         ( Just v, Just w ) ->
                             Geometry.Svg.lineSegment2d
-                                [ SA.stroke Colors.colorHighlightForSelection
+                                [ SA.stroke (Colors.toString Colors.selectBlue)
                                 , SA.strokeWidth (String.fromFloat (label.thickness + 6))
                                 ]
                                 (LineSegment2d.from v.position w.position)
@@ -2100,7 +2120,7 @@ mainSvg m =
                     case ( User.getVertexProperties from m.user, User.getVertexProperties to m.user ) of
                         ( Just v, Just w ) ->
                             Geometry.Svg.lineSegment2d
-                                [ SA.stroke Colors.highlightColorForMouseOver
+                                [ SA.stroke (Colors.toString Colors.highlightPink)
                                 , SA.strokeWidth (String.fromFloat (label.thickness + 6))
                                 ]
                                 (LineSegment2d.from v.position w.position)
