@@ -237,8 +237,10 @@ type Msg
       --
     | ClickOnVader
       --
-    | ClickOnRectSelector
-    | ClickOnLineSelector
+    | ClickOnSelectorType Selector
+    | {- TODO remove of the other works -} ClickOnRectSelector
+    | {- TODO remove of the other works -}
+      ClickOnLineSelector
       --
     | MouseMove MousePosition
     | MouseMoveForUpdatingSvgPos MousePosition
@@ -397,6 +399,12 @@ update msg m =
         ClickOnVader ->
             reheatSimulation
                 { m | vaderIsOn = not m.vaderIsOn }
+
+        ClickOnSelectorType selector ->
+            { m
+                | selectedSelector = selector
+                , selectedTool = Select SelectIdle
+            }
 
         ClickOnRectSelector ->
             { m
@@ -1043,7 +1051,7 @@ colors =
     { white = El.rgb255 255 255 255
     , black = El.rgb255 0 0 0
     , menuBackground = El.rgb255 83 83 83
-    , menuBorder = El.rgb255 56 56 56
+    , menuBorder = El.rgba255 56 56 56 0.25
     , selectedItem = El.rgb255 48 48 48
     , mouseOveredItem = El.rgb255 48 48 48
     , lightText = El.rgb255 243 243 243
@@ -1524,22 +1532,6 @@ subMenu header contentLines =
         ]
 
 
-inputLine : String -> Element Msg -> Element Msg
-inputLine label inputField =
-    -- TODO: Remove this and use Element.Input for every input
-    El.row [ El.padding 10, El.spacing 10 ]
-        [ El.el
-            [ El.width (El.px 80)
-            , Font.alignRight
-            ]
-            (El.text label)
-        , El.el
-            [ El.width El.fill
-            ]
-            inputField
-        ]
-
-
 selectionType : Model -> Element Msg
 selectionType m =
     let
@@ -1578,8 +1570,14 @@ selectionType m =
                 (El.html (Icons.draw24px Icons.icons.selectionLine))
     in
     subMenu "Selector"
-        [ inputLine "Type" <|
-            El.row
+        [ El.row [ El.spacing 8 ]
+            [ El.el
+                [ El.centerY
+                , El.width (El.px 60)
+                , Font.alignRight
+                ]
+                (El.text "Type")
+            , El.row
                 [ El.spacing 1
                 , El.padding 1
                 , Border.width 1
@@ -1588,6 +1586,17 @@ selectionType m =
                 [ rectSelector
                 , lineSelector
                 ]
+            ]
+
+        --, Input.radioRow []
+        --    { onChange = ClickOnSelectorType
+        --    , options =
+        --        [ Input.option RectSelector rectSelector
+        --        , Input.option LineSelector lineSelector
+        --        ]
+        --    , selected = Just RectSelector
+        --    , label = styledLabel "Type"
+        --    }
         ]
 
 
