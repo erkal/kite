@@ -237,10 +237,8 @@ type Msg
       --
     | ClickOnVader
       --
-    | ClickOnSelectorType Selector
-    | {- TODO remove of the other works -} ClickOnRectSelector
-    | {- TODO remove of the other works -}
-      ClickOnLineSelector
+    | ClickOnRectSelector
+    | ClickOnLineSelector
       --
     | MouseMove MousePosition
     | MouseMoveForUpdatingSvgPos MousePosition
@@ -276,7 +274,7 @@ type Msg
     | InputVertexY String
     | InputVertexRadius Float
     | InputVertexStrength Float
-    | InputFixedFixed Bool
+    | InputVertexFixed Bool
     | InputVertexColor Color
       --
     | ClickOnEdgeContract
@@ -399,12 +397,6 @@ update msg m =
         ClickOnVader ->
             reheatSimulation
                 { m | vaderIsOn = not m.vaderIsOn }
-
-        ClickOnSelectorType selector ->
-            { m
-                | selectedSelector = selector
-                , selectedTool = Select SelectIdle
-            }
 
         ClickOnRectSelector ->
             { m
@@ -792,7 +784,7 @@ update msg m =
                         m.user |> User.updateEdges m.selectedEdges updateColor
             }
 
-        InputFixedFixed b ->
+        InputVertexFixed b ->
             let
                 updateFixed v =
                     { v | fixed = b }
@@ -1050,10 +1042,11 @@ toKey string =
 colors =
     { white = El.rgb255 255 255 255
     , black = El.rgb255 0 0 0
+    , icon = El.rgb255 195 195 195
     , menuBackground = El.rgb255 83 83 83
     , menuBorder = El.rgba255 56 56 56 0.25
     , selectedItem = El.rgb255 48 48 48
-    , mouseOveredItem = El.rgb255 48 48 48
+    , mouseOveredItem = El.rgb255 56 56 56
     , lightText = El.rgb255 243 243 243
     , darkText = El.rgb255 23 23 23
     , leftBarHeader = El.rgb255 66 66 66
@@ -1545,8 +1538,9 @@ selectionType m =
 
                         _ ->
                             colors.menuBackground
-                , Events.onClick ClickOnRectSelector
                 , El.pointer
+                , Border.rounded 4
+                , Events.onClick ClickOnRectSelector
                 , El.mouseDown [ Background.color colors.selectedItem ]
                 , El.mouseOver [ Background.color colors.mouseOveredItem ]
                 ]
@@ -1562,8 +1556,9 @@ selectionType m =
 
                         _ ->
                             colors.menuBackground
-                , Events.onClick ClickOnLineSelector
                 , El.pointer
+                , Border.rounded 4
+                , Events.onClick ClickOnLineSelector
                 , El.mouseDown [ Background.color colors.selectedItem ]
                 , El.mouseOver [ Background.color colors.mouseOveredItem ]
                 ]
@@ -1578,8 +1573,8 @@ selectionType m =
                 ]
                 (El.text "Type")
             , El.row
-                [ El.spacing 1
-                , El.padding 1
+                [ El.spacing 4
+                , El.padding 4
                 , Border.width 1
                 , Border.color colors.menuBorder
                 ]
@@ -1666,8 +1661,51 @@ sliderInput { labelText, value, min, max, step, onChange } =
         , max = max
         , step = Just step
         , value = value
-        , thumb = Input.defaultThumb
+        , thumb =
+            Input.thumb
+                [ El.width (El.px 10)
+                , El.height (El.px 10)
+                , Border.rounded 4
+                , Border.width 0
+                , Border.color (El.rgb 0.5 0.5 0.5)
+                , Background.color colors.icon
+                ]
         }
+
+
+checkbox :
+    { labelText : String
+    , state : Maybe Bool
+    , onChange : Bool -> Msg
+    }
+    -> Element Msg
+checkbox { labelText, state, onChange } =
+    let
+        ( t, b ) =
+            case state of
+                Just True ->
+                    ( String.fromChar (Char.fromCode 10004), False )
+
+                Just False ->
+                    ( String.fromChar (Char.fromCode 0), True )
+
+                Nothing ->
+                    ( "?", True )
+    in
+    El.row
+        [ El.spacing 8
+        , Events.onClick (onChange b)
+        ]
+        [ El.el
+            [ El.centerY
+            , El.width (El.px 60)
+            , Font.alignRight
+            ]
+            (El.text "Fixed")
+        , El.el []
+            --(El.text t)
+            (El.text "lala")
+        ]
 
 
 vertexProperties : Model -> Element Msg
@@ -1746,7 +1784,16 @@ vertexProperties m =
             , step = 1
             , onChange = InputVertexStrength
             }
-        , El.text "Fixed (TODO)"
+        , checkbox
+            { labelText = "Fixed"
+            , state =
+                if Set.isEmpty m.selectedVertices then
+                    Just (m.user |> User.getDefaultVertexProperties |> .fixed)
+
+                else
+                    m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
+            , onChange = InputVertexFixed
+            }
         , El.text "Color (TODO)"
         ]
 
@@ -1830,33 +1877,16 @@ edgeProperties m =
 --                    Just (m.user |> User.getDefaultVertexProperties |> .color)
 --                else
 --                    m.user |> User.getCommonVertexProperty m.selectedVertices .color
---, lineWithColumns 140
---    [ input "Fixed"
---        (H.map InputFixedFixed
---            (CheckBox.view <|
---                if Set.isEmpty m.selectedVertices then
---                    Just (m.user |> User.getDefaultVertexProperties |> .fixed)
---                else
---                    m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
---            )
---        )
---    ]
 --]
---edgeProperties : Model -> Html Msg
---edgeProperties m =
--- ...
--- ...
--- ...
---    subMenu headerForEdgeProperties
---        [ lineWithColumns 140
---            [ input "Color" <|
---                H.map InputEdgeColor <|
---                    ColorPicker.view <|
---                        if Set.isEmpty m.selectedEdges then
---                            Just (m.user |> User.getDefaultEdgeProperties |> .color)
---                        else
---                            m.user |> User.getCommonEdgeProperty m.selectedEdges .color
---        ]
+--[ lineWithColumns 140
+--    [ input "Color" <|
+--        H.map InputEdgeColor <|
+--            ColorPicker.view <|
+--                if Set.isEmpty m.selectedEdges then
+--                    Just (m.user |> User.getDefaultEdgeProperties |> .color)
+--                else
+--                    m.user |> User.getCommonEdgeProperty m.selectedEdges .color
+--]
 --MAIN SVG
 
 
