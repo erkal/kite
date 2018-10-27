@@ -4,7 +4,6 @@ import BoundingBox2d exposing (BoundingBox2d)
 import Browser
 import Browser.Dom as Dom
 import Browser.Events exposing (Visibility(..))
-import CheckBox
 import Circle2d exposing (Circle2d)
 import ColorPicker
 import Colors exposing (Color)
@@ -1681,16 +1680,22 @@ checkbox :
     -> Element Msg
 checkbox { labelText, state, onChange } =
     let
-        ( t, b ) =
+        ( icon, b ) =
             case state of
                 Just True ->
-                    ( String.fromChar (Char.fromCode 10004), False )
+                    ( El.html <| Icons.draw20px Icons.icons.checkMark
+                    , False
+                    )
 
                 Just False ->
-                    ( String.fromChar (Char.fromCode 0), True )
+                    ( El.none
+                    , True
+                    )
 
                 Nothing ->
-                    ( "?", True )
+                    ( El.html <| Icons.draw20px Icons.icons.questionMark
+                    , True
+                    )
     in
     El.row
         [ El.spacing 8
@@ -1702,9 +1707,13 @@ checkbox { labelText, state, onChange } =
             , Font.alignRight
             ]
             (El.text "Fixed")
-        , El.el []
-            --(El.text t)
-            (El.text "lala")
+        , El.el
+            [ El.width (El.px 20)
+            , El.height (El.px 20)
+            , Border.rounded 4
+            , Background.color colors.inputBackground
+            ]
+            icon
         ]
 
 
