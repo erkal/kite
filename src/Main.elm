@@ -92,6 +92,10 @@ type alias Model =
     , vaderIsOn : Bool
 
     --
+    , vertexColorPickerIsExpanded : Bool
+    , edgeColorPickerIsExpanded : Bool
+
+    --
     , selectedMode : Mode
     , selectedTool : Tool
     , selectedSelector : Selector
@@ -184,6 +188,10 @@ initialModel user =
     , vaderIsOn = True
 
     --
+    , vertexColorPickerIsExpanded = False
+    , edgeColorPickerIsExpanded = False
+
+    --
     , selectedMode = ListsOfBagsVerticesAndEdges
     , selectedTool = Draw DrawIdle
     , selectedSelector = RectSelector
@@ -234,6 +242,9 @@ type Msg
     | ClickOnSelectTool
       --
     | ClickOnVader
+      --
+    | ClickOnVertexColorPicker
+    | ClickOnEdgeColorPicker
       --
     | ClickOnRectSelector
     | ClickOnLineSelector
@@ -395,6 +406,12 @@ update msg m =
         ClickOnVader ->
             reheatSimulation
                 { m | vaderIsOn = not m.vaderIsOn }
+
+        ClickOnVertexColorPicker ->
+            { m | vertexColorPickerIsExpanded = not m.vertexColorPickerIsExpanded }
+
+        ClickOnEdgeColorPicker ->
+            { m | edgeColorPickerIsExpanded = not m.edgeColorPickerIsExpanded }
 
         ClickOnRectSelector ->
             { m
@@ -1628,6 +1645,7 @@ textInput { labelText, text, onChange } =
         , El.spacing 8
         , Font.size 10
         , Border.width 0
+        , Border.rounded 2
         , El.focused
             [ Font.color Colors.darkText
             , Background.color Colors.white
@@ -1656,7 +1674,7 @@ sliderInput { labelText, value, min, max, step, onChange } =
         , El.behindContent
             (El.el
                 [ El.width El.fill
-                , El.height (El.px 4)
+                , El.height (El.px 2)
                 , El.centerY
                 , Background.color Colors.inputBackground
                 , Border.rounded 2
@@ -1672,9 +1690,9 @@ sliderInput { labelText, value, min, max, step, onChange } =
         , value = value
         , thumb =
             Input.thumb
-                [ El.width (El.px 10)
+                [ El.width (El.px 4)
                 , El.height (El.px 10)
-                , Border.rounded 4
+                , Border.rounded 2
                 , Border.width 0
                 , Border.color (El.rgb 0.5 0.5 0.5)
                 , Background.color Colors.icon
@@ -1693,7 +1711,7 @@ checkbox { labelText, state, onChange } =
         ( icon, b ) =
             case state of
                 Just True ->
-                    ( El.html <| Icons.draw18px Icons.icons.checkMark
+                    ( El.html <| Icons.draw14px Icons.icons.checkMark
                     , False
                     )
 
@@ -1703,7 +1721,7 @@ checkbox { labelText, state, onChange } =
                     )
 
                 Nothing ->
-                    ( El.html <| Icons.draw18px Icons.icons.questionMark
+                    ( El.html <| Icons.draw14px Icons.icons.questionMark
                     , True
                     )
     in
@@ -1719,52 +1737,85 @@ checkbox { labelText, state, onChange } =
         , El.el
             [ El.width (El.px 18)
             , El.height (El.px 18)
-            , Border.rounded 4
+            , Border.rounded 2
             , Background.color Colors.inputBackground
             , El.pointer
             , Events.onClick (onChange b)
             ]
-            icon
+            (El.el [ El.centerX, El.centerY ] icon)
         ]
 
 
 colorPicker :
     { labelText : String
+    , isExpanded : Bool
     , selectedColor : Maybe Color
-    , onColorClick : Color -> Msg
+    , msgOnExpanderClick : Msg
+    , msgOnColorClick : Color -> Msg
     }
     -> Element Msg
-colorPicker { labelText, selectedColor, onColorClick } =
+colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnColorClick } =
     let
-        -- TODO : Finish this
-        a =
-            42
+        label =
+            El.el
+                [ El.centerY
+                , El.width (El.px 60)
+                , Font.alignRight
+
+                --, El.alignTop
+                ]
+                (El.text labelText)
+
+        expanderButton =
+            El.el
+                [ El.width (El.px 18)
+                , El.height (El.px 18)
+                , Border.rounded 2
+                , El.pointer
+                , Background.color Colors.inputBackground
+                , Events.onClick msgOnExpanderClick
+                ]
+            <|
+                El.el
+                    [ El.width (El.px 10)
+                    , El.height (El.px 10)
+                    , El.centerX
+                    , El.centerY
+                    , Background.color <|
+                        case selectedColor of
+                            Just c ->
+                                c
+
+                            Nothing ->
+                                Colors.black
+                    ]
+                    El.none
+
+        colorPalette =
+            if isExpanded then
+                El.row [ El.padding 4, El.spacing 4 ] <|
+                    List.map makeColorBox Colors.vertexAndEdgeColors
+
+            else
+                El.none
+
+        makeColorBox color =
+            El.el
+                [ El.width (El.px 10)
+                , El.height (El.px 10)
+                , Background.color color
+                , Events.onClick (msgOnColorClick color)
+                , El.pointer
+                ]
+                El.none
     in
-    El.row
-        [ El.spacing 8
-        ]
-        [ El.el
-            [ El.centerY
-            , El.width (El.px 60)
-            , Font.alignRight
+    El.row [ El.spacing 8 ]
+        [ label
+        , El.column
+            []
+            [ expanderButton
+            , colorPalette
             ]
-            (El.text labelText)
-        , El.el
-            [ El.width (El.px 18)
-            , El.height (El.px 18)
-            , Border.rounded 4
-            , El.pointer
-            , Background.color <|
-                case selectedColor of
-                    Just c ->
-                        c
-
-                    Nothing ->
-                        Colors.black
-
-            --, Events.onClick
-            ]
-            El.none
         ]
 
 
@@ -1783,27 +1834,39 @@ vertexProperties m =
                     "Selected Vertices"
     in
     subMenu headerForVertexProperties
-        [ textInput
-            { labelText = "X"
-            , text =
-                m.user
-                    |> User.getCentroid m.selectedVertices
-                    |> Maybe.map Point2d.xCoordinate
-                    |> Maybe.map round
-                    |> Maybe.map String.fromInt
-                    |> Maybe.withDefault "?"
-            , onChange = InputVertexX
-            }
-        , textInput
-            { labelText = "Y"
-            , text =
-                m.user
-                    |> User.getCentroid m.selectedVertices
-                    |> Maybe.map Point2d.yCoordinate
-                    |> Maybe.map round
-                    |> Maybe.map String.fromInt
-                    |> Maybe.withDefault "?"
-            , onChange = InputVertexY
+        [ El.row []
+            [ textInput
+                { labelText = "X"
+                , text =
+                    m.user
+                        |> User.getCentroid m.selectedVertices
+                        |> Maybe.map Point2d.xCoordinate
+                        |> Maybe.map round
+                        |> Maybe.map String.fromInt
+                        |> Maybe.withDefault "?"
+                , onChange = InputVertexX
+                }
+            , textInput
+                { labelText = "Y"
+                , text =
+                    m.user
+                        |> User.getCentroid m.selectedVertices
+                        |> Maybe.map Point2d.yCoordinate
+                        |> Maybe.map round
+                        |> Maybe.map String.fromInt
+                        |> Maybe.withDefault "?"
+                , onChange = InputVertexY
+                }
+            ]
+        , checkbox
+            { labelText = "Fixed"
+            , state =
+                if Set.isEmpty m.selectedVertices then
+                    Just (m.user |> User.getDefaultVertexProperties |> .fixed)
+
+                else
+                    m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
+            , onChange = InputVertexFixed
             }
         , sliderInput
             { labelText = "Radius"
@@ -1841,28 +1904,20 @@ vertexProperties m =
                         |> Maybe.withDefault defaultVertexStrength
             , min = -2000
             , max = 0
-            , step = 1
+            , step = 40
             , onChange = InputVertexStrength
-            }
-        , checkbox
-            { labelText = "Fixed"
-            , state =
-                if Set.isEmpty m.selectedVertices then
-                    Just (m.user |> User.getDefaultVertexProperties |> .fixed)
-
-                else
-                    m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
-            , onChange = InputVertexFixed
             }
         , colorPicker
             { labelText = "Color"
+            , isExpanded = m.vertexColorPickerIsExpanded
             , selectedColor =
                 if Set.isEmpty m.selectedVertices then
                     Just (m.user |> User.getDefaultVertexProperties |> .color)
 
                 else
                     m.user |> User.getCommonVertexProperty m.selectedVertices .color
-            , onColorClick = InputVertexColor
+            , msgOnColorClick = InputVertexColor
+            , msgOnExpanderClick = ClickOnVertexColorPicker
             }
         ]
 
@@ -1913,7 +1968,7 @@ edgeProperties m =
                         |> Maybe.withDefault 40
             , min = 10
             , max = 200
-            , step = 1
+            , step = 10
             , onChange = InputEdgeDistance
             }
         , sliderInput
@@ -1935,6 +1990,7 @@ edgeProperties m =
             }
         , colorPicker
             { labelText = "Color"
+            , isExpanded = m.edgeColorPickerIsExpanded
             , selectedColor =
                 if Set.isEmpty m.selectedEdges then
                     Just
@@ -1946,7 +2002,8 @@ edgeProperties m =
                 else
                     m.user
                         |> User.getCommonEdgeProperty m.selectedEdges .color
-            , onColorClick = InputEdgeColor
+            , msgOnColorClick = InputEdgeColor
+            , msgOnExpanderClick = ClickOnEdgeColorPicker
             }
         ]
 
