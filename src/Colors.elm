@@ -5,15 +5,23 @@ module Colors exposing
     , icon
     , inputBackground
     , leftBarHeader
+    , leftStripeIconSelected
+    , lightGray
     , lightText
+    , mainSvgBackground
     , menuBackground
     , menuBorder
     , mouseOveredItem
+    , rectAroundSelectedVertices
     , selectBlue
     , selectedItem
+    , selectorStroke
+    , sliderThumb
+    , svgLine
     , toString
     , vertexAndEdgeColors
     , white
+    , yellow
     )
 
 import Element as El exposing (Color, Element)
@@ -32,6 +40,26 @@ toString color =
         ++ ("," ++ String.fromFloat alpha ++ ")")
 
 
+rectAroundSelectedVertices =
+    El.rgb255 40 127 230
+
+
+svgLine =
+    El.rgb255 83 83 83
+
+
+yellow =
+    El.rgb255 255 255 2
+
+
+mainSvgBackground =
+    El.rgb255 46 46 46
+
+
+sliderThumb =
+    El.rgb 0.5 0.5 0.5
+
+
 highlightPink =
     El.rgb255 255 47 146
 
@@ -40,8 +68,16 @@ selectBlue =
     El.rgb255 0 150 255
 
 
+selectorStroke =
+    El.rgb255 127 127 127
+
+
 white =
     El.rgb255 255 255 255
+
+
+lightGray =
+    El.rgb255 220 220 220
 
 
 black =
@@ -54,6 +90,10 @@ icon =
 
 menuBackground =
     El.rgb255 83 83 83
+
+
+leftStripeIconSelected =
+    El.rgb255 48 48 48
 
 
 menuBorder =
@@ -85,7 +125,7 @@ inputBackground =
 
 
 vertexAndEdgeColors =
-    [ white
+    [ lightGray
     , black
     , El.rgb255 199 0 57
     , El.rgb255 144 12 63

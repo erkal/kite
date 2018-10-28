@@ -144,13 +144,13 @@ default =
             { position = Point2d.origin
             , velocity = Vector2d.zero
             , strength = -60
-            , color = Colors.white
+            , color = Colors.lightGray
             , radius = 5
             , inBags = Set.empty
             , fixed = False
             }
         , defaultEdgeProperties =
-            { color = Colors.white
+            { color = Colors.lightGray
             , thickness = 3
             , distance = 40
             , strength = 0.7

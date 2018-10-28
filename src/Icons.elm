@@ -6,6 +6,8 @@ module Icons exposing
     , icons
     )
 
+import Colors
+import Element exposing (Color)
 import Svg as S exposing (Svg)
 import Svg.Attributes as SA
 
@@ -34,13 +36,13 @@ draw size d =
         ]
         [ S.path
             [ SA.d d
-            , SA.fill "rgb(195,195,195)"
+            , SA.fill (Colors.toString Colors.icon)
             ]
             []
         ]
 
 
-draw40pxWithColor : String -> String -> Svg msg
+draw40pxWithColor : Color -> String -> Svg msg
 draw40pxWithColor color d =
     S.svg
         [ SA.viewBox "0 0 100 100"
@@ -49,7 +51,7 @@ draw40pxWithColor color d =
         ]
         [ S.path
             [ SA.d d
-            , SA.fill color
+            , SA.fill (Colors.toString color)
             ]
             []
         ]

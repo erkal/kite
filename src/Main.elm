@@ -34,10 +34,6 @@ import User exposing (BagId, BagProperties, EdgeId, EdgeProperties, User, Vertex
 import Vector2d exposing (Vector2d)
 
 
-
--- TODO: Remove all Colors in String format "rgb(..."
-
-
 main : Program () Model Msg
 main =
     Browser.document
@@ -1119,10 +1115,10 @@ leftStripe m =
             let
                 color =
                     if selectedMode == m.selectedMode then
-                        "white"
+                        Colors.white
 
                     else
-                        "rgb(48,48,48)"
+                        Colors.leftStripeIconSelected
             in
             El.el
                 [ El.htmlAttribute (HA.title title)
@@ -1149,7 +1145,7 @@ leftStripe m =
                 , El.pointer
                 ]
                 { url = "https://github.com/erkal/kite"
-                , label = El.html (Icons.draw40pxWithColor "yellow" Icons.icons.githubCat)
+                , label = El.html (Icons.draw40pxWithColor Colors.yellow Icons.icons.githubCat)
                 }
 
         --donateButton =
@@ -1694,7 +1690,7 @@ sliderInput { labelText, value, min, max, step, onChange } =
                 , El.height (El.px 10)
                 , Border.rounded 2
                 , Border.width 0
-                , Border.color (El.rgb 0.5 0.5 0.5)
+                , Border.color Colors.sliderThumb
                 , Background.color Colors.icon
                 ]
         }
@@ -1711,7 +1707,7 @@ checkbox { labelText, state, onChange } =
         ( icon, b ) =
             case state of
                 Just True ->
-                    ( El.html <| Icons.draw14px Icons.icons.checkMark
+                    ( El.html (Icons.draw14px Icons.icons.checkMark)
                     , False
                     )
 
@@ -1721,7 +1717,7 @@ checkbox { labelText, state, onChange } =
                     )
 
                 Nothing ->
-                    ( El.html <| Icons.draw14px Icons.icons.questionMark
+                    ( El.html (Icons.draw14px Icons.icons.questionMark)
                     , True
                     )
     in
@@ -1761,39 +1757,54 @@ colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnCol
                 [ El.centerY
                 , El.width (El.px 60)
                 , Font.alignRight
-
-                --, El.alignTop
                 ]
                 (El.text labelText)
 
-        expanderButton =
+        input =
             El.el
                 [ El.width (El.px 18)
                 , El.height (El.px 18)
-                , Border.rounded 2
                 , El.pointer
-                , Background.color Colors.inputBackground
+                , Border.rounded <|
+                    if isExpanded then
+                        0
+
+                    else
+                        2
+                , Background.color <|
+                    if isExpanded then
+                        Colors.white
+
+                    else
+                        Colors.inputBackground
                 , Events.onClick msgOnExpanderClick
+                , El.below colorPalette
                 ]
             <|
-                El.el
-                    [ El.width (El.px 10)
-                    , El.height (El.px 10)
-                    , El.centerX
-                    , El.centerY
-                    , Background.color <|
-                        case selectedColor of
-                            Just c ->
-                                c
+                case selectedColor of
+                    Just c ->
+                        El.el
+                            [ El.width (El.px 10)
+                            , El.height (El.px 10)
+                            , El.centerX
+                            , El.centerY
+                            , Background.color c
+                            ]
+                            El.none
 
-                            Nothing ->
-                                Colors.black
-                    ]
-                    El.none
+                    Nothing ->
+                        El.el [ El.centerX, El.centerY ] <|
+                            El.html (Icons.draw14px Icons.icons.questionMark)
 
         colorPalette =
             if isExpanded then
-                El.row [ El.padding 4, El.spacing 4 ] <|
+                El.wrappedRow
+                    [ El.padding 4
+                    , El.spacing 4
+                    , El.width (El.px 144)
+                    , Background.color Colors.white
+                    ]
+                <|
                     List.map makeColorBox Colors.vertexAndEdgeColors
 
             else
@@ -1801,8 +1812,8 @@ colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnCol
 
         makeColorBox color =
             El.el
-                [ El.width (El.px 10)
-                , El.height (El.px 10)
+                [ El.width (El.px 16)
+                , El.height (El.px 16)
                 , Background.color color
                 , Events.onClick (msgOnColorClick color)
                 , El.pointer
@@ -1811,11 +1822,7 @@ colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnCol
     in
     El.row [ El.spacing 8 ]
         [ label
-        , El.column
-            []
-            [ expanderButton
-            , colorPalette
-            ]
+        , input
         ]
 
 
@@ -1862,7 +1869,11 @@ vertexProperties m =
             { labelText = "Fixed"
             , state =
                 if Set.isEmpty m.selectedVertices then
-                    Just (m.user |> User.getDefaultVertexProperties |> .fixed)
+                    Just
+                        (m.user
+                            |> User.getDefaultVertexProperties
+                            |> .fixed
+                        )
 
                 else
                     m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
@@ -1872,7 +1883,9 @@ vertexProperties m =
             { labelText = "Radius"
             , value =
                 if Set.isEmpty m.selectedVertices then
-                    m.user |> User.getDefaultVertexProperties |> .radius
+                    m.user
+                        |> User.getDefaultVertexProperties
+                        |> .radius
 
                 else
                     case m.user |> User.getCommonVertexProperty m.selectedVertices .radius of
@@ -1912,10 +1925,15 @@ vertexProperties m =
             , isExpanded = m.vertexColorPickerIsExpanded
             , selectedColor =
                 if Set.isEmpty m.selectedVertices then
-                    Just (m.user |> User.getDefaultVertexProperties |> .color)
+                    Just
+                        (m.user
+                            |> User.getDefaultVertexProperties
+                            |> .color
+                        )
 
                 else
-                    m.user |> User.getCommonVertexProperty m.selectedVertices .color
+                    m.user
+                        |> User.getCommonVertexProperty m.selectedVertices .color
             , msgOnColorClick = InputVertexColor
             , msgOnExpanderClick = ClickOnVertexColorPicker
             }
@@ -2037,7 +2055,7 @@ mainSvg m =
                     , SA.y "0"
                     , SA.width (String.fromFloat backgroundPageWidth)
                     , SA.height (String.fromFloat (backgroundPageWidth * a4HeightByWidth))
-                    , SA.stroke "rgb(83, 83, 83)"
+                    , SA.stroke (Colors.toString Colors.svgLine)
                     , SA.fill "none"
                     , SA.strokeWidth (String.fromFloat (1 / m.zoom))
                     ]
@@ -2047,14 +2065,14 @@ mainSvg m =
                     , SA.y1 "0"
                     , SA.x2 "100"
                     , SA.y2 (String.fromFloat (-5 / m.zoom))
-                    , SA.stroke "rgb(83, 83, 83)"
+                    , SA.stroke (Colors.toString Colors.svgLine)
                     , SA.strokeWidth (String.fromFloat (1 / m.zoom))
                     ]
                     []
                 , S.text_
                     [ SA.x "100"
                     , SA.y (String.fromFloat (-24 / m.zoom))
-                    , SA.fill "rgb(83, 83, 83)"
+                    , SA.fill (Colors.toString Colors.svgLine)
                     , SA.textAnchor "middle"
                     , SA.fontSize (String.fromFloat (12 / m.zoom))
                     ]
@@ -2062,7 +2080,7 @@ mainSvg m =
                 , S.text_
                     [ SA.x "100"
                     , SA.y (String.fromFloat (-10 / m.zoom))
-                    , SA.fill "rgb(83, 83, 83)"
+                    , SA.fill (Colors.toString Colors.svgLine)
                     , SA.textAnchor "middle"
                     , SA.fontSize (String.fromFloat (12 / m.zoom))
                     ]
@@ -2108,7 +2126,7 @@ mainSvg m =
                     case m.selectedSelector of
                         RectSelector ->
                             Geometry.Svg.boundingBox2d
-                                [ SA.stroke "rgb(127,127,127)"
+                                [ SA.stroke (Colors.toString Colors.selectorStroke)
                                 , SA.strokeWidth "1"
                                 , SA.strokeDasharray "1 2"
                                 , SA.fill "none"
@@ -2117,7 +2135,7 @@ mainSvg m =
 
                         LineSelector ->
                             Geometry.Svg.lineSegment2d
-                                [ SA.stroke "rgb(127,127,127)"
+                                [ SA.stroke (Colors.toString Colors.selectorStroke)
                                 , SA.strokeWidth "1"
                                 , SA.strokeDasharray "1 2"
                                 ]
@@ -2137,7 +2155,7 @@ mainSvg m =
                         Just bB ->
                             Geometry.Svg.boundingBox2d
                                 [ SA.strokeWidth "1"
-                                , SA.stroke "rgb(40,127,230)"
+                                , SA.stroke (Colors.toString Colors.rectAroundSelectedVertices)
                                 , SA.fill "none"
                                 ]
                                 bB
@@ -2263,7 +2281,7 @@ mainSvg m =
                 |> String.concat
     in
     S.svg
-        [ HA.style "background-color" "rgb(46, 46, 46)"
+        [ HA.style "background-color" (Colors.toString Colors.mainSvgBackground)
         , HA.style "cursor" cursor
         , HA.style "position" "absolute"
         , SA.width (String.fromInt mainSvgWidth)
