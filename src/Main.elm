@@ -35,7 +35,7 @@ import Vector2d exposing (Vector2d)
 
 
 
--- TODO: Remove style.css after elm-ui
+-- TODO: Remove all Colors in String format "rgb(..."
 
 
 main : Program () Model Msg
@@ -728,7 +728,7 @@ update msg m =
         InputVertexColor newColor ->
             let
                 updateColor v =
-                    { v | color = Colors.toString newColor }
+                    { v | color = newColor }
             in
             { m
                 | user =
@@ -771,7 +771,7 @@ update msg m =
         InputEdgeColor newColor ->
             let
                 updateColor e =
-                    { e | color = Colors.toString newColor }
+                    { e | color = newColor }
             in
             { m
                 | user =
@@ -1281,7 +1281,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 [ El.el [ El.paddingXY 10 6 ]
                     (El.text (String.fromInt id))
                 , El.el
-                    [ El.width (El.px 10)
+                    [ El.width (El.px 6)
                     , El.height El.fill
                     , El.alignRight
                     , Background.color <|
@@ -1318,7 +1318,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 [ El.el [ El.paddingXY 10 6 ]
                     (El.text (String.fromInt from ++ " → " ++ String.fromInt to))
                 , El.el
-                    [ El.width (El.px 10)
+                    [ El.width (El.px 6)
                     , El.height El.fill
                     , El.alignRight
                     , Background.color <|
@@ -1709,19 +1709,20 @@ checkbox { labelText, state, onChange } =
     in
     El.row
         [ El.spacing 8
-        , Events.onClick (onChange b)
         ]
         [ El.el
             [ El.centerY
             , El.width (El.px 60)
             , Font.alignRight
             ]
-            (El.text "Fixed")
+            (El.text labelText)
         , El.el
             [ El.width (El.px 18)
             , El.height (El.px 18)
             , Border.rounded 4
             , Background.color Colors.inputBackground
+            , El.pointer
+            , Events.onClick (onChange b)
             ]
             icon
         ]
@@ -1730,11 +1731,41 @@ checkbox { labelText, state, onChange } =
 colorPicker :
     { labelText : String
     , selectedColor : Maybe Color
-    , onChange : Color -> Msg
+    , onColorClick : Color -> Msg
     }
     -> Element Msg
-colorPicker { labelText, selectedColor, onChange } =
-    El.none
+colorPicker { labelText, selectedColor, onColorClick } =
+    let
+        -- TODO : Finish this
+        a =
+            42
+    in
+    El.row
+        [ El.spacing 8
+        ]
+        [ El.el
+            [ El.centerY
+            , El.width (El.px 60)
+            , Font.alignRight
+            ]
+            (El.text labelText)
+        , El.el
+            [ El.width (El.px 18)
+            , El.height (El.px 18)
+            , Border.rounded 4
+            , El.pointer
+            , Background.color <|
+                case selectedColor of
+                    Just c ->
+                        c
+
+                    Nothing ->
+                        Colors.black
+
+            --, Events.onClick
+            ]
+            El.none
+        ]
 
 
 vertexProperties : Model -> Element Msg
@@ -1823,7 +1854,16 @@ vertexProperties m =
                     m.user |> User.getCommonVertexProperty m.selectedVertices .fixed
             , onChange = InputVertexFixed
             }
-        , El.text "Color (TODO)"
+        , colorPicker
+            { labelText = "Color"
+            , selectedColor =
+                if Set.isEmpty m.selectedVertices then
+                    Just (m.user |> User.getDefaultVertexProperties |> .color)
+
+                else
+                    m.user |> User.getCommonVertexProperty m.selectedVertices .color
+            , onColorClick = InputVertexColor
+            }
         ]
 
 
@@ -1893,29 +1933,25 @@ edgeProperties m =
             , step = 0.05
             , onChange = InputEdgeStrength
             }
-        , El.text "Color (TODO)"
+        , colorPicker
+            { labelText = "Color"
+            , selectedColor =
+                if Set.isEmpty m.selectedEdges then
+                    Just
+                        (m.user
+                            |> User.getDefaultEdgeProperties
+                            |> .color
+                        )
+
+                else
+                    m.user
+                        |> User.getCommonEdgeProperty m.selectedEdges .color
+            , onColorClick = InputEdgeColor
+            }
         ]
 
 
 
---[ lineWithColumns 140
---    [ input "Color" <|
---        H.map InputVertexColor <|
---            ColorPicker.view <|
---                if Set.isEmpty m.selectedVertices then
---                    Just (m.user |> User.getDefaultVertexProperties |> .color)
---                else
---                    m.user |> User.getCommonVertexProperty m.selectedVertices .color
---]
---[ lineWithColumns 140
---    [ input "Color" <|
---        H.map InputEdgeColor <|
---            ColorPicker.view <|
---                if Set.isEmpty m.selectedEdges then
---                    Just (m.user |> User.getDefaultEdgeProperties |> .color)
---                else
---                    m.user |> User.getCommonEdgeProperty m.selectedEdges .color
---]
 --MAIN SVG
 
 
@@ -1999,7 +2035,7 @@ mainSvg m =
                             in
                             Geometry.Svg.lineSegment2d
                                 [ SA.strokeWidth (String.fromFloat dEP.thickness)
-                                , SA.stroke dEP.color
+                                , SA.stroke (Colors.toString dEP.color)
                                 ]
                                 (LineSegment2d.from position m.svgMousePosition)
 
@@ -2217,7 +2253,7 @@ viewEdges user =
                             ]
                             (LineSegment2d.from v.position w.position)
                         , Geometry.Svg.lineSegment2d
-                            [ SA.stroke label.color
+                            [ SA.stroke (Colors.toString label.color)
                             , SA.strokeWidth (String.fromFloat label.thickness)
                             ]
                             (LineSegment2d.from v.position w.position)
@@ -2259,7 +2295,7 @@ viewVertices user =
                 , SE.onMouseOver (MouseOverVertex id)
                 , SE.onMouseOut (MouseOutVertex id)
                 ]
-                [ Geometry.Svg.circle2d [ SA.fill color ]
+                [ Geometry.Svg.circle2d [ SA.fill (Colors.toString color) ]
                     (Point2d.origin |> Circle2d.withRadius radius)
                 , pin fixed radius
                 ]
