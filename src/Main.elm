@@ -268,7 +268,7 @@ type Msg
     | MouseOverBagItem BagId
     | MouseOutBagItem BagId
     | ClickOnBagItem BagId
-    | CheckBoxConvexHull Bool
+    | ToggleConvexHull BagId
       --
     | ClickOnVertexTrash
     | MouseOverVertexItem VertexId
@@ -717,20 +717,12 @@ update msg m =
                 _ ->
                     m
 
-        CheckBoxConvexHull b ->
+        ToggleConvexHull bagId ->
             let
                 updateCH bag =
-                    { bag | hasConvexHull = b }
+                    { bag | hasConvexHull = not bag.hasConvexHull }
             in
-            { m
-                | user =
-                    case m.maybeSelectedBag of
-                        Just bagId ->
-                            m.user |> User.updateBag bagId updateCH
-
-                        Nothing ->
-                            m.user |> User.updateDefaultBag updateCH
-            }
+            { m | user = m.user |> User.updateBag bagId updateCH }
 
         InputVertexX str ->
             { m | user = m.user |> User.setCentroidX m.selectedVertices (str |> String.toFloat |> Maybe.withDefault 0) }
@@ -1255,8 +1247,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     |> List.reverse
                 )
 
-        bagItem bagId _ =
-            El.el
+        bagItem bagId { hasConvexHull } =
+            El.row
                 [ El.width El.fill
                 , El.paddingXY 10 6
                 , Background.color <|
@@ -1271,7 +1263,20 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 , Events.onMouseLeave (MouseOutBagItem bagId)
                 , Events.onClick (ClickOnBagItem bagId)
                 ]
-                (El.text (m.user |> User.bagElementsInCurlyBraces bagId))
+                [ El.text (m.user |> User.bagElementsInCurlyBraces bagId)
+
+                --, El.el
+                --    [ El.alignRight
+                --    , Font.bold
+                --    , Font.color <|
+                --        if hasConvexHull then
+                --            Colors.white
+                --        else
+                --            Colors.icon
+                --    , Events.onClick (ToggleConvexHull bagId)
+                --    ]
+                --    (El.text "C")
+                ]
 
         --
         listOfVertices =
