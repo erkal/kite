@@ -1225,8 +1225,7 @@ leftStripe m =
         [ Background.color Colors.black
         , El.width (El.px layoutParams.leftStripeWidth)
         , El.height El.fill
-
-        --, El.scrollbarY
+        , El.paddingXY 0 2
         ]
         [ radioButtonsForMode
         , githubButton
