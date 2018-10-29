@@ -260,10 +260,11 @@ type Msg
       --
     | MouseOverVertex VertexId
     | MouseOutVertex VertexId
-    | MouseOverEdge EdgeId
-    | MouseOutEdge EdgeId
     | MouseDownOnVertex VertexId
     | MouseUpOnVertex VertexId
+      --
+    | MouseOverEdge EdgeId
+    | MouseOutEdge EdgeId
     | MouseDownOnEdge EdgeId
     | MouseUpOnEdge EdgeId
       --
@@ -279,18 +280,18 @@ type Msg
     | MouseOutVertexItem VertexId
     | ClickOnVertexItem VertexId
       --
+    | ClickOnEdgeContract
+    | ClickOnEdgeTrash
+    | MouseOverEdgeItem EdgeId
+    | MouseOutEdgeItem EdgeId
+    | ClickOnEdgeItem EdgeId
+      --
     | InputVertexX String
     | InputVertexY String
     | InputVertexRadius Float
     | InputVertexStrength Float
     | InputVertexFixed Bool
     | InputVertexColor Color
-      --
-    | ClickOnEdgeContract
-    | ClickOnEdgeTrash
-    | MouseOverEdgeItem EdgeId
-    | MouseOutEdgeItem EdgeId
-    | ClickOnEdgeItem EdgeId
       --
     | InputEdgeThickness Float
     | InputEdgeDistance Float
