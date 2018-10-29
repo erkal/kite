@@ -241,6 +241,8 @@ type Msg
       --
     | ClickOnVertexColorPicker
     | ClickOnEdgeColorPicker
+    | MouseLeaveVertexColorPicker
+    | MouseLeaveEdgeColorPicker
       --
     | ClickOnRectSelector
     | ClickOnLineSelector
@@ -408,6 +410,12 @@ update msg m =
 
         ClickOnEdgeColorPicker ->
             { m | edgeColorPickerIsExpanded = not m.edgeColorPickerIsExpanded }
+
+        MouseLeaveVertexColorPicker ->
+            { m | vertexColorPickerIsExpanded = False }
+
+        MouseLeaveEdgeColorPicker ->
+            { m | edgeColorPickerIsExpanded = False }
 
         ClickOnRectSelector ->
             { m
@@ -1753,9 +1761,10 @@ colorPicker :
     , selectedColor : Maybe Color
     , msgOnExpanderClick : Msg
     , msgOnColorClick : Color -> Msg
+    , msgOnLeave : Msg
     }
     -> Element Msg
-colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnColorClick } =
+colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnColorClick, msgOnLeave } =
     let
         label =
             El.el
@@ -1783,6 +1792,7 @@ colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnCol
                     else
                         Colors.inputBackground
                 , Events.onClick msgOnExpanderClick
+                , Events.onMouseLeave msgOnLeave
                 , El.below colorPalette
                 ]
             <|
@@ -1941,6 +1951,7 @@ vertexProperties m =
                         |> User.getCommonVertexProperty m.selectedVertices .color
             , msgOnColorClick = InputVertexColor
             , msgOnExpanderClick = ClickOnVertexColorPicker
+            , msgOnLeave = MouseLeaveVertexColorPicker
             }
         ]
 
@@ -2027,6 +2038,7 @@ edgeProperties m =
                         |> User.getCommonEdgeProperty m.selectedEdges .color
             , msgOnColorClick = InputEdgeColor
             , msgOnExpanderClick = ClickOnEdgeColorPicker
+            , msgOnLeave = MouseLeaveEdgeColorPicker
             }
         ]
 
