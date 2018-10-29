@@ -1816,7 +1816,7 @@ colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnCol
                 El.wrappedRow
                     [ El.padding 4
                     , El.spacing 4
-                    , El.width (El.px 144)
+                    , El.width (El.px 84)
                     , Background.color Colors.white
                     ]
                 <|
