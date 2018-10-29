@@ -13,6 +13,7 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
+import Element.Keyed
 import Force exposing (Force)
 import Geometry.Svg
 import Html as H exposing (Html, div)
@@ -28,6 +29,7 @@ import Set exposing (Set)
 import Svg as S
 import Svg.Attributes as SA
 import Svg.Events as SE
+import Svg.Keyed
 import Task
 import Time
 import User exposing (BagId, BagProperties, EdgeId, EdgeProperties, User, VertexId, VertexProperties)
@@ -1247,16 +1249,17 @@ leftBarContentForListsOfBagsVerticesAndEdges : Model -> Element Msg
 leftBarContentForListsOfBagsVerticesAndEdges m =
     let
         listOfBags =
-            El.column [ El.width El.fill ]
+            Element.Keyed.column [ El.width El.fill ]
                 (m.user
                     |> User.getBags
-                    |> Dict.map bagItem
+                    |> Dict.map bagItemWithKey
                     |> Dict.values
                     |> List.reverse
                 )
 
-        bagItem bagId { hasConvexHull } =
-            El.row
+        bagItemWithKey bagId { hasConvexHull } =
+            ( String.fromInt bagId
+            , El.row
                 [ El.width El.fill
                 , El.paddingXY 10 6
                 , Background.color <|
@@ -1285,18 +1288,20 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 --    ]
                 --    (El.text "C")
                 ]
+            )
 
         --
         listOfVertices =
-            El.column [ El.width El.fill ]
+            Element.Keyed.column [ El.width El.fill ]
                 (m.user
                     |> User.getVertices
-                    |> List.map vertexItem
+                    |> List.map vertexItemWithKey
                     |> List.reverse
                 )
 
-        vertexItem { id } =
-            El.row
+        vertexItemWithKey { id } =
+            ( String.fromInt id
+            , El.row
                 [ El.width El.fill
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
@@ -1322,18 +1327,20 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     ]
                     El.none
                 ]
+            )
 
         --
         listOfEdges =
-            El.column [ El.width El.fill ]
+            Element.Keyed.column [ El.width El.fill ]
                 (m.user
                     |> User.getEdges
-                    |> List.map edgeItem
+                    |> List.map edgeItemWithKey
                     |> List.reverse
                 )
 
-        edgeItem { from, to } =
-            El.row
+        edgeItemWithKey { from, to } =
+            ( String.fromInt from ++ "-" ++ String.fromInt to
+            , El.row
                 [ El.width El.fill
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
@@ -1359,6 +1366,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     ]
                     El.none
                 ]
+            )
     in
     El.column [ El.width El.fill ]
         [ leftBarMenu
@@ -2329,10 +2337,11 @@ mainSvg m =
 viewEdges : User -> Html Msg
 viewEdges user =
     let
-        drawEdge { from, to, label } =
+        edgeWithKey { from, to, label } =
             case ( User.getVertexProperties from user, User.getVertexProperties to user ) of
                 ( Just v, Just w ) ->
-                    S.g
+                    ( String.fromInt from ++ "-" ++ String.fromInt to
+                    , S.g
                         [ SE.onMouseDown (MouseDownOnEdge ( from, to ))
                         , SE.onMouseUp (MouseUpOnEdge ( from, to ))
                         , SE.onMouseOver (MouseOverEdge ( from, to ))
@@ -2350,12 +2359,13 @@ viewEdges user =
                             ]
                             (LineSegment2d.from v.position w.position)
                         ]
+                    )
 
                 _ ->
                     -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
-                    emptySvgElement
+                    ( "", emptySvgElement )
     in
-    S.g [] (List.map drawEdge (User.getEdges user))
+    Svg.Keyed.node "g" [] (user |> User.getEdges |> List.map edgeWithKey)
 
 
 viewVertices : User -> Html Msg
@@ -2372,7 +2382,7 @@ viewVertices user =
             else
                 emptySvgElement
 
-        drawVertex { id, label } =
+        vertexWithKey { id, label } =
             let
                 { position, color, radius, fixed } =
                     label
@@ -2380,7 +2390,8 @@ viewVertices user =
                 ( x, y ) =
                     Point2d.coordinates position
             in
-            S.g
+            ( String.fromInt id
+            , S.g
                 [ SA.transform <| "translate(" ++ String.fromFloat x ++ "," ++ String.fromFloat y ++ ")"
                 , SE.onMouseDown (MouseDownOnVertex id)
                 , SE.onMouseUp (MouseUpOnVertex id)
@@ -2391,8 +2402,9 @@ viewVertices user =
                     (Point2d.origin |> Circle2d.withRadius radius)
                 , pin fixed radius
                 ]
+            )
     in
-    S.g [] (user |> User.getVertices |> List.map drawVertex)
+    Svg.Keyed.node "g" [] (user |> User.getVertices |> List.map vertexWithKey)
 
 
 viewHulls : User -> Html Msg
