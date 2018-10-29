@@ -1,6 +1,8 @@
 module Colors exposing
     ( black
+    , darkGray
     , darkText
+    , gray
     , highlightPink
     , icon
     , inputBackground
@@ -80,6 +82,14 @@ lightGray =
     El.rgb255 220 220 220
 
 
+gray =
+    El.rgb255 180 180 180
+
+
+darkGray =
+    El.rgb255 140 140 140
+
+
 black =
     El.rgb255 0 0 0
 
@@ -126,6 +136,8 @@ inputBackground =
 
 vertexAndEdgeColors =
     [ lightGray
+    , gray
+    , darkGray
     , black
     , El.rgb255 199 0 57
     , El.rgb255 144 12 63

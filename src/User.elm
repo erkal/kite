@@ -24,7 +24,6 @@ module User exposing
     , getCentroid
     , getCommonEdgeProperty
     , getCommonVertexProperty
-    , getDefaultBagProperties
     , getDefaultEdgeProperties
     , getDefaultVertexProperties
     , getEdges
@@ -43,7 +42,6 @@ module User exposing
     , simulation
     , tick
     , updateBag
-    , updateDefaultBag
     , updateDefaultEdgeProperties
     , updateDefaultVertexProperties
     , updateEdges
@@ -77,7 +75,6 @@ type User
         , forces : List Force
         , defaultVertexProperties : VertexProperties
         , defaultEdgeProperties : EdgeProperties
-        , defaultBagProperties : BagProperties
         }
 
 
@@ -155,16 +152,19 @@ default =
             , distance = 40
             , strength = 0.7
             }
-        , defaultBagProperties =
-            { highlighted = False
-            , hasConvexHull = False
-            , pullIsActive = True
-            , draggablePullCenter = False
-            , pullX = 600
-            , pullY = 300
-            , pullStrength = 0.1
-            }
         }
+
+
+defaultBagProperties : BagProperties
+defaultBagProperties =
+    { highlighted = False
+    , hasConvexHull = False
+    , pullIsActive = True
+    , draggablePullCenter = False
+    , pullX = 600
+    , pullY = 300
+    , pullStrength = 0.1
+    }
 
 
 simulation : User -> Force.State
@@ -214,11 +214,6 @@ getBagProperties bagId (User { bags }) =
 updateBag : BagId -> (BagProperties -> BagProperties) -> User -> User
 updateBag bagId up (User p) =
     User { p | bags = Dict.update bagId (Maybe.map up) p.bags }
-
-
-updateDefaultBag : (BagProperties -> BagProperties) -> User -> User
-updateDefaultBag up (User p) =
-    User { p | defaultBagProperties = up p.defaultBagProperties }
 
 
 updateDefaultVertexProperties : (VertexProperties -> VertexProperties) -> User -> User
@@ -336,7 +331,7 @@ addBag vs ((User p) as user) =
     in
     ( user
         |> mapGraph (Graph.Extra.updateNodesBy l insertToBag)
-        |> mapBags (Dict.insert idOfTheNewBag p.defaultBagProperties)
+        |> mapBags (Dict.insert idOfTheNewBag defaultBagProperties)
     , idOfTheNewBag
     )
 
@@ -364,11 +359,6 @@ getDefaultEdgeProperties (User { defaultEdgeProperties }) =
 getDefaultVertexProperties : User -> VertexProperties
 getDefaultVertexProperties (User { defaultVertexProperties }) =
     defaultVertexProperties
-
-
-getDefaultBagProperties : User -> BagProperties
-getDefaultBagProperties (User { defaultBagProperties }) =
-    defaultBagProperties
 
 
 getCommonVertexProperty : Set VertexId -> (VertexProperties -> a) -> User -> Maybe a
