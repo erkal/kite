@@ -1172,9 +1172,6 @@ view m =
 leftStripe : Model -> Element Msg
 leftStripe m =
     let
-        a =
-            42
-
         modeButton title selectedMode iconPath =
             let
                 color =
@@ -1192,7 +1189,10 @@ leftStripe m =
                 (El.html (Icons.draw40pxWithColor color iconPath))
 
         radioButtonsForMode =
-            El.column [ El.alignTop ]
+            El.column
+                [ El.alignTop
+                , El.spacing 2
+                ]
                 [ modeButton "Preferences" Preferences Icons.icons.preferencesGear
                 , modeButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
                 , modeButton "Graph Operations" GraphOperations Icons.icons.magicStick
@@ -1225,6 +1225,8 @@ leftStripe m =
         [ Background.color Colors.black
         , El.width (El.px layoutParams.leftStripeWidth)
         , El.height El.fill
+
+        --, El.scrollbarY
         ]
         [ radioButtonsForMode
         , githubButton
