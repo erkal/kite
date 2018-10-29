@@ -1,11 +1,9 @@
 module Force.QuadTree exposing (Config, QuadTree(..), Quadrant(..), empty, fromList, getAggregate, insertBy, performAggregate, quadrant, singleton, size, toList)
 
-{-| THIS FILE IS COPIED FROM THE SOURCE OF THE PACKAGE gampleman/elm-visualization
-
-A quadtree that can store an aggregate in the nodes.
+{-| A quadtree that can store an aggregate in the nodes.
 Intended for use in n-body simulation, specifically Barnes-Hut
 
-[[[[[[[[[[[[[[https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut\_simulation#Calculating\_the\_force\_acting\_on\_a\_body](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)
+[https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut\_simulation#Calculating\_the\_force\_acting\_on\_a\_body](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)
 
 -}
 
@@ -121,18 +119,47 @@ insertBy toPoint vertex qtree =
                     toPoint vertex
             in
             if BoundingBox2d.contains point node.boundingBox then
+                -- NOTE: writing out the full records here gives ~50% speed increase
                 case quadrant node.boundingBox point of
                     NE ->
-                        Node { node | ne = insertBy toPoint vertex node.ne }
+                        Node
+                            { boundingBox = node.boundingBox
+                            , aggregate = node.aggregate
+                            , ne = insertBy toPoint vertex node.ne
+                            , se = node.se
+                            , nw = node.nw
+                            , sw = node.sw
+                            }
 
                     SE ->
-                        Node { node | se = insertBy toPoint vertex node.se }
+                        Node
+                            { boundingBox = node.boundingBox
+                            , aggregate = node.aggregate
+                            , ne = node.ne
+                            , se = insertBy toPoint vertex node.se
+                            , nw = node.nw
+                            , sw = node.sw
+                            }
 
                     NW ->
-                        Node { node | nw = insertBy toPoint vertex node.nw }
+                        Node
+                            { boundingBox = node.boundingBox
+                            , aggregate = node.aggregate
+                            , ne = node.ne
+                            , se = node.se
+                            , nw = insertBy toPoint vertex node.nw
+                            , sw = node.sw
+                            }
 
                     SW ->
-                        Node { node | sw = insertBy toPoint vertex node.sw }
+                        Node
+                            { boundingBox = node.boundingBox
+                            , aggregate = node.aggregate
+                            , ne = node.ne
+                            , se = node.se
+                            , nw = node.nw
+                            , sw = insertBy toPoint vertex node.sw
+                            }
 
             else
                 let
