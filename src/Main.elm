@@ -394,10 +394,12 @@ update msg m =
             { m | selectedMode = selectedMode }
 
         ClickOnUndoButton ->
-            { m | userUL = m.userUL |> UL.undo }
+            reheatSimulation
+                { m | userUL = m.userUL |> UL.undo }
 
         ClickOnRedoButton ->
-            { m | userUL = m.userUL |> UL.redo }
+            reheatSimulation
+                { m | userUL = m.userUL |> UL.redo }
 
         ClickOnResetZoomAndPanButton ->
             { m
