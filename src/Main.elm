@@ -1490,50 +1490,80 @@ leftBarContentForGamesOnGraphs m =
 -- TOP BAR
 
 
+oneClickButtonGroup : List (Element Msg) -> Element Msg
+oneClickButtonGroup buttonList =
+    El.row [ El.spacing 4 ] buttonList
+
+
+oneClickButton :
+    { title : String
+    , iconPath : String
+    , onClickMsg : Msg
+    , disabled : Bool
+    }
+    -> Element Msg
+oneClickButton { title, iconPath, onClickMsg, disabled } =
+    let
+        attributes =
+            if disabled then
+                [ Border.width 1
+                , Border.rounded 4
+                , Border.color Colors.menuBorder
+                , El.alpha 0.1
+                ]
+
+            else
+                [ Border.width 1
+                , Border.rounded 4
+                , Border.color Colors.menuBorder
+                , El.pointer
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                , Events.onClick onClickMsg
+                , El.htmlAttribute (HA.title title)
+                ]
+    in
+    El.el attributes (El.html (Icons.draw34px iconPath))
+
+
+radioButtonGroup : List (Element Msg) -> Element Msg
+radioButtonGroup buttonList =
+    El.row
+        [ Border.width 1
+        , Border.color Colors.menuBorder
+        , El.padding 4
+        , El.spacing 4
+        ]
+        buttonList
+
+
+radioButton :
+    { title : String
+    , iconPath : String
+    , onClickMsg : Msg
+    , isSelected : Bool
+    }
+    -> Element Msg
+radioButton { title, iconPath, onClickMsg, isSelected } =
+    El.el
+        [ Background.color <|
+            if isSelected then
+                Colors.selectedItem
+
+            else
+                Colors.menuBackground
+        , El.mouseDown [ Background.color Colors.selectedItem ]
+        , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+        , Border.rounded 4
+        , El.htmlAttribute (HA.title title)
+        , Events.onClick onClickMsg
+        , El.pointer
+        ]
+        (El.html (Icons.draw34px iconPath))
+
+
 topBar : Model -> Element Msg
 topBar m =
-    let
-        oneClickButtonGroup buttonList =
-            El.row
-                [ El.padding 4
-                , El.spacing 4
-                ]
-                buttonList
-
-        oneClickButton title iconPath onClickMsg =
-            El.el
-                [ Border.width 1
-                , Border.rounded 4
-                , Border.color Colors.menuBorder
-                , El.mouseDown [ Background.color Colors.selectedItem ]
-                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
-                , Events.onClick onClickMsg
-                , El.htmlAttribute (HA.title title)
-                , El.pointer
-                ]
-                (El.html (Icons.draw34px iconPath))
-
-        radioButtonGroup buttonList =
-            El.row
-                [ Border.width 1
-                , Border.color Colors.menuBorder
-                , El.padding 4
-                , El.spacing 4
-                ]
-                buttonList
-
-        radioButton title iconPath onClickMsg backgroundColor =
-            El.el
-                [ Background.color backgroundColor
-                , El.mouseDown [ Background.color Colors.selectedItem ]
-                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
-                , Border.rounded 4
-                , Events.onClick onClickMsg
-                , El.htmlAttribute (HA.title title)
-                , El.pointer
-                ]
-                (El.html (Icons.draw34px iconPath))
-    in
     El.el
         [ Background.color Colors.menuBackground
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
@@ -1544,54 +1574,74 @@ topBar m =
     <|
         El.row [ El.centerY, El.paddingXY 16 0, El.spacing 16 ]
             [ oneClickButtonGroup
-                [ oneClickButton "Undo" Icons.icons.undo ClickOnUndoButton
-                , oneClickButton "Redo" Icons.icons.redo ClickOnRedoButton
+                [ oneClickButton
+                    { title = "Undo"
+                    , iconPath = Icons.icons.undo
+                    , onClickMsg = ClickOnUndoButton
+                    , disabled = not (m.userUL |> UL.hasPast)
+                    }
+                , oneClickButton
+                    { title = "Redo"
+                    , iconPath = Icons.icons.redo
+                    , onClickMsg = ClickOnRedoButton
+                    , disabled = not (m.userUL |> UL.hasFuture)
+                    }
                 ]
-            , oneClickButton "Reset Zoom and Pan"
-                Icons.icons.resetZoomAndPan
-                ClickOnResetZoomAndPanButton
-            , radioButtonGroup
-                [ radioButton "Hand (H)"
-                    Icons.icons.hand
-                    ClickOnHandTool
-                  <|
-                    case m.selectedTool of
-                        Hand _ ->
-                            Colors.selectedItem
-
-                        _ ->
-                            Colors.menuBackground
-                , radioButton "Selection (S)"
-                    Icons.icons.pointer
-                    ClickOnSelectTool
-                  <|
-                    case m.selectedTool of
-                        Select _ ->
-                            Colors.selectedItem
-
-                        _ ->
-                            Colors.menuBackground
-                , radioButton "Draw (D)"
-                    Icons.icons.pen
-                    ClickOnDrawTool
-                  <|
-                    case m.selectedTool of
-                        Draw _ ->
-                            Colors.selectedItem
-
-                        _ ->
-                            Colors.menuBackground
+            , oneClickButtonGroup
+                [ oneClickButton
+                    { title = "Reset Zoom and Pan"
+                    , iconPath = Icons.icons.resetZoomAndPan
+                    , onClickMsg = ClickOnResetZoomAndPanButton
+                    , disabled = False
+                    }
                 ]
             , radioButtonGroup
-                [ radioButton "Force (F)"
-                    Icons.icons.vader
-                    ClickOnVader
-                  <|
-                    if m.vaderIsOn then
-                        Colors.selectedItem
+                [ radioButton
+                    { title = "Hand (H)"
+                    , iconPath = Icons.icons.hand
+                    , onClickMsg = ClickOnHandTool
+                    , isSelected =
+                        case m.selectedTool of
+                            Hand _ ->
+                                True
 
-                    else
-                        Colors.menuBackground
+                            _ ->
+                                False
+                    }
+                , radioButton
+                    { title = "Selection (S)"
+                    , iconPath = Icons.icons.pointer
+                    , onClickMsg = ClickOnSelectTool
+                    , isSelected =
+                        case m.selectedTool of
+                            Select _ ->
+                                True
+
+                            _ ->
+                                False
+                    }
+                , radioButton
+                    { title = "Draw (D)"
+                    , iconPath = Icons.icons.pen
+                    , onClickMsg = ClickOnDrawTool
+                    , isSelected =
+                        case m.selectedTool of
+                            Draw _ ->
+                                True
+
+                            _ ->
+                                False
+                    }
+                ]
+            , oneClickButtonGroup
+                [ radioButtonGroup
+                    [ radioButton
+                        { title = "Force (F)"
+                        , iconPath = Icons.icons.vader
+                        , onClickMsg = ClickOnVader
+                        , isSelected = m.vaderIsOn
+                        }
+                    ]
                 ]
             ]
 
