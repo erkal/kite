@@ -1576,6 +1576,7 @@ radioButtonGroup buttonList =
     El.row
         [ Border.width 1
         , Border.color Colors.menuBorder
+        , Border.rounded 20
         , El.padding 4
         , El.spacing 4
         ]
@@ -1599,7 +1600,7 @@ radioButton { title, iconPath, onClickMsg, isSelected } =
                 Colors.menuBackground
         , El.mouseDown [ Background.color Colors.selectedItem ]
         , El.mouseOver [ Background.color Colors.mouseOveredItem ]
-        , Border.rounded 4
+        , Border.rounded 20
         , El.htmlAttribute (HA.title title)
         , Events.onClick onClickMsg
         , El.pointer
@@ -1744,7 +1745,7 @@ subMenu header contentLines =
 history : Model -> Element Msg
 history m =
     let
-        item ( descriptionText, _ ) =
+        pastItem ( descriptionText, _ ) =
             El.el
                 [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
@@ -1752,6 +1753,31 @@ history m =
                 , El.paddingXY 10 4
                 ]
                 (El.text descriptionText)
+
+        pastItems =
+            m.userUL.past |> List.map pastItem |> List.reverse
+
+        presentItem =
+            El.el
+                [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Border.color Colors.menuBorder
+                , El.width El.fill
+                , El.paddingXY 10 4
+                ]
+                (El.text (m.userUL.present |> Tuple.first))
+
+        futureItem ( descriptionText, _ ) =
+            El.el
+                [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Border.color Colors.menuBorder
+                , El.width El.fill
+                , El.paddingXY 10 4
+                , El.alpha 0.3
+                ]
+                (El.text descriptionText)
+
+        futureItems =
+            m.userUL.future |> List.map futureItem
     in
     subMenu "History"
         [ El.column
@@ -1759,7 +1785,7 @@ history m =
             , El.height (El.px 100)
             , El.scrollbarY
             ]
-            (m.userUL |> UL.toList |> List.reverse |> List.map item)
+            (pastItems ++ (presentItem :: futureItems))
         ]
 
 
@@ -1777,7 +1803,7 @@ selector m =
                         _ ->
                             Colors.menuBackground
                 , El.pointer
-                , Border.rounded 4
+                , Border.rounded 12
                 , Events.onClick ClickOnRectSelector
                 , El.mouseDown [ Background.color Colors.selectedItem ]
                 , El.mouseOver [ Background.color Colors.mouseOveredItem ]
@@ -1795,7 +1821,7 @@ selector m =
                         _ ->
                             Colors.menuBackground
                 , El.pointer
-                , Border.rounded 4
+                , Border.rounded 12
                 , Events.onClick ClickOnLineSelector
                 , El.mouseDown [ Background.color Colors.selectedItem ]
                 , El.mouseOver [ Background.color Colors.mouseOveredItem ]
@@ -1811,8 +1837,9 @@ selector m =
                 ]
                 (El.text "Type")
             , El.row
-                [ El.spacing 4
-                , El.padding 4
+                [ El.spacing 1
+                , El.padding 1
+                , Border.rounded 12
                 , Border.width 1
                 , Border.color Colors.menuBorder
                 ]
