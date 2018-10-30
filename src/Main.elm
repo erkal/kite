@@ -69,7 +69,7 @@ mousePosition =
 
 
 type alias Model =
-    { userUL : UndoList User
+    { userUL : UndoList ( String, User )
 
     --
     , simulationState : Force.State
@@ -165,7 +165,7 @@ type SelectState
 
 initialModel : User -> Model
 initialModel user =
-    { userUL = UL.fresh user
+    { userUL = UL.fresh ( "Started with empty graph", user )
 
     --
     , simulationState = user |> User.simulation
@@ -317,6 +317,11 @@ stopSimulation m =
     { m | simulationState = Force.stop m.simulationState }
 
 
+presentUser : Model -> User
+presentUser m =
+    Tuple.second m.userUL.present
+
+
 update : Msg -> Model -> Model
 update msg m =
     case msg of
@@ -326,7 +331,7 @@ update msg m =
         Tick _ ->
             let
                 ( newSimulationState, newUser_ ) =
-                    m.userUL.present |> User.tick m.simulationState
+                    m |> presentUser |> User.tick m.simulationState
 
                 newUser =
                     case m.selectedTool of
@@ -346,7 +351,7 @@ update msg m =
                             newUser_
             in
             { m
-                | userUL = m.userUL |> UL.mapPresent (always newUser)
+                | userUL = m.userUL |> UL.mapPresent (Tuple.mapSecond (always newUser))
                 , simulationState = newSimulationState
             }
 
@@ -453,11 +458,11 @@ update msg m =
                                 newSelectedVertices =
                                     User.vertexIdsInBoundingBox
                                         (BoundingBox2d.from brushStart m.svgMousePosition)
-                                        m.userUL.present
+                                        (m |> presentUser)
                             in
                             { m
                                 | selectedVertices = newSelectedVertices
-                                , selectedEdges = m.userUL.present |> User.inducedEdges newSelectedVertices
+                                , selectedEdges = m |> presentUser |> User.inducedEdges newSelectedVertices
                             }
 
                         LineSelector ->
@@ -465,7 +470,7 @@ update msg m =
                                 newSelectedEdges =
                                     User.edgeIdsIntersectiongLineSegment
                                         (LineSegment2d.from brushStart m.svgMousePosition)
-                                        m.userUL.present
+                                        (m |> presentUser)
                             in
                             { m
                                 | selectedEdges = newSelectedEdges
@@ -483,11 +488,12 @@ update msg m =
                                 |> List.map (Tuple.mapSecond (Point2d.translateBy delta))
 
                         newUser =
-                            m.userUL.present
+                            m
+                                |> presentUser
                                 |> User.setVertexPositions newVertexPositions
                     in
                     { m
-                        | userUL = m.userUL |> UL.mapPresent (always newUser)
+                        | userUL = m.userUL |> UL.mapPresent (Tuple.mapSecond (always newUser))
                     }
 
                 Hand (Panning { mousePositionAtPanStart, panAtStart }) ->
@@ -560,11 +566,16 @@ update msg m =
                 Draw DrawIdle ->
                     let
                         ( newUser, sourceId ) =
-                            m.userUL.present |> User.addVertex m.svgMousePosition
+                            m |> presentUser |> User.addVertex m.svgMousePosition
                     in
                     stopSimulation
                         { m
-                            | userUL = m.userUL |> UL.new newUser
+                            | userUL =
+                                m.userUL
+                                    |> UL.new
+                                        ( "Added vertex " ++ String.fromInt sourceId
+                                        , newUser
+                                        )
                             , selectedTool = Draw (BrushingNewEdgeWithSourceId sourceId)
                         }
 
@@ -579,7 +590,8 @@ update msg m =
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     let
                         ( userGraphWithAddedVertex, newId ) =
-                            m.userUL.present
+                            m
+                                |> presentUser
                                 |> User.addVertex m.svgMousePosition
 
                         newUser =
@@ -588,7 +600,7 @@ update msg m =
                     in
                     reheatSimulation
                         { m
-                            | userUL = m.userUL |> UL.new newUser
+                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
                             , selectedTool = Draw DrawIdle
                         }
 
@@ -633,17 +645,17 @@ update msg m =
                         ( newUser, newSelectedVertices, newSelectedEdges ) =
                             if Set.member id m.selectedVertices then
                                 if m.altIsDown then
-                                    m.userUL.present |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
+                                    m |> presentUser |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
 
                                 else
-                                    ( m.userUL.present, m.selectedVertices, m.selectedEdges )
+                                    ( m |> presentUser, m.selectedVertices, m.selectedEdges )
 
                             else
-                                ( m.userUL.present, Set.singleton id, Set.empty )
+                                ( m |> presentUser, Set.singleton id, Set.empty )
                     in
                     reheatSimulation
                         { m
-                            | userUL = m.userUL |> UL.new newUser
+                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
                             , selectedVertices = newSelectedVertices
                             , selectedEdges = newSelectedEdges
                             , selectedTool =
@@ -669,11 +681,11 @@ update msg m =
                     else
                         let
                             newUser =
-                                m.userUL.present |> User.addEdge ( sourceId, targetId )
+                                m |> presentUser |> User.addEdge ( sourceId, targetId )
                         in
                         reheatSimulation
                             { m
-                                | userUL = m.userUL |> UL.new newUser
+                                | userUL = m.userUL |> UL.new ( "TODO", newUser )
                                 , selectedTool = Draw DrawIdle
                             }
 
@@ -685,12 +697,13 @@ update msg m =
                 Draw DrawIdle ->
                     let
                         ( newUser, idOfTheNewVertex ) =
-                            m.userUL.present
+                            m
+                                |> presentUser
                                 |> User.divideEdge m.svgMousePosition ( s, t )
                     in
                     stopSimulation
                         { m
-                            | userUL = m.userUL |> UL.new newUser
+                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
                             , highlightedEdges = Set.empty
                             , selectedTool = Draw (BrushingNewEdgeWithSourceId idOfTheNewVertex)
                         }
@@ -700,21 +713,22 @@ update msg m =
                         ( newUser, newSelectedVertices, newSelectedEdges ) =
                             if Set.member ( s, t ) m.selectedEdges then
                                 if m.altIsDown then
-                                    m.userUL.present
+                                    m
+                                        |> presentUser
                                         |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
 
                                 else
-                                    ( m.userUL.present, m.selectedVertices, m.selectedEdges )
+                                    ( m |> presentUser, m.selectedVertices, m.selectedEdges )
 
                             else
-                                ( m.userUL.present
+                                ( m |> presentUser
                                 , Set.fromList [ s, t ]
                                 , Set.singleton ( s, t )
                                 )
                     in
                     reheatSimulation
                         { m
-                            | userUL = m.userUL |> UL.new newUser
+                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
                             , selectedVertices = newSelectedVertices
                             , selectedEdges = newSelectedEdges
                             , selectedTool =
@@ -735,14 +749,14 @@ update msg m =
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     let
                         ( newUser_, newId ) =
-                            m.userUL.present |> User.divideEdge m.svgMousePosition ( s, t )
+                            m |> presentUser |> User.divideEdge m.svgMousePosition ( s, t )
 
                         newUser =
                             newUser_ |> User.addEdge ( sourceId, newId )
                     in
                     reheatSimulation
                         { m
-                            | userUL = m.userUL |> UL.new newUser
+                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
                             , highlightedEdges = Set.empty
                             , selectedTool = Draw DrawIdle
                         }
@@ -756,27 +770,29 @@ update msg m =
                     { bag | hasConvexHull = not bag.hasConvexHull }
 
                 newUser =
-                    m.userUL.present |> User.updateBag bagId updateCH
+                    m |> presentUser |> User.updateBag bagId updateCH
             in
-            { m | userUL = m.userUL |> UL.new newUser }
+            { m | userUL = m.userUL |> UL.new ( "Toggled convex hull TODO", newUser ) }
 
         InputVertexX str ->
             let
                 newUser =
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.setCentroidX m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
-            { m | userUL = m.userUL |> UL.new newUser }
+            { m | userUL = m.userUL |> UL.new ( "Changed the X coordinate of vertex TODO", newUser ) }
 
         InputVertexY str ->
             let
                 newUser =
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.setCentroidY m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
-            { m | userUL = m.userUL |> UL.new newUser }
+            { m | userUL = m.userUL |> UL.new ( "Changed the Y coordinate TODO", newUser ) }
 
         InputVertexColor newColor ->
             let
@@ -785,14 +801,16 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateDefaultVertexProperties updateColor
 
                     else
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateVertices m.selectedVertices updateColor
             in
-            { m | userUL = m.userUL |> UL.new newUser }
+            { m | userUL = m.userUL |> UL.new ( "Changed vertex color TODO", newUser ) }
 
         InputVertexRadius num ->
             let
@@ -801,14 +819,16 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateDefaultVertexProperties updateRadius
 
                     else
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateVertices m.selectedVertices updateRadius
             in
-            { m | userUL = m.userUL |> UL.new newUser }
+            { m | userUL = m.userUL |> UL.new ( "Changed vertex radius TODO", newUser ) }
 
         InputVertexStrength num ->
             let
@@ -817,15 +837,17 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateDefaultVertexProperties updateStrength
 
                     else
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateVertices m.selectedVertices updateStrength
             in
             reheatSimulation
-                { m | userUL = m.userUL |> UL.new newUser }
+                { m | userUL = m.userUL |> UL.new ( "Changed Vertex Strength TODO", newUser ) }
 
         InputEdgeColor newColor ->
             let
@@ -834,14 +856,16 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedEdges then
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateDefaultEdgeProperties updateColor
 
                     else
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateEdges m.selectedEdges updateColor
             in
-            { m | userUL = m.userUL |> UL.new newUser }
+            { m | userUL = m.userUL |> UL.new ( "Changed edge color TODO", newUser ) }
 
         InputVertexFixed b ->
             let
@@ -850,15 +874,17 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateDefaultVertexProperties updateFixed
 
                     else
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateVertices m.selectedVertices updateFixed
             in
             reheatSimulation
-                { m | userUL = m.userUL |> UL.new newUser }
+                { m | userUL = m.userUL |> UL.new ( "Fixed Vertex TODO", newUser ) }
 
         InputEdgeThickness num ->
             let
@@ -867,14 +893,16 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedEdges then
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateDefaultEdgeProperties updateThickness
 
                     else
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateEdges m.selectedEdges updateThickness
             in
-            { m | userUL = m.userUL |> UL.new newUser }
+            { m | userUL = m.userUL |> UL.new ( "Changed Edge Thickness TODO", newUser ) }
 
         InputEdgeDistance num ->
             let
@@ -883,15 +911,22 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedEdges then
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateDefaultEdgeProperties updateDistance
 
                     else
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateEdges m.selectedEdges updateDistance
             in
             reheatSimulation
-                { m | userUL = m.userUL |> UL.new newUser }
+                { m
+                    | userUL =
+                        m.userUL
+                            |> UL.new
+                                ( "Changed Edge Distance TODO", newUser )
+                }
 
         InputEdgeStrength num ->
             let
@@ -900,24 +935,26 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedEdges then
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateDefaultEdgeProperties updateStrength
 
                     else
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.updateEdges m.selectedEdges updateStrength
             in
             reheatSimulation
-                { m | userUL = m.userUL |> UL.new newUser }
+                { m | userUL = m.userUL |> UL.new ( "Changed Edge Strength TODO", newUser ) }
 
         ClickOnVertexTrash ->
             let
                 newUser =
-                    m.userUL.present |> User.removeVertices m.selectedVertices
+                    m |> presentUser |> User.removeVertices m.selectedVertices
             in
             reheatSimulation
                 { m
-                    | userUL = m.userUL |> UL.new newUser
+                    | userUL = m.userUL |> UL.new ( "Removed Vertices TODO", newUser )
                     , selectedVertices = Set.empty
                     , highlightedVertices = Set.empty
                     , selectedEdges = Set.empty
@@ -927,11 +964,11 @@ update msg m =
         ClickOnEdgeTrash ->
             let
                 newUser =
-                    m.userUL.present |> User.removeEdges m.selectedEdges
+                    m |> presentUser |> User.removeEdges m.selectedEdges
             in
             reheatSimulation
                 { m
-                    | userUL = m.userUL |> UL.new newUser
+                    | userUL = m.userUL |> UL.new ( "Removed edges ... TODO", newUser )
                     , highlightedEdges = Set.empty
                     , selectedEdges = Set.empty
                 }
@@ -941,12 +978,13 @@ update msg m =
                 [ selectedEdge ] ->
                     let
                         newUser =
-                            m.userUL.present
+                            m
+                                |> presentUser
                                 |> User.contractEdge selectedEdge
                     in
                     reheatSimulation
                         { m
-                            | userUL = m.userUL |> UL.new newUser
+                            | userUL = m.userUL |> UL.new ( "Contracted Edge TODO", newUser )
                             , highlightedEdges = Set.empty
                             , selectedEdges = Set.empty
                         }
@@ -959,10 +997,10 @@ update msg m =
                 Just bagId ->
                     let
                         newUser =
-                            m.userUL.present |> User.removeBag bagId
+                            m |> presentUser |> User.removeBag bagId
                     in
                     { m
-                        | userUL = m.userUL |> UL.new newUser
+                        | userUL = m.userUL |> UL.new ( "Removed bag " ++ String.fromInt bagId, newUser )
                         , maybeSelectedBag = Nothing
                     }
 
@@ -972,11 +1010,15 @@ update msg m =
         ClickOnBagPlus ->
             let
                 ( newUser, idOfTheNewBag ) =
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.addBag m.selectedVertices
             in
             { m
-                | userUL = m.userUL |> UL.new newUser
+                | userUL =
+                    m.userUL
+                        |> UL.new
+                            ( "Added bag " ++ String.fromInt idOfTheNewBag, newUser )
                 , maybeSelectedBag = Just idOfTheNewBag
             }
 
@@ -1007,7 +1049,7 @@ update msg m =
             }
 
         MouseOverBagItem bagId ->
-            { m | highlightedVertices = m.userUL.present |> User.getVerticesInBag bagId }
+            { m | highlightedVertices = m |> presentUser |> User.getVerticesInBag bagId }
 
         MouseOutBagItem _ ->
             { m | highlightedVertices = Set.empty }
@@ -1022,7 +1064,7 @@ update msg m =
 
                     else
                         ( Just bagId
-                        , m.userUL.present |> User.getVerticesInBag bagId
+                        , m |> presentUser |> User.getVerticesInBag bagId
                         )
             in
             { m
@@ -1315,7 +1357,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
     let
         listOfBags =
             Element.Keyed.column [ El.width El.fill ]
-                (m.userUL.present
+                (m
+                    |> presentUser
                     |> User.getBags
                     |> Dict.map bagItemWithKey
                     |> Dict.values
@@ -1339,7 +1382,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 , Events.onMouseLeave (MouseOutBagItem bagId)
                 , Events.onClick (ClickOnBagItem bagId)
                 ]
-                [ El.text (m.userUL.present |> User.bagElementsInCurlyBraces bagId)
+                [ El.text (m |> presentUser |> User.bagElementsInCurlyBraces bagId)
 
                 --, El.el
                 --    [ El.alignRight
@@ -1358,7 +1401,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
         --
         listOfVertices =
             Element.Keyed.column [ El.width El.fill ]
-                (m.userUL.present
+                (m
+                    |> presentUser
                     |> User.getVertices
                     |> List.map vertexItemWithKey
                     |> List.reverse
@@ -1397,7 +1441,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
         --
         listOfEdges =
             Element.Keyed.column [ El.width El.fill ]
-                (m.userUL.present
+                (m
+                    |> presentUser
                     |> User.getEdges
                     |> List.map edgeItemWithKey
                     |> List.reverse
@@ -1699,30 +1744,22 @@ subMenu header contentLines =
 history : Model -> Element Msg
 history m =
     let
-        item descriptionText =
-            El.el [] (El.text descriptionText)
+        item ( descriptionText, _ ) =
+            El.el
+                [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Border.color Colors.menuBorder
+                , El.width El.fill
+                , El.paddingXY 10 4
+                ]
+                (El.text descriptionText)
     in
     subMenu "History"
-        [ El.column [ El.height (El.px 100), El.scrollbarY ]
-            [ item "Added vertex 4"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
-            , item "Added vertex 5 and edge 4 -> 5"
+        [ El.column
+            [ El.width El.fill
+            , El.height (El.px 100)
+            , El.scrollbarY
             ]
+            (m.userUL |> UL.toList |> List.reverse |> List.map item)
         ]
 
 
@@ -2026,7 +2063,8 @@ vertexProperties m =
             [ textInput
                 { labelText = "X"
                 , text =
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getCentroid m.selectedVertices
                         |> Maybe.map Point2d.xCoordinate
                         |> Maybe.map round
@@ -2037,7 +2075,8 @@ vertexProperties m =
             , textInput
                 { labelText = "Y"
                 , text =
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getCentroid m.selectedVertices
                         |> Maybe.map Point2d.yCoordinate
                         |> Maybe.map round
@@ -2051,25 +2090,27 @@ vertexProperties m =
             , state =
                 if Set.isEmpty m.selectedVertices then
                     Just
-                        (m.userUL.present
+                        (m
+                            |> presentUser
                             |> User.getDefaultVertexProperties
                             |> .fixed
                         )
 
                 else
-                    m.userUL.present |> User.getCommonVertexProperty m.selectedVertices .fixed
+                    m |> presentUser |> User.getCommonVertexProperty m.selectedVertices .fixed
             , onChange = InputVertexFixed
             }
         , sliderInput
             { labelText = "Radius"
             , value =
                 if Set.isEmpty m.selectedVertices then
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getDefaultVertexProperties
                         |> .radius
 
                 else
-                    case m.userUL.present |> User.getCommonVertexProperty m.selectedVertices .radius of
+                    case m |> presentUser |> User.getCommonVertexProperty m.selectedVertices .radius of
                         Just r ->
                             r
 
@@ -2085,7 +2126,8 @@ vertexProperties m =
             , value =
                 let
                     defaultVertexStrength =
-                        m.userUL.present
+                        m
+                            |> presentUser
                             |> User.getDefaultVertexProperties
                             |> .strength
                 in
@@ -2093,7 +2135,8 @@ vertexProperties m =
                     defaultVertexStrength
 
                 else
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getCommonVertexProperty m.selectedVertices .strength
                         |> Maybe.withDefault defaultVertexStrength
             , min = -2000
@@ -2107,13 +2150,15 @@ vertexProperties m =
             , selectedColor =
                 if Set.isEmpty m.selectedVertices then
                     Just
-                        (m.userUL.present
+                        (m
+                            |> presentUser
                             |> User.getDefaultVertexProperties
                             |> .color
                         )
 
                 else
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getCommonVertexProperty m.selectedVertices .color
             , msgOnColorClick = InputVertexColor
             , msgOnExpanderClick = ClickOnVertexColorPicker
@@ -2141,12 +2186,14 @@ edgeProperties m =
             { labelText = "Thickness"
             , value =
                 if Set.isEmpty m.selectedEdges then
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getDefaultEdgeProperties
                         |> .thickness
 
                 else
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getCommonEdgeProperty m.selectedEdges .thickness
                         |> Maybe.withDefault 3
             , min = 1
@@ -2158,12 +2205,14 @@ edgeProperties m =
             { labelText = "Distance"
             , value =
                 if Set.isEmpty m.selectedEdges then
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getDefaultEdgeProperties
                         |> .distance
 
                 else
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getCommonEdgeProperty m.selectedEdges .distance
                         |> Maybe.withDefault 40
             , min = 10
@@ -2175,12 +2224,14 @@ edgeProperties m =
             { labelText = "Strength"
             , value =
                 if Set.isEmpty m.selectedEdges then
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getDefaultEdgeProperties
                         |> .strength
 
                 else
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getCommonEdgeProperty m.selectedEdges .strength
                         |> Maybe.withDefault 0.7
             , min = 0
@@ -2194,13 +2245,15 @@ edgeProperties m =
             , selectedColor =
                 if Set.isEmpty m.selectedEdges then
                     Just
-                        (m.userUL.present
+                        (m
+                            |> presentUser
                             |> User.getDefaultEdgeProperties
                             |> .color
                         )
 
                 else
-                    m.userUL.present
+                    m
+                        |> presentUser
                         |> User.getCommonEdgeProperty m.selectedEdges .color
             , msgOnColorClick = InputEdgeColor
             , msgOnExpanderClick = ClickOnEdgeColorPicker
@@ -2285,11 +2338,11 @@ mainSvg m =
         maybeBrushedEdge =
             case m.selectedTool of
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
-                    case m.userUL.present |> User.getVertexProperties sourceId of
+                    case m |> presentUser |> User.getVertexProperties sourceId of
                         Just { position } ->
                             let
                                 dEP =
-                                    m.userUL.present |> User.getDefaultEdgeProperties
+                                    m |> presentUser |> User.getDefaultEdgeProperties
                             in
                             Geometry.Svg.lineSegment2d
                                 [ SA.strokeWidth (String.fromFloat dEP.thickness)
@@ -2332,7 +2385,8 @@ mainSvg m =
                 rect selectedVertices =
                     let
                         maybeBoudingBox =
-                            m.userUL.present
+                            m
+                                |> presentUser
                                 |> User.getBoundingBoxWithMargin selectedVertices
                     in
                     case maybeBoudingBox of
@@ -2367,7 +2421,8 @@ mainSvg m =
                         (position |> Circle2d.withRadius (radius + 4))
             in
             S.g []
-                (m.userUL.present
+                (m
+                    |> presentUser
                     |> User.getVertices
                     |> List.filter (\{ id } -> Set.member id m.selectedVertices)
                     |> List.map (.label >> drawHL)
@@ -2381,7 +2436,8 @@ mainSvg m =
                         (position |> Circle2d.withRadius (radius + 4))
             in
             S.g []
-                (m.userUL.present
+                (m
+                    |> presentUser
                     |> User.getVertices
                     |> List.filter (\{ id } -> Set.member id m.highlightedVertices)
                     |> List.map (.label >> drawHL)
@@ -2391,8 +2447,8 @@ mainSvg m =
             let
                 drawHL { from, to, label } =
                     case
-                        ( m.userUL.present |> User.getVertexProperties from
-                        , m.userUL.present |> User.getVertexProperties to
+                        ( m |> presentUser |> User.getVertexProperties from
+                        , m |> presentUser |> User.getVertexProperties to
                         )
                     of
                         ( Just v, Just w ) ->
@@ -2407,7 +2463,8 @@ mainSvg m =
                             emptySvgElement
             in
             S.g []
-                (m.userUL.present
+                (m
+                    |> presentUser
                     |> User.getEdges
                     |> List.filter (\{ from, to } -> Set.member ( from, to ) m.selectedEdges)
                     |> List.map drawHL
@@ -2417,8 +2474,8 @@ mainSvg m =
             let
                 drawHL { from, to, label } =
                     case
-                        ( m.userUL.present |> User.getVertexProperties from
-                        , m.userUL.present |> User.getVertexProperties to
+                        ( m |> presentUser |> User.getVertexProperties from
+                        , m |> presentUser |> User.getVertexProperties to
                         )
                     of
                         ( Just v, Just w ) ->
@@ -2433,7 +2490,8 @@ mainSvg m =
                             emptySvgElement
             in
             S.g []
-                (m.userUL.present
+                (m
+                    |> presentUser
                     |> User.getEdges
                     |> List.filter (\{ from, to } -> Set.member ( from, to ) m.highlightedEdges)
                     |> List.map drawHL
@@ -2483,15 +2541,15 @@ mainSvg m =
         , HE.on "wheel" (Decode.map WheelDeltaY wheelDeltaY)
         ]
         [ pageA4WithRuler
-        , viewHulls m.userUL.present
+        , viewHulls (m |> presentUser)
         , maybeBrushedEdge
         , transparentInteractionRect
         , maybeHighlightsOnSelectedEdges
         , maybeHighlightOnMouseOveredEdges
         , maybeHighlightsOnSelectedVertices
         , maybeHighlightOnMouseOveredVertices
-        , viewEdges m.userUL.present
-        , viewVertices m.userUL.present
+        , viewEdges (m |> presentUser)
+        , viewVertices (m |> presentUser)
         , maybeBrushedSelector
         , maybeRectAroundSelectedVertices
         ]
