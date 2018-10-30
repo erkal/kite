@@ -15,6 +15,7 @@ module Colors exposing
     , menuBorder
     , mouseOveredItem
     , rectAroundSelectedVertices
+    , rightBarHeader
     , selectBlue
     , selectedItem
     , selectorStroke
@@ -127,6 +128,10 @@ darkText =
 
 
 leftBarHeader =
+    El.rgb255 66 66 66
+
+
+rightBarHeader =
     El.rgb255 66 66 66
 
 

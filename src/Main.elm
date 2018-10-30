@@ -1137,7 +1137,7 @@ view m =
             ]
         }
         [ Font.color Colors.lightText
-        , Font.size 12
+        , Font.size 10
         , Font.regular
         , Font.family
             [ Font.typeface "-apple-system"
@@ -1659,7 +1659,8 @@ rightBar m =
         , El.width (El.px layoutParams.rightBarWidth)
         , El.height El.fill
         ]
-        [ selectionType m
+        [ history m
+        , selector m
         , vertexProperties m
         , edgeProperties m
         ]
@@ -1671,21 +1672,22 @@ subMenu header contentLines =
         headerBar =
             El.el
                 [ El.width El.fill
-                , Font.medium
+                , El.paddingXY 12 6
+                , Background.color Colors.rightBarHeader
+                , Font.bold
                 ]
                 (El.text header)
 
         content =
             El.column
                 [ El.width El.fill
-                , El.paddingXY 20 20
-                , El.spacing 8
+                , El.paddingXY 0 8
+                , El.spacing 4
                 ]
                 contentLines
     in
     El.column
         [ El.width El.fill
-        , El.padding 12
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
         , Border.color Colors.menuBorder
         ]
@@ -1694,8 +1696,38 @@ subMenu header contentLines =
         ]
 
 
-selectionType : Model -> Element Msg
-selectionType m =
+history : Model -> Element Msg
+history m =
+    let
+        item descriptionText =
+            El.el [] (El.text descriptionText)
+    in
+    subMenu "History"
+        [ El.column [ El.height (El.px 100), El.scrollbarY ]
+            [ item "Added vertex 4"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            , item "Added vertex 5 and edge 4 -> 5"
+            ]
+        ]
+
+
+selector : Model -> Element Msg
+selector m =
     let
         rectSelector =
             El.el
@@ -1767,7 +1799,7 @@ selectionType m =
 styledLabel labelText =
     Input.labelLeft
         [ El.centerY
-        , El.width (El.px 60)
+        , El.width (El.px 80)
         , Font.alignRight
         ]
         (El.text labelText)
@@ -1811,36 +1843,36 @@ sliderInput :
     }
     -> Element Msg
 sliderInput { labelText, value, min, max, step, onChange } =
-    Input.slider
-        [ El.paddingXY 6 10
-        , El.spacing 8
-        , El.behindContent
-            (El.el
-                [ El.width El.fill
-                , El.height (El.px 2)
-                , El.centerY
-                , Background.color Colors.inputBackground
-                , Border.rounded 2
-                ]
-                El.none
-            )
-        ]
-        { onChange = onChange
-        , label = styledLabel labelText
-        , min = min
-        , max = max
-        , step = Just step
-        , value = value
-        , thumb =
-            Input.thumb
-                [ El.width (El.px 4)
-                , El.height (El.px 10)
-                , Border.rounded 2
-                , Border.width 0
-                , Border.color Colors.sliderThumb
-                , Background.color Colors.icon
-                ]
-        }
+    El.el [ El.width (El.px 200) ] <|
+        Input.slider
+            [ El.spacing 8
+            , El.behindContent
+                (El.el
+                    [ El.width El.fill
+                    , El.height (El.px 2)
+                    , El.centerY
+                    , Background.color Colors.inputBackground
+                    , Border.rounded 2
+                    ]
+                    El.none
+                )
+            ]
+            { onChange = onChange
+            , label = styledLabel labelText
+            , min = min
+            , max = max
+            , step = Just step
+            , value = value
+            , thumb =
+                Input.thumb
+                    [ El.width (El.px 4)
+                    , El.height (El.px 10)
+                    , Border.rounded 2
+                    , Border.width 0
+                    , Border.color Colors.sliderThumb
+                    , Background.color Colors.icon
+                    ]
+            }
 
 
 checkbox :
@@ -1873,7 +1905,7 @@ checkbox { labelText, state, onChange } =
         ]
         [ El.el
             [ El.centerY
-            , El.width (El.px 60)
+            , El.width (El.px 80)
             , Font.alignRight
             ]
             (El.text labelText)
@@ -1903,7 +1935,7 @@ colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnCol
         label =
             El.el
                 [ El.centerY
-                , El.width (El.px 60)
+                , El.width (El.px 80)
                 , Font.alignRight
                 ]
                 (El.text labelText)
