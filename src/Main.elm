@@ -1855,22 +1855,21 @@ selector m =
         ]
 
 
-styledLabel labelText =
-    Input.labelLeft
-        [ El.centerY
-        , El.width (El.px 80)
-        , Font.alignRight
-        ]
-        (El.text labelText)
+labelAttr labelWidth =
+    [ El.centerY
+    , El.width (El.px labelWidth)
+    , Font.alignRight
+    ]
 
 
 textInput :
     { labelText : String
+    , labelWidth : Int
     , text : String
     , onChange : String -> Msg
     }
     -> Element Msg
-textInput { labelText, text, onChange } =
+textInput { labelText, labelWidth, text, onChange } =
     Input.text
         [ El.width (El.px 40)
         , El.height (El.px 10)
@@ -1888,12 +1887,13 @@ textInput { labelText, text, onChange } =
         { onChange = onChange
         , text = text
         , placeholder = Nothing
-        , label = styledLabel labelText
+        , label = Input.labelLeft (labelAttr labelWidth) (El.text labelText)
         }
 
 
 sliderInput :
     { labelText : String
+    , labelWidth : Int
     , value : Float
     , min : Float
     , max : Float
@@ -1901,8 +1901,8 @@ sliderInput :
     , onChange : Float -> Msg
     }
     -> Element Msg
-sliderInput { labelText, value, min, max, step, onChange } =
-    El.el [ El.width (El.px 200) ] <|
+sliderInput { labelText, labelWidth, value, min, max, step, onChange } =
+    El.el [ El.width (El.px 240) ] <|
         Input.slider
             [ El.spacing 8
             , El.behindContent
@@ -1917,7 +1917,7 @@ sliderInput { labelText, value, min, max, step, onChange } =
                 )
             ]
             { onChange = onChange
-            , label = styledLabel labelText
+            , label = Input.labelLeft (labelAttr labelWidth) (El.text labelText)
             , min = min
             , max = max
             , step = Just step
@@ -1936,11 +1936,12 @@ sliderInput { labelText, value, min, max, step, onChange } =
 
 checkbox :
     { labelText : String
+    , labelWidth : Int
     , state : Maybe Bool
     , onChange : Bool -> Msg
     }
     -> Element Msg
-checkbox { labelText, state, onChange } =
+checkbox { labelText, labelWidth, state, onChange } =
     let
         ( icon, b ) =
             case state of
@@ -1962,12 +1963,7 @@ checkbox { labelText, state, onChange } =
     El.row
         [ El.spacing 8
         ]
-        [ El.el
-            [ El.centerY
-            , El.width (El.px 80)
-            , Font.alignRight
-            ]
-            (El.text labelText)
+        [ El.el (labelAttr labelWidth) (El.text labelText)
         , El.el
             [ El.width (El.px 18)
             , El.height (El.px 18)
@@ -1982,6 +1978,7 @@ checkbox { labelText, state, onChange } =
 
 colorPicker :
     { labelText : String
+    , labelWidth : Int
     , isExpanded : Bool
     , selectedColor : Maybe Color
     , msgOnExpanderClick : Msg
@@ -1989,16 +1986,8 @@ colorPicker :
     , msgOnLeave : Msg
     }
     -> Element Msg
-colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnColorClick, msgOnLeave } =
+colorPicker { labelText, labelWidth, isExpanded, selectedColor, msgOnExpanderClick, msgOnColorClick, msgOnLeave } =
     let
-        label =
-            El.el
-                [ El.centerY
-                , El.width (El.px 80)
-                , Font.alignRight
-                ]
-                (El.text labelText)
-
         input =
             El.el
                 [ El.width (El.px 18)
@@ -2061,7 +2050,7 @@ colorPicker { labelText, isExpanded, selectedColor, msgOnExpanderClick, msgOnCol
                 El.none
     in
     El.row [ El.spacing 8 ]
-        [ label
+        [ El.el (labelAttr labelWidth) (El.text labelText)
         , input
         ]
 
@@ -2082,8 +2071,25 @@ vertexProperties m =
     in
     subMenu headerForVertexProperties
         [ El.row []
-            [ textInput
+            [ checkbox
+                { labelText = "Fixed"
+                , labelWidth = 80
+                , state =
+                    if Set.isEmpty m.selectedVertices then
+                        Just
+                            (m
+                                |> presentUser
+                                |> User.getDefaultVertexProperties
+                                |> .fixed
+                            )
+
+                    else
+                        m |> presentUser |> User.getCommonVertexProperty m.selectedVertices .fixed
+                , onChange = InputVertexFixed
+                }
+            , textInput
                 { labelText = "X"
+                , labelWidth = 20
                 , text =
                     m
                         |> presentUser
@@ -2096,6 +2102,7 @@ vertexProperties m =
                 }
             , textInput
                 { labelText = "Y"
+                , labelWidth = 20
                 , text =
                     m
                         |> presentUser
@@ -2107,23 +2114,9 @@ vertexProperties m =
                 , onChange = InputVertexY
                 }
             ]
-        , checkbox
-            { labelText = "Fixed"
-            , state =
-                if Set.isEmpty m.selectedVertices then
-                    Just
-                        (m
-                            |> presentUser
-                            |> User.getDefaultVertexProperties
-                            |> .fixed
-                        )
-
-                else
-                    m |> presentUser |> User.getCommonVertexProperty m.selectedVertices .fixed
-            , onChange = InputVertexFixed
-            }
         , sliderInput
             { labelText = "Radius"
+            , labelWidth = 80
             , value =
                 if Set.isEmpty m.selectedVertices then
                     m
@@ -2145,6 +2138,7 @@ vertexProperties m =
             }
         , sliderInput
             { labelText = "Strength"
+            , labelWidth = 80
             , value =
                 let
                     defaultVertexStrength =
@@ -2168,6 +2162,7 @@ vertexProperties m =
             }
         , colorPicker
             { labelText = "Color"
+            , labelWidth = 80
             , isExpanded = m.vertexColorPickerIsExpanded
             , selectedColor =
                 if Set.isEmpty m.selectedVertices then
@@ -2206,6 +2201,7 @@ edgeProperties m =
     subMenu headerForEdgeProperties
         [ sliderInput
             { labelText = "Thickness"
+            , labelWidth = 80
             , value =
                 if Set.isEmpty m.selectedEdges then
                     m
@@ -2225,6 +2221,7 @@ edgeProperties m =
             }
         , sliderInput
             { labelText = "Distance"
+            , labelWidth = 80
             , value =
                 if Set.isEmpty m.selectedEdges then
                     m
@@ -2244,6 +2241,7 @@ edgeProperties m =
             }
         , sliderInput
             { labelText = "Strength"
+            , labelWidth = 80
             , value =
                 if Set.isEmpty m.selectedEdges then
                     m
@@ -2263,6 +2261,7 @@ edgeProperties m =
             }
         , colorPicker
             { labelText = "Color"
+            , labelWidth = 80
             , isExpanded = m.edgeColorPickerIsExpanded
             , selectedColor =
                 if Set.isEmpty m.selectedEdges then
