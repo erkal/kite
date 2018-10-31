@@ -1756,6 +1756,7 @@ history m =
             , El.width El.fill
             , El.paddingXY 10 4
             , Events.onClick (ClickOnHistoryItem i)
+            , El.pointer
             ]
 
         attributes i =
@@ -1769,7 +1770,9 @@ history m =
             El.el (attributes i) (El.text descriptionText)
 
         itemList =
-            m.userUL |> UL.toList |> List.indexedMap item
+            m.userUL
+                |> UL.toList
+                |> List.indexedMap item
     in
     subMenu "History"
         [ El.column
@@ -1777,7 +1780,7 @@ history m =
             , El.height (El.px 100)
             , El.scrollbarY
             ]
-            itemList
+            (List.reverse itemList)
         ]
 
 
