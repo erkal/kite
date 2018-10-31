@@ -1745,36 +1745,24 @@ subMenu header contentLines =
 history : Model -> Element Msg
 history m =
     let
+        attributes =
+            [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+            , Border.color Colors.menuBorder
+            , El.width El.fill
+            , El.paddingXY 10 4
+            ]
+
         pastItem ( descriptionText, _ ) =
-            El.el
-                [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                , Border.color Colors.menuBorder
-                , El.width El.fill
-                , El.paddingXY 10 4
-                ]
-                (El.text descriptionText)
+            El.el attributes (El.text descriptionText)
 
         pastItems =
             m.userUL.past |> List.map pastItem |> List.reverse
 
         presentItem =
-            El.el
-                [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                , Border.color Colors.menuBorder
-                , El.width El.fill
-                , El.paddingXY 10 4
-                ]
-                (El.text (m.userUL.present |> Tuple.first))
+            El.el attributes (El.text (m.userUL.present |> Tuple.first))
 
         futureItem ( descriptionText, _ ) =
-            El.el
-                [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                , Border.color Colors.menuBorder
-                , El.width El.fill
-                , El.paddingXY 10 4
-                , El.alpha 0.3
-                ]
-                (El.text descriptionText)
+            El.el (El.alpha 0.3 :: attributes) (El.text descriptionText)
 
         futureItems =
             m.userUL.future |> List.map futureItem

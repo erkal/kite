@@ -6,6 +6,7 @@ module UndoList exposing
     , map, mapPresent, update, connect, reduce, foldl, foldr, reverse, flatten, flatMap, andThen, map2, andMap
     , view
     , toList, fromList
+    , goTo
     )
 
 {-| UndoList Data Structure.
@@ -121,6 +122,25 @@ redo { past, present, future } =
 
         x :: xs ->
             UndoList (present :: past) x xs
+
+
+{-| Set the present to be a particular item the index of which is the first argument. The indexing starts with 0. This is useful when the history is visualized as a list of states and the user wants to jump somewhere by clicking an item.
+-}
+goTo : Int -> UndoList state -> UndoList state
+goTo i undoList =
+    let
+        l =
+            undoList |> toList
+
+        past =
+            l |> List.take (i - 1) |> List.reverse
+    in
+    case l |> List.drop (i - 1) of
+        present :: future ->
+            UndoList past present future
+
+        _ ->
+            undoList
 
 
 {-| Turn a state into an undo-list with neither past nor future.
