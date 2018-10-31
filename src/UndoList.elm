@@ -133,9 +133,9 @@ goTo i undoList =
             undoList |> toList
 
         past =
-            l |> List.take (i - 1) |> List.reverse
+            l |> List.take i |> List.reverse
     in
-    case l |> List.drop (i - 1) of
+    case l |> List.drop i of
         present :: future ->
             UndoList past present future
 

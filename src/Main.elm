@@ -236,6 +236,7 @@ type Msg
       --
     | ClickOnUndoButton
     | ClickOnRedoButton
+    | ClickOnHistoryItem Int
       --
     | ClickOnResetZoomAndPanButton
       --
@@ -405,6 +406,10 @@ update msg m =
         ClickOnRedoButton ->
             reheatSimulation
                 { m | userUL = m.userUL |> UL.redo }
+
+        ClickOnHistoryItem i ->
+            reheatSimulation
+                { m | userUL = m.userUL |> UL.goTo i }
 
         ClickOnResetZoomAndPanButton ->
             { m
@@ -1745,27 +1750,26 @@ subMenu header contentLines =
 history : Model -> Element Msg
 history m =
     let
-        attributes =
+        attributes_ i =
             [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             , Border.color Colors.menuBorder
             , El.width El.fill
             , El.paddingXY 10 4
+            , Events.onClick (ClickOnHistoryItem i)
             ]
 
-        pastItem ( descriptionText, _ ) =
-            El.el attributes (El.text descriptionText)
+        attributes i =
+            if i <= UL.lengthPast m.userUL then
+                attributes_ i
 
-        pastItems =
-            m.userUL.past |> List.map pastItem |> List.reverse
+            else
+                El.alpha 0.3 :: attributes_ i
 
-        presentItem =
-            El.el attributes (El.text (m.userUL.present |> Tuple.first))
+        item i ( descriptionText, _ ) =
+            El.el (attributes i) (El.text descriptionText)
 
-        futureItem ( descriptionText, _ ) =
-            El.el (El.alpha 0.3 :: attributes) (El.text descriptionText)
-
-        futureItems =
-            m.userUL.future |> List.map futureItem
+        itemList =
+            m.userUL |> UL.toList |> List.indexedMap item
     in
     subMenu "History"
         [ El.column
@@ -1773,7 +1777,7 @@ history m =
             , El.height (El.px 100)
             , El.scrollbarY
             ]
-            (pastItems ++ (presentItem :: futureItems))
+            itemList
         ]
 
 
