@@ -749,7 +749,10 @@ update msg m =
                                         |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
 
                                 else
-                                    ( presentUser m, m.selectedVertices, m.selectedEdges )
+                                    ( presentUser m
+                                    , m.selectedVertices
+                                    , m.selectedEdges
+                                    )
 
                             else
                                 ( presentUser m
