@@ -565,9 +565,7 @@ update msg m =
                         , selectedTool = Select SelectIdle
                     }
                         |> nwUsr (presentUser m)
-                            ("Moved vertices "
-                                ++ vertexIdsToString (Set.toList m.selectedVertices)
-                            )
+                            "Moved vertices"
 
                 Hand (Panning _) ->
                     { m | selectedTool = Hand HandIdle }
