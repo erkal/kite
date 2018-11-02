@@ -2012,13 +2012,14 @@ labelAttr labelWidth =
 textInput :
     { labelText : String
     , labelWidth : Int
+    , inputWidth : Int
     , text : String
     , onChange : String -> Msg
     }
     -> Element Msg
-textInput { labelText, labelWidth, text, onChange } =
+textInput { labelText, labelWidth, inputWidth, text, onChange } =
     Input.text
-        [ El.width (El.px 40)
+        [ El.width (El.px inputWidth)
         , El.height (El.px 10)
         , Background.color Colors.inputBackground
         , El.paddingXY 6 10
@@ -2237,6 +2238,7 @@ vertexProperties m =
             , textInput
                 { labelText = "X"
                 , labelWidth = 20
+                , inputWidth = 40
                 , text =
                     m
                         |> presentUser
@@ -2250,6 +2252,7 @@ vertexProperties m =
             , textInput
                 { labelText = "Y"
                 , labelWidth = 20
+                , inputWidth = 40
                 , text =
                     m
                         |> presentUser
@@ -2307,31 +2310,38 @@ vertexProperties m =
             , step = 40
             , onChange = InputVertexStrength
             }
-        , El.row []
-            [ colorPicker
-                { labelText = "Color"
-                , labelWidth = 80
-                , isExpanded = m.vertexColorPickerIsExpanded
-                , selectedColor =
-                    if Set.isEmpty m.selectedVertices then
-                        Just
-                            (m
-                                |> presentUser
-                                |> User.getDefaultVertexProperties
-                                |> .color
-                            )
-
-                    else
-                        m
+        , colorPicker
+            { labelText = "Color"
+            , labelWidth = 80
+            , isExpanded = m.vertexColorPickerIsExpanded
+            , selectedColor =
+                if Set.isEmpty m.selectedVertices then
+                    Just
+                        (m
                             |> presentUser
-                            |> User.getCommonVertexProperty m.selectedVertices .color
-                , msgOnColorClick = InputVertexColor
-                , msgOnExpanderClick = ClickOnVertexColorPicker
-                , msgOnLeave = MouseLeaveVertexColorPicker
-                }
-            , checkbox
+                            |> User.getDefaultVertexProperties
+                            |> .color
+                        )
+
+                else
+                    m
+                        |> presentUser
+                        |> User.getCommonVertexProperty m.selectedVertices .color
+            , msgOnColorClick = InputVertexColor
+            , msgOnExpanderClick = ClickOnVertexColorPicker
+            , msgOnLeave = MouseLeaveVertexColorPicker
+            }
+        , El.row []
+            [ textInput
                 { labelText = "Label"
                 , labelWidth = 80
+                , inputWidth = 60
+                , text = "TODO"
+                , onChange = InputVertexX
+                }
+            , checkbox
+                { labelText = "Show Label"
+                , labelWidth = 70
                 , state =
                     -- TODO
                     if Set.isEmpty m.selectedVertices then
