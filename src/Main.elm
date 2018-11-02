@@ -609,9 +609,9 @@ update msg m =
                     { m | selectedTool = Draw DrawIdle }
                         |> reheatSimulation
                         |> nwUsr newUser
-                            ("Added new vertex "
+                            ("Added vertex "
                                 ++ vertexIdToString newId
-                                ++ " and new edge "
+                                ++ " and edge "
                                 ++ edgeIdToString ( sourceId, newId )
                             )
 
@@ -796,7 +796,7 @@ update msg m =
                         |> nwUsr newUser
                             ("Divided Edge "
                                 ++ edgeIdToString ( s, t )
-                                ++ " with vertex "
+                                ++ " by adding vertex "
                                 ++ vertexIdToString newId
                                 ++ " and added edge "
                                 ++ edgeIdToString ( sourceId, newId )
@@ -2307,27 +2307,48 @@ vertexProperties m =
             , step = 40
             , onChange = InputVertexStrength
             }
-        , colorPicker
-            { labelText = "Color"
-            , labelWidth = 80
-            , isExpanded = m.vertexColorPickerIsExpanded
-            , selectedColor =
-                if Set.isEmpty m.selectedVertices then
-                    Just
-                        (m
-                            |> presentUser
-                            |> User.getDefaultVertexProperties
-                            |> .color
-                        )
+        , El.row []
+            [ colorPicker
+                { labelText = "Color"
+                , labelWidth = 80
+                , isExpanded = m.vertexColorPickerIsExpanded
+                , selectedColor =
+                    if Set.isEmpty m.selectedVertices then
+                        Just
+                            (m
+                                |> presentUser
+                                |> User.getDefaultVertexProperties
+                                |> .color
+                            )
 
-                else
-                    m
-                        |> presentUser
-                        |> User.getCommonVertexProperty m.selectedVertices .color
-            , msgOnColorClick = InputVertexColor
-            , msgOnExpanderClick = ClickOnVertexColorPicker
-            , msgOnLeave = MouseLeaveVertexColorPicker
-            }
+                    else
+                        m
+                            |> presentUser
+                            |> User.getCommonVertexProperty m.selectedVertices .color
+                , msgOnColorClick = InputVertexColor
+                , msgOnExpanderClick = ClickOnVertexColorPicker
+                , msgOnLeave = MouseLeaveVertexColorPicker
+                }
+            , checkbox
+                { labelText = "Label"
+                , labelWidth = 80
+                , state =
+                    -- TODO
+                    if Set.isEmpty m.selectedVertices then
+                        Just
+                            (m
+                                |> presentUser
+                                |> User.getDefaultVertexProperties
+                                |> .fixed
+                            )
+
+                    else
+                        presentUser m |> User.getCommonVertexProperty m.selectedVertices .fixed
+                , onChange =
+                    -- TODO
+                    InputVertexFixed
+                }
+            ]
         ]
 
 
