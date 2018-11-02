@@ -323,6 +323,11 @@ presentUser m =
     Tuple.second m.userUL.present
 
 
+nwUsr : User -> String -> Model -> Model
+nwUsr newUser description m =
+    { m | userUL = m.userUL |> UL.new ( description, newUser ) }
+
+
 update : Msg -> Model -> Model
 update msg m =
     case msg of
@@ -573,16 +578,12 @@ update msg m =
                         ( newUser, sourceId ) =
                             m |> presentUser |> User.addVertex m.svgMousePosition
                     in
-                    stopSimulation
-                        { m
-                            | userUL =
-                                m.userUL
-                                    |> UL.new
-                                        ( "Added vertex " ++ String.fromInt sourceId
-                                        , newUser
-                                        )
-                            , selectedTool = Draw (BrushingNewEdgeWithSourceId sourceId)
-                        }
+                    { m
+                        | selectedTool = Draw (BrushingNewEdgeWithSourceId sourceId)
+                    }
+                        |> stopSimulation
+                        |> nwUsr newUser
+                            ("Added vertex " ++ vertexIdToString sourceId)
 
                 Select SelectIdle ->
                     { m | selectedTool = Select (BrushingForSelection { brushStart = m.svgMousePosition }) }
@@ -603,11 +604,14 @@ update msg m =
                             userGraphWithAddedVertex
                                 |> User.addEdge ( sourceId, newId )
                     in
-                    reheatSimulation
-                        { m
-                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
-                            , selectedTool = Draw DrawIdle
-                        }
+                    { m | selectedTool = Draw DrawIdle }
+                        |> reheatSimulation
+                        |> nwUsr newUser
+                            ("Added new vertex "
+                                ++ vertexIdToString newId
+                                ++ " and new edge "
+                                ++ edgeIdToString ( sourceId, newId )
+                            )
 
                 _ ->
                     m
@@ -658,20 +662,20 @@ update msg m =
                             else
                                 ( m |> presentUser, Set.singleton id, Set.empty )
                     in
-                    reheatSimulation
-                        { m
-                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
-                            , selectedVertices = newSelectedVertices
-                            , selectedEdges = newSelectedEdges
-                            , selectedTool =
-                                Select
-                                    (DraggingSelection
-                                        { brushStart = m.svgMousePosition
-                                        , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
-                                        }
-                                    )
-                            , simulationState = m.simulationState |> Force.alphaTarget 0.3
-                        }
+                    { m
+                        | selectedVertices = newSelectedVertices
+                        , selectedEdges = newSelectedEdges
+                        , selectedTool =
+                            Select
+                                (DraggingSelection
+                                    { brushStart = m.svgMousePosition
+                                    , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
+                                    }
+                                )
+                        , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                    }
+                        |> reheatSimulation
+                        |> nwUsr newUser "TODO"
 
                 _ ->
                     m
@@ -680,19 +684,22 @@ update msg m =
             case m.selectedTool of
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     if sourceId == targetId then
-                        reheatSimulation
-                            { m | selectedTool = Draw DrawIdle }
+                        { m | selectedTool = Draw DrawIdle }
+                            |> reheatSimulation
 
                     else
                         let
                             newUser =
-                                m |> presentUser |> User.addEdge ( sourceId, targetId )
+                                m
+                                    |> presentUser
+                                    |> User.addEdge ( sourceId, targetId )
                         in
-                        reheatSimulation
-                            { m
-                                | userUL = m.userUL |> UL.new ( "TODO", newUser )
-                                , selectedTool = Draw DrawIdle
-                            }
+                        { m | selectedTool = Draw DrawIdle }
+                            |> reheatSimulation
+                            |> nwUsr newUser
+                                ("Added edge "
+                                    ++ edgeIdToString ( sourceId, targetId )
+                                )
 
                 _ ->
                     m
@@ -701,17 +708,22 @@ update msg m =
             case m.selectedTool of
                 Draw DrawIdle ->
                     let
-                        ( newUser, idOfTheNewVertex ) =
+                        ( newUser, newId ) =
                             m
                                 |> presentUser
                                 |> User.divideEdge m.svgMousePosition ( s, t )
                     in
-                    stopSimulation
-                        { m
-                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
-                            , highlightedEdges = Set.empty
-                            , selectedTool = Draw (BrushingNewEdgeWithSourceId idOfTheNewVertex)
-                        }
+                    { m
+                        | highlightedEdges = Set.empty
+                        , selectedTool = Draw (BrushingNewEdgeWithSourceId newId)
+                    }
+                        |> stopSimulation
+                        |> nwUsr newUser
+                            ("Divided Edge "
+                                ++ edgeIdToString ( s, t )
+                                ++ " by vertex "
+                                ++ vertexIdToString newId
+                            )
 
                 Select SelectIdle ->
                     let
@@ -731,20 +743,20 @@ update msg m =
                                 , Set.singleton ( s, t )
                                 )
                     in
-                    reheatSimulation
-                        { m
-                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
-                            , selectedVertices = newSelectedVertices
-                            , selectedEdges = newSelectedEdges
-                            , selectedTool =
-                                Select
-                                    (DraggingSelection
-                                        { brushStart = m.svgMousePosition
-                                        , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
-                                        }
-                                    )
-                            , simulationState = m.simulationState |> Force.alphaTarget 0.3
-                        }
+                    { m
+                        | selectedVertices = newSelectedVertices
+                        , selectedEdges = newSelectedEdges
+                        , selectedTool =
+                            Select
+                                (DraggingSelection
+                                    { brushStart = m.svgMousePosition
+                                    , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
+                                    }
+                                )
+                        , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                    }
+                        |> reheatSimulation
+                        |> nwUsr newUser "TODO"
 
                 _ ->
                     m
@@ -754,17 +766,26 @@ update msg m =
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     let
                         ( newUser_, newId ) =
-                            m |> presentUser |> User.divideEdge m.svgMousePosition ( s, t )
+                            m
+                                |> presentUser
+                                |> User.divideEdge m.svgMousePosition ( s, t )
 
                         newUser =
                             newUser_ |> User.addEdge ( sourceId, newId )
                     in
-                    reheatSimulation
-                        { m
-                            | userUL = m.userUL |> UL.new ( "TODO", newUser )
-                            , highlightedEdges = Set.empty
-                            , selectedTool = Draw DrawIdle
-                        }
+                    { m
+                        | highlightedEdges = Set.empty
+                        , selectedTool = Draw DrawIdle
+                    }
+                        |> reheatSimulation
+                        |> nwUsr newUser
+                            ("Divided Edge "
+                                ++ edgeIdToString ( s, t )
+                                ++ " with vertex "
+                                ++ vertexIdToString newId
+                                ++ " and added edge "
+                                ++ edgeIdToString ( sourceId, newId )
+                            )
 
                 _ ->
                     m
@@ -777,7 +798,9 @@ update msg m =
                 newUser =
                     m |> presentUser |> User.updateBag bagId updateCH
             in
-            { m | userUL = m.userUL |> UL.new ( "Toggled convex hull TODO", newUser ) }
+            m
+                |> nwUsr newUser
+                    ("Toggled convex hull of the bag " ++ bagIdToString bagId)
 
         InputVertexX str ->
             let
@@ -787,7 +810,11 @@ update msg m =
                         |> User.setCentroidX m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
-            { m | userUL = m.userUL |> UL.new ( "Changed the X coordinate of vertex TODO", newUser ) }
+            m
+                |> nwUsr newUser
+                    ("Changed the X coordinate of vertices "
+                        ++ vertexIdsToString (Set.toList m.selectedVertices)
+                    )
 
         InputVertexY str ->
             let
@@ -797,7 +824,11 @@ update msg m =
                         |> User.setCentroidY m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
-            { m | userUL = m.userUL |> UL.new ( "Changed the Y coordinate TODO", newUser ) }
+            m
+                |> nwUsr newUser
+                    ("Changed the Y coordinate of vertices "
+                        ++ vertexIdsToString (Set.toList m.selectedVertices)
+                    )
 
         InputVertexColor newColor ->
             let
@@ -815,7 +846,14 @@ update msg m =
                             |> presentUser
                             |> User.updateVertices m.selectedVertices updateColor
             in
-            { m | userUL = m.userUL |> UL.new ( "Changed vertex color TODO", newUser ) }
+            m
+                |> reheatSimulation
+                |> nwUsr newUser
+                    ("Changed the color of the vertices "
+                        ++ vertexIdsToString (Set.toList m.selectedVertices)
+                        ++ " to "
+                        ++ Colors.toString newColor
+                    )
 
         InputVertexRadius num ->
             let
@@ -833,7 +871,13 @@ update msg m =
                             |> presentUser
                             |> User.updateVertices m.selectedVertices updateRadius
             in
-            { m | userUL = m.userUL |> UL.new ( "Changed vertex radius TODO", newUser ) }
+            m
+                |> nwUsr newUser
+                    ("Changed the radius of the vertices "
+                        ++ vertexIdsToString (Set.toList m.selectedVertices)
+                        ++ " to "
+                        ++ String.fromFloat num
+                    )
 
         InputVertexStrength num ->
             let
@@ -851,8 +895,44 @@ update msg m =
                             |> presentUser
                             |> User.updateVertices m.selectedVertices updateStrength
             in
-            reheatSimulation
-                { m | userUL = m.userUL |> UL.new ( "Changed Vertex Strength TODO", newUser ) }
+            m
+                |> reheatSimulation
+                |> nwUsr newUser
+                    ("Changed the strength of the vertices "
+                        ++ vertexIdsToString (Set.toList m.selectedVertices)
+                        ++ " to "
+                        ++ String.fromFloat num
+                    )
+
+        InputVertexFixed b ->
+            let
+                updateFixed v =
+                    { v | fixed = b }
+
+                newUser =
+                    if Set.isEmpty m.selectedVertices then
+                        m
+                            |> presentUser
+                            |> User.updateDefaultVertexProperties updateFixed
+
+                    else
+                        m
+                            |> presentUser
+                            |> User.updateVertices m.selectedVertices updateFixed
+
+                descriptionStart =
+                    if b then
+                        "Fixed vertices "
+
+                    else
+                        "Released vertices "
+            in
+            m
+                |> reheatSimulation
+                |> nwUsr newUser
+                    (descriptionStart
+                        ++ vertexIdsToString (Set.toList m.selectedVertices)
+                    )
 
         InputEdgeColor newColor ->
             let
@@ -870,26 +950,13 @@ update msg m =
                             |> presentUser
                             |> User.updateEdges m.selectedEdges updateColor
             in
-            { m | userUL = m.userUL |> UL.new ( "Changed edge color TODO", newUser ) }
-
-        InputVertexFixed b ->
-            let
-                updateFixed v =
-                    { v | fixed = b }
-
-                newUser =
-                    if Set.isEmpty m.selectedVertices then
-                        m
-                            |> presentUser
-                            |> User.updateDefaultVertexProperties updateFixed
-
-                    else
-                        m
-                            |> presentUser
-                            |> User.updateVertices m.selectedVertices updateFixed
-            in
-            reheatSimulation
-                { m | userUL = m.userUL |> UL.new ( "Fixed Vertex TODO", newUser ) }
+            m
+                |> nwUsr newUser
+                    ("Changed the color of the vertices "
+                        ++ edgeIdsToString (Set.toList m.selectedEdges)
+                        ++ " to "
+                        ++ Colors.toString newColor
+                    )
 
         InputEdgeThickness num ->
             let
@@ -907,7 +974,13 @@ update msg m =
                             |> presentUser
                             |> User.updateEdges m.selectedEdges updateThickness
             in
-            { m | userUL = m.userUL |> UL.new ( "Changed Edge Thickness TODO", newUser ) }
+            m
+                |> nwUsr newUser
+                    ("Changed the thickness of the edges "
+                        ++ edgeIdsToString (Set.toList m.selectedEdges)
+                        ++ " to "
+                        ++ String.fromFloat num
+                    )
 
         InputEdgeDistance num ->
             let
@@ -925,13 +998,14 @@ update msg m =
                             |> presentUser
                             |> User.updateEdges m.selectedEdges updateDistance
             in
-            reheatSimulation
-                { m
-                    | userUL =
-                        m.userUL
-                            |> UL.new
-                                ( "Changed Edge Distance TODO", newUser )
-                }
+            m
+                |> reheatSimulation
+                |> nwUsr newUser
+                    ("Changed the distance of the edges "
+                        ++ edgeIdsToString (Set.toList m.selectedEdges)
+                        ++ " to "
+                        ++ String.fromFloat num
+                    )
 
         InputEdgeStrength num ->
             let
@@ -949,34 +1023,46 @@ update msg m =
                             |> presentUser
                             |> User.updateEdges m.selectedEdges updateStrength
             in
-            reheatSimulation
-                { m | userUL = m.userUL |> UL.new ( "Changed Edge Strength TODO", newUser ) }
+            m
+                |> reheatSimulation
+                |> nwUsr newUser
+                    ("Changed the strength of the edges "
+                        ++ edgeIdsToString (Set.toList m.selectedEdges)
+                        ++ " to "
+                        ++ String.fromFloat num
+                    )
 
         ClickOnVertexTrash ->
             let
                 newUser =
                     m |> presentUser |> User.removeVertices m.selectedVertices
             in
-            reheatSimulation
-                { m
-                    | userUL = m.userUL |> UL.new ( "Removed Vertices TODO", newUser )
-                    , selectedVertices = Set.empty
-                    , highlightedVertices = Set.empty
-                    , selectedEdges = Set.empty
-                    , highlightedEdges = Set.empty
-                }
+            { m
+                | selectedVertices = Set.empty
+                , highlightedVertices = Set.empty
+                , selectedEdges = Set.empty
+                , highlightedEdges = Set.empty
+            }
+                |> reheatSimulation
+                |> nwUsr newUser
+                    ("Removed vertices "
+                        ++ vertexIdsToString (Set.toList m.selectedVertices)
+                    )
 
         ClickOnEdgeTrash ->
             let
                 newUser =
                     m |> presentUser |> User.removeEdges m.selectedEdges
             in
-            reheatSimulation
-                { m
-                    | userUL = m.userUL |> UL.new ( "Removed edges ... TODO", newUser )
-                    , highlightedEdges = Set.empty
-                    , selectedEdges = Set.empty
-                }
+            { m
+                | highlightedEdges = Set.empty
+                , selectedEdges = Set.empty
+            }
+                |> reheatSimulation
+                |> nwUsr newUser
+                    ("Removed edges "
+                        ++ edgeIdsToString (Set.toList m.selectedEdges)
+                    )
 
         ClickOnEdgeContract ->
             case Set.toList m.selectedEdges of
@@ -987,12 +1073,13 @@ update msg m =
                                 |> presentUser
                                 |> User.contractEdge selectedEdge
                     in
-                    reheatSimulation
-                        { m
-                            | userUL = m.userUL |> UL.new ( "Contracted Edge TODO", newUser )
-                            , highlightedEdges = Set.empty
-                            , selectedEdges = Set.empty
-                        }
+                    { m
+                        | highlightedEdges = Set.empty
+                        , selectedEdges = Set.empty
+                    }
+                        |> reheatSimulation
+                        |> nwUsr newUser
+                            ("Contracted edge" ++ edgeIdToString selectedEdge)
 
                 _ ->
                     m
@@ -1004,10 +1091,10 @@ update msg m =
                         newUser =
                             m |> presentUser |> User.removeBag bagId
                     in
-                    { m
-                        | userUL = m.userUL |> UL.new ( "Removed bag " ++ String.fromInt bagId, newUser )
-                        , maybeSelectedBag = Nothing
-                    }
+                    { m | maybeSelectedBag = Nothing }
+                        |> reheatSimulation
+                        |> nwUsr newUser
+                            ("Removed bag " ++ bagIdToString bagId)
 
                 Nothing ->
                     m
@@ -1019,13 +1106,9 @@ update msg m =
                         |> presentUser
                         |> User.addBag m.selectedVertices
             in
-            { m
-                | userUL =
-                    m.userUL
-                        |> UL.new
-                            ( "Added bag " ++ String.fromInt idOfTheNewBag, newUser )
-                , maybeSelectedBag = Just idOfTheNewBag
-            }
+            { m | maybeSelectedBag = Just idOfTheNewBag }
+                |> nwUsr newUser
+                    ("Added bag " ++ bagIdToString idOfTheNewBag)
 
         MouseOverVertexItem id ->
             { m | highlightedVertices = Set.singleton id }
@@ -1170,6 +1253,45 @@ layoutParams =
     , topBarHeight = 54
     , rightBarWidth = 300
     }
+
+
+edgeIdToString : EdgeId -> String
+edgeIdToString ( from, to ) =
+    String.fromInt from ++ " → " ++ String.fromInt to
+
+
+vertexIdToString : VertexId -> String
+vertexIdToString =
+    String.fromInt
+
+
+bagIdToString : BagId -> String
+bagIdToString =
+    String.fromInt
+
+
+vertexIdsToString : List VertexId -> String
+vertexIdsToString vs =
+    let
+        inside =
+            vs
+                |> List.map (\vertexId -> vertexIdToString vertexId ++ ", ")
+                |> String.concat
+                |> String.dropRight 2
+    in
+    "{ " ++ inside ++ " }"
+
+
+edgeIdsToString : List EdgeId -> String
+edgeIdsToString es =
+    let
+        inside =
+            es
+                |> List.map (\edgeId -> edgeIdToString edgeId ++ ", ")
+                |> String.concat
+                |> String.dropRight 2
+    in
+    "{ " ++ inside ++ " }"
 
 
 view : Model -> Html Msg
@@ -1387,7 +1509,13 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 , Events.onMouseLeave (MouseOutBagItem bagId)
                 , Events.onClick (ClickOnBagItem bagId)
                 ]
-                [ El.text (m |> presentUser |> User.bagElementsInCurlyBraces bagId)
+                [ El.text
+                    (m
+                        |> presentUser
+                        |> User.getVerticesInBag bagId
+                        |> Set.toList
+                        |> vertexIdsToString
+                    )
 
                 --, El.el
                 --    [ El.alignRight
@@ -1464,7 +1592,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 , Events.onClick (ClickOnEdgeItem ( from, to ))
                 ]
                 [ El.el [ El.paddingXY 10 6 ]
-                    (El.text (String.fromInt from ++ " → " ++ String.fromInt to))
+                    (El.text (edgeIdToString ( from, to )))
                 , El.el
                     [ El.width (El.px 6)
                     , El.height El.fill

@@ -11,7 +11,6 @@ module User exposing
     , addBag
     , addEdge
     , addVertex
-    , bagElementsInCurlyBraces
     , contractEdge
     , default
     , divideEdge
@@ -301,20 +300,6 @@ getBagsWithVertices (User { graph, bags }) =
             bags |> Dict.map (\_ bP -> ( bP, [] ))
     in
     graph |> Graph.nodes |> List.foldr handleVertex initialAcc
-
-
-bagElementsInCurlyBraces : BagId -> User -> String
-bagElementsInCurlyBraces bagId user =
-    let
-        inside =
-            user
-                |> getVerticesInBag bagId
-                |> Set.toList
-                |> List.map (\vertexId -> String.fromInt vertexId ++ ", ")
-                |> String.concat
-                |> String.dropRight 2
-    in
-    "{ " ++ inside ++ " }"
 
 
 addBag : Set VertexId -> User -> ( User, BagId )
