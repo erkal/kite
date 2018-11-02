@@ -654,13 +654,21 @@ update msg m =
                         ( newUser, newSelectedVertices, newSelectedEdges ) =
                             if Set.member id m.selectedVertices then
                                 if m.altIsDown then
-                                    m |> presentUser |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
+                                    m
+                                        |> presentUser
+                                        |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
 
                                 else
-                                    ( m |> presentUser, m.selectedVertices, m.selectedEdges )
+                                    ( m |> presentUser
+                                    , m.selectedVertices
+                                    , m.selectedEdges
+                                    )
 
                             else
-                                ( m |> presentUser, Set.singleton id, Set.empty )
+                                ( m |> presentUser
+                                , Set.singleton id
+                                , Set.empty
+                                )
                     in
                     { m
                         | selectedVertices = newSelectedVertices
@@ -669,10 +677,14 @@ update msg m =
                             Select
                                 (DraggingSelection
                                     { brushStart = m.svgMousePosition
-                                    , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
+                                    , vertexPositionsAtStart =
+                                        newUser
+                                            |> User.getVertexIdsWithPositions newSelectedVertices
                                     }
                                 )
-                        , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                        , simulationState =
+                            m.simulationState
+                                |> Force.alphaTarget 0.3
                     }
                         |> reheatSimulation
                         |> nwUsr newUser "TODO"
@@ -1709,9 +1721,12 @@ radioButtonGroup buttonList =
     El.row
         [ Border.width 1
         , Border.color Colors.menuBorder
-        , Border.rounded 20
+        , Border.rounded 26
         , El.padding 4
         , El.spacing 4
+        , El.mouseOver
+            [ Border.color Colors.menuBorderOnMouseOver
+            ]
         ]
         buttonList
 
@@ -1962,9 +1977,10 @@ selector m =
             , El.row
                 [ El.spacing 1
                 , El.padding 1
-                , Border.rounded 12
+                , Border.rounded 16
                 , Border.width 1
                 , Border.color Colors.menuBorder
+                , El.mouseOver [ Border.color Colors.menuBorderOnMouseOver ]
                 ]
                 [ rectSelector
                 , lineSelector

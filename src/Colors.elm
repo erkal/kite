@@ -13,6 +13,7 @@ module Colors exposing
     , mainSvgBackground
     , menuBackground
     , menuBorder
+    , menuBorderOnMouseOver
     , mouseOveredItem
     , rectAroundSelectedVertices
     , rightBarHeader
@@ -109,6 +110,10 @@ leftStripeIconSelected =
 
 menuBorder =
     El.rgba255 56 56 56 0.25
+
+
+menuBorderOnMouseOver =
+    El.rgba255 255 255 255 0.25
 
 
 selectedItem =
