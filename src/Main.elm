@@ -296,6 +296,7 @@ type Msg
     | InputVertexRadius Float
     | InputVertexStrength Float
     | InputVertexFixed Bool
+    | InputVertexLabel String
     | InputVertexColor Color
       --
     | InputEdgeThickness Float
@@ -851,7 +852,6 @@ update msg m =
                             |> User.updateVertices m.selectedVertices updateColor
             in
             m
-                |> reheatSimulation
                 |> nwUsr newUser
                     ("Changed the color of the vertices "
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
@@ -902,6 +902,28 @@ update msg m =
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
                         ++ " to "
                         ++ String.fromFloat num
+                    )
+
+        InputVertexLabel str ->
+            let
+                updateLabel v =
+                    { v | label = Just str }
+
+                newUser =
+                    if Set.isEmpty m.selectedVertices then
+                        presentUser m
+                            |> User.updateDefaultVertexProperties updateLabel
+
+                    else
+                        presentUser m
+                            |> User.updateVertices m.selectedVertices updateLabel
+            in
+            m
+                |> nwUsr newUser
+                    ("Changed the label of the vertices "
+                        ++ vertexIdsToString (Set.toList m.selectedVertices)
+                        ++ " to "
+                        ++ str
                     )
 
         InputVertexFixed b ->
@@ -1516,18 +1538,40 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             )
 
         --
+        header headerText =
+            El.el
+                [ Font.alignRight
+                , El.paddingXY 0 4
+                ]
+                (El.text headerText)
+
+        cell cellText =
+            El.el
+                [ Font.alignRight
+                , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
+                , El.paddingXY 0 4
+                , Border.color Colors.menuBorder
+                , El.width El.fill
+                , El.height El.fill
+                ]
+                (El.text cellText)
+
         tableOfVertices =
             El.table
                 [ El.width El.fill
-                , El.spacing 4
+                , El.paddingEach { top = 8, right = 0, bottom = 8, left = 8 }
                 ]
                 { data = User.getVertices (presentUser m)
                 , columns =
-                    [ { header = El.text "L"
+                    [ { header = header "id"
+                      , width = El.px 20
+                      , view = \{ id } -> cell (String.fromInt id)
+                      }
+                    , { header = header "L"
                       , width = El.fill
                       , view =
                             \{ label } ->
-                                El.text
+                                cell
                                     (case label.label of
                                         Just l ->
                                             l
@@ -1536,37 +1580,11 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                             ""
                                     )
                       }
-                    , { header = El.text "X"
-                      , width = El.fill
+                    , { header = header "F"
+                      , width = El.px 16
                       , view =
                             \{ label } ->
-                                label.position
-                                    |> Point2d.xCoordinate
-                                    |> round
-                                    |> String.fromInt
-                                    |> El.text
-                      }
-                    , { header = El.text "Y"
-                      , width = El.fill
-                      , view =
-                            \{ label } ->
-                                label.position
-                                    |> Point2d.yCoordinate
-                                    |> round
-                                    |> String.fromInt
-                                    |> El.text
-                      }
-                    , { header = El.text "S"
-                      , width = El.fill
-                      , view =
-                            \{ label } ->
-                                El.text (String.fromFloat label.strength)
-                      }
-                    , { header = El.text "F"
-                      , width = El.fill
-                      , view =
-                            \{ label } ->
-                                El.text
+                                cell
                                     (if label.fixed then
                                         "x"
 
@@ -1574,10 +1592,37 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                         ""
                                     )
                       }
-                    , { header = El.text "C"
-                      , width = El.fill
+                    , { header = header "X"
+                      , width = El.px 26
                       , view =
                             \{ label } ->
+                                label.position
+                                    |> Point2d.xCoordinate
+                                    |> round
+                                    |> String.fromInt
+                                    |> cell
+                      }
+                    , { header = header "Y"
+                      , width = El.px 26
+                      , view =
+                            \{ label } ->
+                                label.position
+                                    |> Point2d.yCoordinate
+                                    |> round
+                                    |> String.fromInt
+                                    |> cell
+                      }
+                    , { header = header "S"
+                      , width = El.px 30
+                      , view =
+                            \{ label } ->
+                                cell (String.fromFloat label.strength)
+                      }
+                    , { header = header "C"
+                      , width = El.px 20
+                      , view =
+                            \{ label } ->
+                                --El.el [ El.paddingXY 0 4 ] <|
                                 El.el
                                     [ El.width El.fill
                                     , El.height El.fill
@@ -1585,22 +1630,35 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                     ]
                                     El.none
                       }
-                    , { header = El.text "R"
-                      , width = El.fill
+                    , { header = header "R"
+                      , width = El.px 16
                       , view =
                             \{ label } ->
-                                El.text (String.fromFloat label.radius)
+                                cell (String.fromFloat label.radius)
+                      }
+                    , { header = El.none
+                      , width = El.px 6
+                      , view =
+                            \{ id } ->
+                                El.el
+                                    [ El.width El.fill
+                                    , El.height El.fill
+                                    , El.alignRight
+                                    , Background.color <|
+                                        if Set.member id m.highlightedVertices then
+                                            Colors.highlightPink
+
+                                        else if Set.member id m.selectedVertices then
+                                            Colors.selectBlue
+
+                                        else
+                                            Colors.menuBackground
+                                    ]
+                                    El.none
                       }
                     ]
                 }
 
-        --listOfVertices =
-        --    Element.Keyed.column [ El.width El.fill ]
-        --        (presentUser m
-        --            |> User.getVertices
-        --            |> List.map vertexItemWithKey
-        --            |> List.reverse
-        --        )
         --vertexItemWithKey { id } =
         --    ( String.fromInt id
         --    , El.row
@@ -2294,8 +2352,7 @@ vertexProperties m =
                 , labelWidth = 20
                 , inputWidth = 40
                 , text =
-                    presentUser
-                        m
+                    presentUser m
                         |> User.getCentroid m.selectedVertices
                         |> Maybe.map Point2d.yCoordinate
                         |> Maybe.map round
@@ -2371,8 +2428,21 @@ vertexProperties m =
                 { labelText = "Label"
                 , labelWidth = 80
                 , inputWidth = 60
-                , text = "TODO"
-                , onChange = InputVertexX
+                , text =
+                    if Set.isEmpty m.selectedVertices then
+                        presentUser m
+                            |> User.getDefaultVertexProperties
+                            |> .label
+                            |> Maybe.withDefault ""
+
+                    else
+                        case presentUser m |> User.getCommonVertexProperty m.selectedVertices .label of
+                            Just (Just l) ->
+                                l
+
+                            _ ->
+                                ""
+                , onChange = InputVertexLabel
                 }
             , checkbox
                 { labelText = "Show Label"
