@@ -498,8 +498,7 @@ update msg m =
                                 |> List.map (Tuple.mapSecond (Point2d.translateBy delta))
 
                         newUser =
-                            m
-                                |> presentUser
+                            presentUser m
                                 |> User.setVertexPositions newVertexPositions
                     in
                     { m
@@ -598,8 +597,7 @@ update msg m =
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     let
                         ( userGraphWithAddedVertex, newId ) =
-                            m
-                                |> presentUser
+                            presentUser m
                                 |> User.addVertex m.svgMousePosition
 
                         newUser =
@@ -656,8 +654,7 @@ update msg m =
                         ( newUser, newSelectedVertices, newSelectedEdges ) =
                             if Set.member id m.selectedVertices then
                                 if m.altIsDown then
-                                    m
-                                        |> presentUser
+                                    presentUser m
                                         |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
 
                                 else
@@ -702,8 +699,7 @@ update msg m =
                     else
                         let
                             newUser =
-                                m
-                                    |> presentUser
+                                presentUser m
                                     |> User.addEdge ( sourceId, targetId )
                         in
                         { m | selectedTool = Draw DrawIdle }
@@ -721,8 +717,7 @@ update msg m =
                 Draw DrawIdle ->
                     let
                         ( newUser, newId ) =
-                            m
-                                |> presentUser
+                            presentUser m
                                 |> User.divideEdge m.svgMousePosition ( s, t )
                     in
                     { m
@@ -742,8 +737,7 @@ update msg m =
                         ( newUser, newSelectedVertices, newSelectedEdges ) =
                             if Set.member ( s, t ) m.selectedEdges then
                                 if m.altIsDown then
-                                    m
-                                        |> presentUser
+                                    presentUser m
                                         |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
 
                                 else
@@ -781,8 +775,7 @@ update msg m =
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     let
                         ( newUser_, newId ) =
-                            m
-                                |> presentUser
+                            presentUser m
                                 |> User.divideEdge m.svgMousePosition ( s, t )
 
                         newUser =
@@ -820,8 +813,7 @@ update msg m =
         InputVertexX str ->
             let
                 newUser =
-                    m
-                        |> presentUser
+                    presentUser m
                         |> User.setCentroidX m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
@@ -834,8 +826,7 @@ update msg m =
         InputVertexY str ->
             let
                 newUser =
-                    m
-                        |> presentUser
+                    presentUser m
                         |> User.setCentroidY m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
@@ -852,13 +843,11 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateDefaultVertexProperties updateColor
 
                     else
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateVertices m.selectedVertices updateColor
             in
             m
@@ -877,13 +866,11 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateDefaultVertexProperties updateRadius
 
                     else
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateVertices m.selectedVertices updateRadius
             in
             m
@@ -901,13 +888,11 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateDefaultVertexProperties updateStrength
 
                     else
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateVertices m.selectedVertices updateStrength
             in
             m
@@ -926,13 +911,11 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateDefaultVertexProperties updateFixed
 
                     else
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateVertices m.selectedVertices updateFixed
 
                 descriptionStart =
@@ -956,13 +939,11 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedEdges then
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateDefaultEdgeProperties updateColor
 
                     else
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateEdges m.selectedEdges updateColor
             in
             m
@@ -980,13 +961,11 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedEdges then
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateDefaultEdgeProperties updateThickness
 
                     else
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateEdges m.selectedEdges updateThickness
             in
             m
@@ -1004,13 +983,11 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedEdges then
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateDefaultEdgeProperties updateDistance
 
                     else
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateEdges m.selectedEdges updateDistance
             in
             m
@@ -1029,13 +1006,11 @@ update msg m =
 
                 newUser =
                     if Set.isEmpty m.selectedEdges then
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateDefaultEdgeProperties updateStrength
 
                     else
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.updateEdges m.selectedEdges updateStrength
             in
             m
@@ -1084,9 +1059,7 @@ update msg m =
                 [ selectedEdge ] ->
                     let
                         newUser =
-                            m
-                                |> presentUser
-                                |> User.contractEdge selectedEdge
+                            presentUser m |> User.contractEdge selectedEdge
                     in
                     { m
                         | highlightedEdges = Set.empty
@@ -1117,9 +1090,7 @@ update msg m =
         ClickOnBagPlus ->
             let
                 ( newUser, idOfTheNewBag ) =
-                    m
-                        |> presentUser
-                        |> User.addBag m.selectedVertices
+                    presentUser m |> User.addBag m.selectedVertices
             in
             { m | maybeSelectedBag = Just idOfTheNewBag }
                 |> nwUsr newUser
@@ -1499,8 +1470,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
     let
         listOfBags =
             Element.Keyed.column [ El.width El.fill ]
-                (m
-                    |> presentUser
+                (presentUser m
                     |> User.getBags
                     |> Dict.map bagItemWithKey
                     |> Dict.values
@@ -1525,8 +1495,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 , Events.onClick (ClickOnBagItem bagId)
                 ]
                 [ El.text
-                    (m
-                        |> presentUser
+                    (presentUser m
                         |> User.getVerticesInBag bagId
                         |> Set.toList
                         |> vertexIdsToString
@@ -1547,10 +1516,15 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             )
 
         --
+        tableOfVertices =
+            El.table [ El.width El.fill ]
+                { data = []
+                , columns = []
+                }
+
         listOfVertices =
             Element.Keyed.column [ El.width El.fill ]
-                (m
-                    |> presentUser
+                (presentUser m
                     |> User.getVertices
                     |> List.map vertexItemWithKey
                     |> List.reverse
@@ -1589,8 +1563,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
         --
         listOfEdges =
             Element.Keyed.column [ El.width El.fill ]
-                (m
-                    |> presentUser
+                (presentUser m
                     |> User.getEdges
                     |> List.map edgeItemWithKey
                     |> List.reverse
@@ -2225,14 +2198,14 @@ vertexProperties m =
                 , state =
                     if Set.isEmpty m.selectedVertices then
                         Just
-                            (m
-                                |> presentUser
+                            (presentUser m
                                 |> User.getDefaultVertexProperties
                                 |> .fixed
                             )
 
                     else
-                        presentUser m |> User.getCommonVertexProperty m.selectedVertices .fixed
+                        presentUser m
+                            |> User.getCommonVertexProperty m.selectedVertices .fixed
                 , onChange = InputVertexFixed
                 }
             , textInput
@@ -2240,8 +2213,7 @@ vertexProperties m =
                 , labelWidth = 20
                 , inputWidth = 40
                 , text =
-                    m
-                        |> presentUser
+                    presentUser m
                         |> User.getCentroid m.selectedVertices
                         |> Maybe.map Point2d.xCoordinate
                         |> Maybe.map round
@@ -2254,8 +2226,8 @@ vertexProperties m =
                 , labelWidth = 20
                 , inputWidth = 40
                 , text =
-                    m
-                        |> presentUser
+                    presentUser
+                        m
                         |> User.getCentroid m.selectedVertices
                         |> Maybe.map Point2d.yCoordinate
                         |> Maybe.map round
@@ -2269,8 +2241,7 @@ vertexProperties m =
             , labelWidth = 80
             , value =
                 if Set.isEmpty m.selectedVertices then
-                    m
-                        |> presentUser
+                    presentUser m
                         |> User.getDefaultVertexProperties
                         |> .radius
 
@@ -2292,8 +2263,7 @@ vertexProperties m =
             , value =
                 let
                     defaultVertexStrength =
-                        m
-                            |> presentUser
+                        presentUser m
                             |> User.getDefaultVertexProperties
                             |> .strength
                 in
@@ -2301,8 +2271,7 @@ vertexProperties m =
                     defaultVertexStrength
 
                 else
-                    m
-                        |> presentUser
+                    presentUser m
                         |> User.getCommonVertexProperty m.selectedVertices .strength
                         |> Maybe.withDefault defaultVertexStrength
             , min = -2000
@@ -2317,15 +2286,13 @@ vertexProperties m =
             , selectedColor =
                 if Set.isEmpty m.selectedVertices then
                     Just
-                        (m
-                            |> presentUser
+                        (presentUser m
                             |> User.getDefaultVertexProperties
                             |> .color
                         )
 
                 else
-                    m
-                        |> presentUser
+                    presentUser m
                         |> User.getCommonVertexProperty m.selectedVertices .color
             , msgOnColorClick = InputVertexColor
             , msgOnExpanderClick = ClickOnVertexColorPicker
@@ -2346,14 +2313,14 @@ vertexProperties m =
                     -- TODO
                     if Set.isEmpty m.selectedVertices then
                         Just
-                            (m
-                                |> presentUser
+                            (presentUser m
                                 |> User.getDefaultVertexProperties
                                 |> .fixed
                             )
 
                     else
-                        presentUser m |> User.getCommonVertexProperty m.selectedVertices .fixed
+                        presentUser m
+                            |> User.getCommonVertexProperty m.selectedVertices .fixed
                 , onChange =
                     -- TODO
                     InputVertexFixed
@@ -2382,14 +2349,14 @@ edgeProperties m =
             , labelWidth = 80
             , value =
                 if Set.isEmpty m.selectedEdges then
-                    m
-                        |> presentUser
+                    presentUser
+                        m
                         |> User.getDefaultEdgeProperties
                         |> .thickness
 
                 else
-                    m
-                        |> presentUser
+                    presentUser
+                        m
                         |> User.getCommonEdgeProperty m.selectedEdges .thickness
                         |> Maybe.withDefault 3
             , min = 1
@@ -2402,14 +2369,14 @@ edgeProperties m =
             , labelWidth = 80
             , value =
                 if Set.isEmpty m.selectedEdges then
-                    m
-                        |> presentUser
+                    presentUser
+                        m
                         |> User.getDefaultEdgeProperties
                         |> .distance
 
                 else
-                    m
-                        |> presentUser
+                    presentUser
+                        m
                         |> User.getCommonEdgeProperty m.selectedEdges .distance
                         |> Maybe.withDefault 40
             , min = 10
@@ -2422,14 +2389,12 @@ edgeProperties m =
             , labelWidth = 80
             , value =
                 if Set.isEmpty m.selectedEdges then
-                    m
-                        |> presentUser
+                    presentUser m
                         |> User.getDefaultEdgeProperties
                         |> .strength
 
                 else
-                    m
-                        |> presentUser
+                    presentUser m
                         |> User.getCommonEdgeProperty m.selectedEdges .strength
                         |> Maybe.withDefault 0.7
             , min = 0
@@ -2444,15 +2409,13 @@ edgeProperties m =
             , selectedColor =
                 if Set.isEmpty m.selectedEdges then
                     Just
-                        (m
-                            |> presentUser
+                        (presentUser m
                             |> User.getDefaultEdgeProperties
                             |> .color
                         )
 
                 else
-                    m
-                        |> presentUser
+                    presentUser m
                         |> User.getCommonEdgeProperty m.selectedEdges .color
             , msgOnColorClick = InputEdgeColor
             , msgOnExpanderClick = ClickOnEdgeColorPicker
@@ -2584,8 +2547,7 @@ mainSvg m =
                 rect selectedVertices =
                     let
                         maybeBoudingBox =
-                            m
-                                |> presentUser
+                            presentUser m
                                 |> User.getBoundingBoxWithMargin selectedVertices
                     in
                     case maybeBoudingBox of
@@ -2620,8 +2582,7 @@ mainSvg m =
                         (position |> Circle2d.withRadius (radius + 4))
             in
             S.g []
-                (m
-                    |> presentUser
+                (presentUser m
                     |> User.getVertices
                     |> List.filter (\{ id } -> Set.member id m.selectedVertices)
                     |> List.map (.label >> drawHL)
@@ -2635,8 +2596,7 @@ mainSvg m =
                         (position |> Circle2d.withRadius (radius + 4))
             in
             S.g []
-                (m
-                    |> presentUser
+                (presentUser m
                     |> User.getVertices
                     |> List.filter (\{ id } -> Set.member id m.highlightedVertices)
                     |> List.map (.label >> drawHL)
@@ -2662,8 +2622,7 @@ mainSvg m =
                             emptySvgElement
             in
             S.g []
-                (m
-                    |> presentUser
+                (presentUser m
                     |> User.getEdges
                     |> List.filter (\{ from, to } -> Set.member ( from, to ) m.selectedEdges)
                     |> List.map drawHL
@@ -2689,8 +2648,7 @@ mainSvg m =
                             emptySvgElement
             in
             S.g []
-                (m
-                    |> presentUser
+                (presentUser m
                     |> User.getEdges
                     |> List.filter (\{ from, to } -> Set.member ( from, to ) m.highlightedEdges)
                     |> List.map drawHL
