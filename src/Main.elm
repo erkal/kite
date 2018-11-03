@@ -1517,49 +1517,117 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
 
         --
         tableOfVertices =
-            El.table [ El.width El.fill ]
-                { data = []
-                , columns = []
+            El.table
+                [ El.width El.fill
+                , El.spacing 4
+                ]
+                { data = User.getVertices (presentUser m)
+                , columns =
+                    [ { header = El.text "L"
+                      , width = El.fill
+                      , view =
+                            \{ label } ->
+                                El.text
+                                    (case label.label of
+                                        Just l ->
+                                            l
+
+                                        Nothing ->
+                                            ""
+                                    )
+                      }
+                    , { header = El.text "X"
+                      , width = El.fill
+                      , view =
+                            \{ label } ->
+                                label.position
+                                    |> Point2d.xCoordinate
+                                    |> round
+                                    |> String.fromInt
+                                    |> El.text
+                      }
+                    , { header = El.text "Y"
+                      , width = El.fill
+                      , view =
+                            \{ label } ->
+                                label.position
+                                    |> Point2d.yCoordinate
+                                    |> round
+                                    |> String.fromInt
+                                    |> El.text
+                      }
+                    , { header = El.text "S"
+                      , width = El.fill
+                      , view =
+                            \{ label } ->
+                                El.text (String.fromFloat label.strength)
+                      }
+                    , { header = El.text "F"
+                      , width = El.fill
+                      , view =
+                            \{ label } ->
+                                El.text
+                                    (if label.fixed then
+                                        "x"
+
+                                     else
+                                        ""
+                                    )
+                      }
+                    , { header = El.text "C"
+                      , width = El.fill
+                      , view =
+                            \{ label } ->
+                                El.el
+                                    [ El.width El.fill
+                                    , El.height El.fill
+                                    , Background.color label.color
+                                    ]
+                                    El.none
+                      }
+                    , { header = El.text "R"
+                      , width = El.fill
+                      , view =
+                            \{ label } ->
+                                El.text (String.fromFloat label.radius)
+                      }
+                    ]
                 }
 
-        listOfVertices =
-            Element.Keyed.column [ El.width El.fill ]
-                (presentUser m
-                    |> User.getVertices
-                    |> List.map vertexItemWithKey
-                    |> List.reverse
-                )
-
-        vertexItemWithKey { id } =
-            ( String.fromInt id
-            , El.row
-                [ El.width El.fill
-                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                , Border.color Colors.menuBorder
-                , Events.onMouseEnter (MouseOverVertexItem id)
-                , Events.onMouseLeave (MouseOutVertexItem id)
-                , Events.onClick (ClickOnVertexItem id)
-                ]
-                [ El.el [ El.paddingXY 10 6 ]
-                    (El.text (String.fromInt id))
-                , El.el
-                    [ El.width (El.px 6)
-                    , El.height El.fill
-                    , El.alignRight
-                    , Background.color <|
-                        if Set.member id m.highlightedVertices then
-                            Colors.highlightPink
-
-                        else if Set.member id m.selectedVertices then
-                            Colors.selectBlue
-
-                        else
-                            Colors.menuBackground
-                    ]
-                    El.none
-                ]
-            )
-
+        --listOfVertices =
+        --    Element.Keyed.column [ El.width El.fill ]
+        --        (presentUser m
+        --            |> User.getVertices
+        --            |> List.map vertexItemWithKey
+        --            |> List.reverse
+        --        )
+        --vertexItemWithKey { id } =
+        --    ( String.fromInt id
+        --    , El.row
+        --        [ El.width El.fill
+        --        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+        --        , Border.color Colors.menuBorder
+        --        , Events.onMouseEnter (MouseOverVertexItem id)
+        --        , Events.onMouseLeave (MouseOutVertexItem id)
+        --        , Events.onClick (ClickOnVertexItem id)
+        --        ]
+        --        [ El.el [ El.paddingXY 10 6 ]
+        --            (El.text (String.fromInt id))
+        --        , El.el
+        --            [ El.width (El.px 6)
+        --            , El.height El.fill
+        --            , El.alignRight
+        --            , Background.color <|
+        --                if Set.member id m.highlightedVertices then
+        --                    Colors.highlightPink
+        --                else if Set.member id m.selectedVertices then
+        --                    Colors.selectBlue
+        --                else
+        --                    Colors.menuBackground
+        --            ]
+        --            El.none
+        --        ]
+        --    )
         --
         listOfEdges =
             Element.Keyed.column [ El.width El.fill ]
@@ -1616,7 +1684,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 ClickOnVertexTrash
                 Icons.icons.trash
             ]
-            listOfVertices
+            tableOfVertices
         , leftBarMenu
             [ El.text "Edges"
             , leftBarHeaderButton "Remove Selected Edges"
