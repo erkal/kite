@@ -98,6 +98,7 @@ type alias VertexProperties =
     , radius : Float
     , inBags : Set BagId
     , label : Maybe String
+    , labelIsVisible : Bool
     }
 
 
@@ -146,6 +147,7 @@ default =
             , inBags = Set.empty
             , fixed = False
             , label = Nothing
+            , labelIsVisible = False
             }
         , defaultEdgeProperties =
             { color = Colors.lightGray

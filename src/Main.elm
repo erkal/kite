@@ -296,6 +296,7 @@ type Msg
     | InputVertexRadius Float
     | InputVertexStrength Float
     | InputVertexFixed Bool
+    | InputVertexLabelVisibility Bool
     | InputVertexLabel String
     | InputVertexColor Color
       --
@@ -954,6 +955,34 @@ update msg m =
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
                     )
 
+        InputVertexLabelVisibility b ->
+            let
+                updateLabelVisibility v =
+                    { v | labelIsVisible = b }
+
+                newUser =
+                    if Set.isEmpty m.selectedVertices then
+                        presentUser m
+                            |> User.updateDefaultVertexProperties updateLabelVisibility
+
+                    else
+                        presentUser m
+                            |> User.updateVertices m.selectedVertices updateLabelVisibility
+
+                descriptionEnd =
+                    if b then
+                        " visible"
+
+                    else
+                        " invisible"
+            in
+            m
+                |> nwUsr newUser
+                    ("Made the labels of the vertices "
+                        ++ vertexIdsToString (Set.toList m.selectedVertices)
+                        ++ descriptionEnd
+                    )
+
         InputEdgeColor newColor ->
             let
                 updateColor e =
@@ -1541,31 +1570,42 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
         header headerText =
             El.el
                 [ Font.alignRight
-                , El.paddingXY 0 4
+                , El.paddingXY 2 4
                 ]
                 (El.text headerText)
 
         cell cellText =
             El.el
                 [ Font.alignRight
-                , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
-                , El.paddingXY 0 4
-                , Border.color Colors.menuBorder
-                , El.width El.fill
+                , El.paddingXY 2 4
                 , El.height El.fill
+                , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
+                , Border.color Colors.menuBorder
                 ]
                 (El.text cellText)
 
         tableOfVertices =
             El.table
                 [ El.width El.fill
-                , El.paddingEach { top = 8, right = 0, bottom = 8, left = 8 }
+                , El.paddingEach { top = 4, right = 0, bottom = 4, left = 0 }
                 ]
                 { data = User.getVertices (presentUser m)
                 , columns =
                     [ { header = header "id"
                       , width = El.px 20
                       , view = \{ id } -> cell (String.fromInt id)
+                      }
+                    , { header = header "LV"
+                      , width = El.px 16
+                      , view =
+                            \{ label } ->
+                                cell
+                                    (if label.labelIsVisible then
+                                        "x"
+
+                                     else
+                                        ""
+                                    )
                       }
                     , { header = header "L"
                       , width = El.fill
@@ -1622,7 +1662,6 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , width = El.px 20
                       , view =
                             \{ label } ->
-                                --El.el [ El.paddingXY 0 4 ] <|
                                 El.el
                                     [ El.width El.fill
                                     , El.height El.fill
@@ -1631,7 +1670,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                     El.none
                       }
                     , { header = header "R"
-                      , width = El.px 16
+                      , width = El.px 24
                       , view =
                             \{ label } ->
                                 cell (String.fromFloat label.radius)
@@ -2448,20 +2487,18 @@ vertexProperties m =
                 { labelText = "Show Label"
                 , labelWidth = 70
                 , state =
-                    -- TODO
                     if Set.isEmpty m.selectedVertices then
                         Just
                             (presentUser m
                                 |> User.getDefaultVertexProperties
-                                |> .fixed
+                                |> .labelIsVisible
                             )
 
                     else
                         presentUser m
-                            |> User.getCommonVertexProperty m.selectedVertices .fixed
+                            |> User.getCommonVertexProperty m.selectedVertices .labelIsVisible
                 , onChange =
-                    -- TODO
-                    InputVertexFixed
+                    InputVertexLabelVisibility
                 }
             ]
         ]
@@ -2909,6 +2946,25 @@ viewVertices user =
 
                 ( x, y ) =
                     Point2d.coordinates position
+
+                vertexLabel =
+                    if label.labelIsVisible then
+                        S.text_
+                            [ SA.fill (Colors.toString Colors.lightText)
+                            , SA.textAnchor "middle"
+                            , SA.y "-10"
+                            ]
+                            [ S.text <|
+                                case label.label of
+                                    Just l ->
+                                        l
+
+                                    Nothing ->
+                                        ""
+                            ]
+
+                    else
+                        emptySvgElement
             in
             ( String.fromInt id
             , S.g
@@ -2921,6 +2977,7 @@ viewVertices user =
                 [ Geometry.Svg.circle2d [ SA.fill (Colors.toString color) ]
                     (Point2d.origin |> Circle2d.withRadius radius)
                 , pin fixed radius
+                , vertexLabel
                 ]
             )
     in
