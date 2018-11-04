@@ -1520,78 +1520,109 @@ leftBarContentForPreferences m =
 leftBarContentForListsOfBagsVerticesAndEdges : Model -> Element Msg
 leftBarContentForListsOfBagsVerticesAndEdges m =
     let
-        listOfBags =
-            Element.Keyed.column [ El.width El.fill ]
-                (presentUser m
-                    |> User.getBags
-                    |> Dict.map bagItemWithKey
-                    |> Dict.values
-                    |> List.reverse
-                )
-
-        bagItemWithKey bagId { hasConvexHull } =
-            ( String.fromInt bagId
-            , El.row
-                [ El.width El.fill
-                , El.paddingXY 10 6
-                , Background.color <|
-                    if Just bagId == m.maybeSelectedBag then
-                        Colors.selectedItem
-
-                    else
-                        Colors.menuBackground
-                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                , Border.color Colors.menuBorder
-                , Events.onMouseEnter (MouseOverBagItem bagId)
-                , Events.onMouseLeave (MouseOutBagItem bagId)
-                , Events.onClick (ClickOnBagItem bagId)
-                ]
-                [ El.text
-                    (presentUser m
-                        |> User.getVerticesInBag bagId
-                        |> Set.toList
-                        |> vertexIdsToString
-                    )
-
-                --, El.el
-                --    [ El.alignRight
-                --    , Font.bold
-                --    , Font.color <|
-                --        if hasConvexHull then
-                --            Colors.white
-                --        else
-                --            Colors.icon
-                --    , Events.onClick (ToggleConvexHull bagId)
-                --    ]
-                --    (El.text "C")
-                ]
-            )
-
+        --listOfBags =
+        --    Element.Keyed.column [ El.width El.fill ]
+        --        (presentUser m
+        --            |> User.getBags
+        --            |> Dict.map bagItemWithKey
+        --            |> Dict.values
+        --            |> List.reverse
+        --        )
+        --bagItemWithKey bagId { hasConvexHull } =
+        --    ( String.fromInt bagId
+        --    , El.row
+        --        [ El.width El.fill
+        --        , El.paddingXY 10 6
+        --        , Background.color <|
+        --            if Just bagId == m.maybeSelectedBag then
+        --                Colors.selectedItem
+        --            else
+        --                Colors.menuBackground
+        --        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+        --        , Border.color Colors.menuBorder
+        --        , Events.onMouseEnter (MouseOverBagItem bagId)
+        --        , Events.onMouseLeave (MouseOutBagItem bagId)
+        --        , Events.onClick (ClickOnBagItem bagId)
+        --        ]
+        --        [ El.text
+        --            (presentUser m
+        --                |> User.getVerticesInBag bagId
+        --                |> Set.toList
+        --                |> vertexIdsToString
+        --            )
+        --, El.el
+        --    [ El.alignRight
+        --    , Font.bold
+        --    , Font.color <|
+        --        if hasConvexHull then
+        --            Colors.white
+        --        else
+        --            Colors.icon
+        --    , Events.onClick (ToggleConvexHull bagId)
+        --    ]
+        --    (El.text "C")
+        --    ]
+        --)
         --
         header headerText =
             El.el
                 [ Font.alignRight
                 , El.paddingXY 0 6
+                , Border.widthEach { top = 0, right = 0, bottom = 2, left = 0 }
+                , Border.color Colors.menuBorder
                 , Font.medium
                 ]
                 (El.text headerText)
 
-        cell id content =
-            El.el
-                [ El.paddingXY 0 4
-                , Font.alignRight
-                , El.height El.fill
-                , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
-                , Border.color Colors.menuBorder
-                , Events.onMouseEnter (MouseOverVertexItem id)
-                , Events.onMouseLeave (MouseOutVertexItem id)
-                , Events.onClick (ClickOnVertexItem id)
+        tableOfBags =
+            let
+                cell bagId content =
+                    El.el
+                        [ El.paddingXY 0 4
+                        , Font.alignRight
+                        , El.height El.fill
+                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
+                        , Border.color Colors.menuBorder
+                        , Background.color <|
+                            if Just bagId == m.maybeSelectedBag then
+                                Colors.selectedItem
 
-                --, El.mouseOver [Background.color ]
-                ]
-                content
+                            else
+                                Colors.menuBackground
+                        , Events.onMouseEnter (MouseOverBagItem bagId)
+                        , Events.onMouseLeave (MouseOutBagItem bagId)
+                        , Events.onClick (ClickOnBagItem bagId)
+                        ]
+                        content
+            in
+            El.table []
+                { data = User.getBags (presentUser m) |> Dict.values
+                , columns =
+                    [ { header = header "id"
+                      , width = El.px 20
+                      , view =
+                            \{ hasConvexHull } ->
+                                cell 1 <|
+                                    El.text "TODO"
+                      }
+                    ]
+                }
 
         tableOfVertices =
+            let
+                cell id content =
+                    El.el
+                        [ El.paddingXY 0 4
+                        , Font.alignRight
+                        , El.height El.fill
+                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
+                        , Border.color Colors.menuBorder
+                        , Events.onMouseEnter (MouseOverVertexItem id)
+                        , Events.onMouseLeave (MouseOutVertexItem id)
+                        , Events.onClick (ClickOnVertexItem id)
+                        ]
+                        content
+            in
             El.table
                 [ El.width El.fill
                 , El.paddingEach { top = 4, right = 0, bottom = 4, left = 0 }
@@ -1688,7 +1719,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                 cell id <|
                                     El.text (String.fromFloat label.radius)
                       }
-                    , { header = El.none
+                    , { header = header " "
                       , width = El.px 8
                       , view =
                             \{ id } ->
@@ -1711,33 +1742,6 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     ]
                 }
 
-        --vertexItemWithKey { id } =
-        --    ( String.fromInt id
-        --    , El.row
-        --        [ El.width El.fill
-        --        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        --        , Border.color Colors.menuBorder
-        --        , Events.onMouseEnter (MouseOverVertexItem id)
-        --        , Events.onMouseLeave (MouseOutVertexItem id)
-        --        , Events.onClick (ClickOnVertexItem id)
-        --        ]
-        --        [ El.el [ El.paddingXY 10 6 ]
-        --            (El.text (String.fromInt id))
-        --        , El.el
-        --            [ El.width (El.px 6)
-        --            , El.height El.fill
-        --            , El.alignRight
-        --            , Background.color <|
-        --                if Set.member id m.highlightedVertices then
-        --                    Colors.highlightPink
-        --                else if Set.member id m.selectedVertices then
-        --                    Colors.selectBlue
-        --                else
-        --                    Colors.menuBackground
-        --            ]
-        --            El.none
-        --        ]
-        --    )
         --
         listOfEdges =
             Element.Keyed.column [ El.width El.fill ]
@@ -1787,7 +1791,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 ClickOnBagTrash
                 Icons.icons.trash
             ]
-            listOfBags
+            tableOfBags
         , leftBarMenu
             [ El.text "Vertices"
             , leftBarHeaderButton "Remove Selected Vertices"
