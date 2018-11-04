@@ -125,12 +125,8 @@ type alias Bag =
 
 
 type alias BagProperties =
-    { highlighted : Bool
-    , hasConvexHull : Bool
-    , pullIsActive : Bool
-    , draggablePullCenter : Bool
-    , pullX : Float
-    , pullY : Float
+    { hasConvexHull : Bool
+    , pullCenter : Point2d
     , pullStrength : Float
     }
 
@@ -166,13 +162,9 @@ default =
 
 defaultBagProperties : BagProperties
 defaultBagProperties =
-    { highlighted = False
-    , hasConvexHull = False
-    , pullIsActive = True
-    , draggablePullCenter = False
-    , pullX = 600
-    , pullY = 300
+    { hasConvexHull = False
     , pullStrength = 0.1
+    , pullCenter = Point2d.fromCoordinates ( 300, 300 )
     }
 
 

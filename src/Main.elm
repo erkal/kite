@@ -1517,53 +1517,18 @@ leftBarContentForPreferences m =
     leftBarMenu [ El.text "Preferences (coming soon)" ] El.none
 
 
+pointToString : Point2d -> String
+pointToString p =
+    "("
+        ++ String.fromInt (round (Point2d.xCoordinate p))
+        ++ ", "
+        ++ String.fromInt (round (Point2d.yCoordinate p))
+        ++ ")"
+
+
 leftBarContentForListsOfBagsVerticesAndEdges : Model -> Element Msg
 leftBarContentForListsOfBagsVerticesAndEdges m =
     let
-        --listOfBags =
-        --    Element.Keyed.column [ El.width El.fill ]
-        --        (presentUser m
-        --            |> User.getBags
-        --            |> Dict.map bagItemWithKey
-        --            |> Dict.values
-        --            |> List.reverse
-        --        )
-        --bagItemWithKey bagId { hasConvexHull } =
-        --    ( String.fromInt bagId
-        --    , El.row
-        --        [ El.width El.fill
-        --        , El.paddingXY 10 6
-        --        , Background.color <|
-        --            if Just bagId == m.maybeSelectedBag then
-        --                Colors.selectedItem
-        --            else
-        --                Colors.menuBackground
-        --        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        --        , Border.color Colors.menuBorder
-        --        , Events.onMouseEnter (MouseOverBagItem bagId)
-        --        , Events.onMouseLeave (MouseOutBagItem bagId)
-        --        , Events.onClick (ClickOnBagItem bagId)
-        --        ]
-        --        [ El.text
-        --            (presentUser m
-        --                |> User.getVerticesInBag bagId
-        --                |> Set.toList
-        --                |> vertexIdsToString
-        --            )
-        --, El.el
-        --    [ El.alignRight
-        --    , Font.bold
-        --    , Font.color <|
-        --        if hasConvexHull then
-        --            Colors.white
-        --        else
-        --            Colors.icon
-        --    , Events.onClick (ToggleConvexHull bagId)
-        --    ]
-        --    (El.text "C")
-        --    ]
-        --)
-        --
         header headerText =
             El.el
                 [ Font.alignRight
@@ -1592,18 +1557,61 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                         , Events.onMouseEnter (MouseOverBagItem bagId)
                         , Events.onMouseLeave (MouseOutBagItem bagId)
                         , Events.onClick (ClickOnBagItem bagId)
+                        , El.scrollbarX
                         ]
                         content
             in
             El.table []
                 { data = User.getBags (presentUser m)
                 , columns =
-                    [ { header = header "id"
+                    [ --{ header = header "id"
+                      --  , width = El.px 20
+                      --  , view =
+                      --        \{ bagId } ->
+                      --            cell bagId <|
+                      --                El.text (String.fromInt bagId)
+                      --  }
+                      --,
+                      { header = header "Elements"
+                      , width = El.px 100
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.text
+                                        (presentUser m
+                                            |> User.getVerticesInBag bagId
+                                            |> Set.toList
+                                            |> vertexIdsToString
+                                        )
+                      }
+                    , { header = header "CH"
                       , width = El.px 20
                       , view =
-                            \{ bagId } ->
-                                cell 1 <|
-                                    El.text (String.fromInt bagId)
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.el
+                                        [ Events.onClick (ToggleConvexHull bagId)
+                                        ]
+                                    <|
+                                        if bagProperties.hasConvexHull then
+                                            El.html (Icons.draw10px Icons.icons.checkMark)
+
+                                        else
+                                            El.none
+                      }
+                    , { header = header "Str"
+                      , width = El.px 30
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.text (String.fromFloat bagProperties.pullStrength)
+                      }
+                    , { header = header "PullC"
+                      , width = El.fill
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.text (pointToString bagProperties.pullCenter)
                       }
                     ]
                 }
