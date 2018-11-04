@@ -1576,13 +1576,18 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 ]
                 (El.text headerText)
 
-        cell content =
+        cell id content =
             El.el
                 [ El.paddingXY 0 4
                 , Font.alignRight
                 , El.height El.fill
                 , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
                 , Border.color Colors.menuBorder
+                , Events.onMouseEnter (MouseOverVertexItem id)
+                , Events.onMouseLeave (MouseOutVertexItem id)
+                , Events.onClick (ClickOnVertexItem id)
+
+                --, El.mouseOver [Background.color ]
                 ]
                 content
 
@@ -1595,14 +1600,17 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 , columns =
                     [ { header = header "id"
                       , width = El.px 20
-                      , view = \{ id } -> cell (El.text (String.fromInt id))
+                      , view =
+                            \{ id } ->
+                                cell id <|
+                                    El.text (String.fromInt id)
                       }
                     , { header = header "Label"
                       , width = El.fill
                       , view =
-                            \{ label } ->
-                                cell
-                                    (case label.label of
+                            \{ id, label } ->
+                                cell id <|
+                                    case label.label of
                                         Just l ->
                                             El.text l
 
@@ -1613,67 +1621,61 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                                 , Font.alignRight
                                                 ]
                                                 (El.text "no label")
-                                    )
                       }
-                    , { header = header "Fxd"
+                    , { header = header "Fx"
                       , width = El.px 20
                       , view =
-                            \{ label } ->
-                                cell
-                                    (if label.fixed then
+                            \{ id, label } ->
+                                cell id <|
+                                    if label.fixed then
                                         El.html (Icons.draw10px Icons.icons.checkMark)
 
-                                     else
+                                    else
                                         El.none
-                                    )
                       }
                     , { header = header "X"
                       , width = El.px 26
                       , view =
-                            \{ label } ->
+                            \{ id, label } ->
                                 label.position
                                     |> Point2d.xCoordinate
                                     |> round
                                     |> String.fromInt
                                     |> El.text
-                                    |> cell
+                                    |> cell id
                       }
                     , { header = header "Y"
                       , width = El.px 26
                       , view =
-                            \{ label } ->
+                            \{ id, label } ->
                                 label.position
                                     |> Point2d.yCoordinate
                                     |> round
                                     |> String.fromInt
                                     |> El.text
-                                    |> cell
+                                    |> cell id
                       }
                     , { header = header "Str"
                       , width = El.px 30
                       , view =
-                            \{ label } ->
-                                cell (El.text (String.fromFloat label.strength))
+                            \{ id, label } ->
+                                cell id <|
+                                    El.text (String.fromFloat label.strength)
                       }
                     , { header = header "Col"
                       , width = El.px 20
                       , view =
-                            \{ label } ->
-                                El.el
-                                    [ Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
-                                    , Border.color Colors.menuBorder
-                                    , El.height El.fill
-                                    ]
-                                <|
+                            \{ id, label } ->
+                                cell id <|
                                     El.html <|
                                         S.svg
                                             [ SA.width "20"
-                                            , SA.height "16"
+                                            , SA.height "10"
                                             ]
                                             [ S.circle
-                                                [ SA.r "6"
-                                                , SA.cx "14"
-                                                , SA.cy "10"
+                                                [ SA.r "5"
+                                                , SA.cx "12"
+                                                , SA.cy "5"
                                                 , SA.fill (Colors.toString label.color)
                                                 ]
                                                 []
@@ -1682,30 +1684,29 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     , { header = header "Rad"
                       , width = El.px 24
                       , view =
-                            \{ label } ->
-                                cell (El.text (String.fromFloat label.radius))
+                            \{ id, label } ->
+                                cell id <|
+                                    El.text (String.fromFloat label.radius)
                       }
                     , { header = El.none
-                      , width = El.px 6
+                      , width = El.px 8
                       , view =
                             \{ id } ->
-                                El.el
-                                    [ El.width El.fill
-                                    , El.height El.fill
-                                    , El.alignRight
-                                    , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
-                                    , Border.color Colors.menuBorder
-                                    , Background.color <|
-                                        if Set.member id m.highlightedVertices then
-                                            Colors.highlightPink
+                                cell id <|
+                                    El.el
+                                        [ El.width El.fill
+                                        , El.height El.fill
+                                        , Background.color <|
+                                            if Set.member id m.highlightedVertices then
+                                                Colors.highlightPink
 
-                                        else if Set.member id m.selectedVertices then
-                                            Colors.selectBlue
+                                            else if Set.member id m.selectedVertices then
+                                                Colors.selectBlue
 
-                                        else
-                                            Colors.menuBackground
-                                    ]
-                                    El.none
+                                            else
+                                                Colors.menuBackground
+                                        ]
+                                        El.none
                       }
                     ]
                 }
