@@ -125,7 +125,8 @@ type alias Bag =
 
 
 type alias BagProperties =
-    { hasConvexHull : Bool
+    { label : Maybe String
+    , hasConvexHull : Bool
     , pullCenter : Point2d
     , pullStrength : Float
     }
@@ -162,7 +163,8 @@ default =
 
 defaultBagProperties : BagProperties
 defaultBagProperties =
-    { hasConvexHull = False
+    { label = Nothing
+    , hasConvexHull = False
     , pullStrength = 0.1
     , pullCenter = Point2d.fromCoordinates ( 300, 300 )
     }

@@ -2021,8 +2021,9 @@ rightBar m =
         ]
         [ history m
         , selector m
-        , vertexProperties m
-        , edgeProperties m
+        , bagPreferences m
+        , vertexPreferences m
+        , edgePreferences m
         ]
 
 
@@ -2366,8 +2367,22 @@ colorPicker { labelText, labelWidth, isExpanded, selectedColor, msgOnExpanderCli
         ]
 
 
-vertexProperties : Model -> Element Msg
-vertexProperties m =
+bagPreferences : Model -> Element Msg
+bagPreferences m =
+    let
+        headerForBagProperties =
+            case m.maybeSelectedBag of
+                Nothing ->
+                    "Bag Preferences"
+
+                Just bagId ->
+                    "Selected Bag"
+    in
+    subMenu headerForBagProperties []
+
+
+vertexPreferences : Model -> Element Msg
+vertexPreferences m =
     let
         headerForVertexProperties =
             case Set.size m.selectedVertices of
@@ -2529,8 +2544,8 @@ vertexProperties m =
         ]
 
 
-edgeProperties : Model -> Element Msg
-edgeProperties m =
+edgePreferences : Model -> Element Msg
+edgePreferences m =
     let
         headerForEdgeProperties =
             case Set.size m.selectedEdges of
