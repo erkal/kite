@@ -2057,115 +2057,6 @@ subMenu header contentLines =
         ]
 
 
-history : Model -> Element Msg
-history m =
-    let
-        attributes_ i =
-            [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-            , Border.color Colors.menuBorder
-            , El.width El.fill
-            , El.paddingXY 10 4
-            , Events.onClick (ClickOnHistoryItem i)
-            , El.pointer
-            ]
-
-        attributes i =
-            if i <= UL.lengthPast m.userUL then
-                attributes_ i
-
-            else
-                El.alpha 0.3 :: attributes_ i
-
-        item i ( descriptionText, _ ) =
-            El.el (attributes i) (El.text descriptionText)
-
-        itemList =
-            m.userUL
-                |> UL.toList
-                |> List.indexedMap item
-    in
-    subMenu "History"
-        [ El.column
-            [ El.width El.fill
-            , El.height (El.px 100)
-            , El.scrollbarY
-            ]
-            (List.reverse itemList)
-        ]
-
-
-selector : Model -> Element Msg
-selector m =
-    let
-        rectSelector =
-            El.el
-                [ El.htmlAttribute (HA.title "Rectangle Selector")
-                , Background.color <|
-                    case m.selectedSelector of
-                        RectSelector ->
-                            Colors.selectedItem
-
-                        _ ->
-                            Colors.menuBackground
-                , El.pointer
-                , Border.rounded 12
-                , Events.onClick ClickOnRectSelector
-                , El.mouseDown [ Background.color Colors.selectedItem ]
-                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
-                ]
-                (El.html (Icons.draw24px Icons.icons.selectionRect))
-
-        lineSelector =
-            El.el
-                [ El.htmlAttribute (HA.title "Line Selector")
-                , Background.color <|
-                    case m.selectedSelector of
-                        LineSelector ->
-                            Colors.selectedItem
-
-                        _ ->
-                            Colors.menuBackground
-                , El.pointer
-                , Border.rounded 12
-                , Events.onClick ClickOnLineSelector
-                , El.mouseDown [ Background.color Colors.selectedItem ]
-                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
-                ]
-                (El.html (Icons.draw24px Icons.icons.selectionLine))
-    in
-    subMenu "Selector"
-        [ El.row [ El.spacing 8 ]
-            [ El.el
-                [ El.centerY
-                , El.width (El.px 60)
-                , Font.alignRight
-                ]
-                (El.text "Type")
-            , El.row
-                [ El.spacing 1
-                , El.padding 1
-                , Border.rounded 16
-                , Border.width 1
-                , Border.color Colors.menuBorder
-                , El.mouseOver [ Border.color Colors.menuBorderOnMouseOver ]
-                ]
-                [ rectSelector
-                , lineSelector
-                ]
-            ]
-
-        --, Input.radioRow []
-        --    { onChange = ClickOnSelectorType
-        --    , options =
-        --        [ Input.option RectSelector rectSelector
-        --        , Input.option LineSelector lineSelector
-        --        ]
-        --    , selected = Just RectSelector
-        --    , label = styledLabel "Type"
-        --    }
-        ]
-
-
 labelAttr labelWidth =
     [ El.centerY
     , El.width (El.px labelWidth)
@@ -2364,6 +2255,105 @@ colorPicker { labelText, labelWidth, isExpanded, selectedColor, msgOnExpanderCli
     El.row [ El.spacing 8 ]
         [ El.el (labelAttr labelWidth) (El.text labelText)
         , input
+        ]
+
+
+history : Model -> Element Msg
+history m =
+    let
+        attributes_ i =
+            [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+            , Border.color Colors.menuBorder
+            , El.width El.fill
+            , El.paddingXY 10 4
+            , Events.onClick (ClickOnHistoryItem i)
+            , El.pointer
+            ]
+
+        attributes i =
+            if i <= UL.lengthPast m.userUL then
+                attributes_ i
+
+            else
+                El.alpha 0.3 :: attributes_ i
+
+        item i ( descriptionText, _ ) =
+            El.el (attributes i) (El.text descriptionText)
+
+        itemList =
+            m.userUL
+                |> UL.toList
+                |> List.indexedMap item
+    in
+    subMenu "History"
+        [ El.column
+            [ El.width El.fill
+            , El.height (El.px 100)
+            , El.scrollbarY
+            ]
+            (List.reverse itemList)
+        ]
+
+
+selector : Model -> Element Msg
+selector m =
+    let
+        rectSelector =
+            El.el
+                [ El.htmlAttribute (HA.title "Rectangle Selector")
+                , Background.color <|
+                    case m.selectedSelector of
+                        RectSelector ->
+                            Colors.selectedItem
+
+                        _ ->
+                            Colors.menuBackground
+                , El.pointer
+                , Border.rounded 12
+                , Events.onClick ClickOnRectSelector
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                ]
+                (El.html (Icons.draw24px Icons.icons.selectionRect))
+
+        lineSelector =
+            El.el
+                [ El.htmlAttribute (HA.title "Line Selector")
+                , Background.color <|
+                    case m.selectedSelector of
+                        LineSelector ->
+                            Colors.selectedItem
+
+                        _ ->
+                            Colors.menuBackground
+                , El.pointer
+                , Border.rounded 12
+                , Events.onClick ClickOnLineSelector
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                ]
+                (El.html (Icons.draw24px Icons.icons.selectionLine))
+    in
+    subMenu "Selector"
+        [ El.row [ El.spacing 8 ]
+            [ El.el
+                [ El.centerY
+                , El.width (El.px 60)
+                , Font.alignRight
+                ]
+                (El.text "Type")
+            , El.row
+                [ El.spacing 1
+                , El.padding 1
+                , Border.rounded 16
+                , Border.width 1
+                , Border.color Colors.menuBorder
+                , El.mouseOver [ Border.color Colors.menuBorderOnMouseOver ]
+                ]
+                [ rectSelector
+                , lineSelector
+                ]
+            ]
         ]
 
 
