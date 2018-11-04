@@ -103,7 +103,8 @@ type alias VertexProperties =
 
 
 type alias EdgeProperties =
-    { distance : Float
+    { label : Maybe String
+    , distance : Float
     , strength : Float
     , color : Color
     , thickness : Float
@@ -126,6 +127,7 @@ type alias Bag =
 
 type alias BagProperties =
     { label : Maybe String
+    , color : Color
     , hasConvexHull : Bool
     , pullCenter : Point2d
     , pullStrength : Float
@@ -153,7 +155,8 @@ default =
             , labelIsVisible = False
             }
         , defaultEdgeProperties =
-            { color = Colors.lightGray
+            { label = Nothing
+            , color = Colors.lightGray
             , thickness = 3
             , distance = 40
             , strength = 0.7
@@ -164,6 +167,7 @@ default =
 defaultBagProperties : BagProperties
 defaultBagProperties =
     { label = Nothing
+    , color = Colors.white
     , hasConvexHull = False
     , pullStrength = 0.1
     , pullCenter = Point2d.fromCoordinates ( 300, 300 )

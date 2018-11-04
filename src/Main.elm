@@ -1531,11 +1531,11 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
     let
         header headerText =
             El.el
-                [ Font.alignRight
-                , El.paddingXY 0 6
-                , Border.widthEach { top = 0, right = 0, bottom = 2, left = 0 }
+                [ El.paddingXY 2 6
+                , Border.widthEach { top = 0, right = 0, bottom = 2, left = 1 }
                 , Border.color Colors.menuBorder
                 , Font.medium
+                , Font.center
                 ]
                 (El.text headerText)
 
@@ -1543,10 +1543,10 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             let
                 cell bagId content =
                     El.el
-                        [ El.paddingXY 0 4
-                        , Font.alignRight
+                        [ El.padding 2
+                        , El.width El.fill
                         , El.height El.fill
-                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
+                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
                         , Border.color Colors.menuBorder
                         , Background.color <|
                             if Just bagId == m.maybeSelectedBag then
@@ -1558,10 +1558,14 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                         , Events.onMouseLeave (MouseOutBagItem bagId)
                         , Events.onClick (ClickOnBagItem bagId)
                         , El.scrollbarX
+                        , Font.center
                         ]
                         content
             in
-            El.table []
+            El.table
+                [ El.width El.fill
+                , El.paddingEach { top = 4, right = 0, bottom = 4, left = 0 }
+                ]
                 { data = User.getBags (presentUser m)
                 , columns =
                     [ --{ header = header "id"
@@ -1599,19 +1603,19 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                         else
                                             El.none
                       }
+                    , { header = header "Pull Center"
+                      , width = El.fill
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.text (pointToString bagProperties.pullCenter)
+                      }
                     , { header = header "Str"
                       , width = El.px 30
                       , view =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
                                     El.text (String.fromFloat bagProperties.pullStrength)
-                      }
-                    , { header = header "PullC"
-                      , width = El.fill
-                      , view =
-                            \{ bagId, bagProperties } ->
-                                cell bagId <|
-                                    El.text (pointToString bagProperties.pullCenter)
                       }
                     ]
                 }
@@ -1620,10 +1624,11 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             let
                 cell id content =
                     El.el
-                        [ El.paddingXY 0 4
-                        , Font.alignRight
+                        [ El.padding 2
+                        , El.width El.fill
                         , El.height El.fill
-                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
+                        , Font.center
+                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
                         , Border.color Colors.menuBorder
                         , Events.onMouseEnter (MouseOverVertexItem id)
                         , Events.onMouseLeave (MouseOutVertexItem id)
@@ -1657,7 +1662,6 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                             El.el
                                                 [ El.alpha 0.2
                                                 , El.width El.fill
-                                                , Font.alignRight
                                                 ]
                                                 (El.text "no label")
                       }
@@ -1667,7 +1671,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                             \{ id, label } ->
                                 cell id <|
                                     if label.fixed then
-                                        El.html (Icons.draw10px Icons.icons.checkMark)
+                                        El.html
+                                            (Icons.draw10px Icons.icons.checkMark)
 
                                     else
                                         El.none
@@ -1708,12 +1713,12 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                 cell id <|
                                     El.html <|
                                         S.svg
-                                            [ SA.width "20"
+                                            [ SA.width "16"
                                             , SA.height "10"
                                             ]
                                             [ S.circle
                                                 [ SA.r "5"
-                                                , SA.cx "12"
+                                                , SA.cx "8"
                                                 , SA.cy "5"
                                                 , SA.fill (Colors.toString label.color)
                                                 ]
@@ -1739,7 +1744,21 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                             if Set.member id m.highlightedVertices then
                                                 Colors.highlightPink
 
-                                            else if Set.member id m.selectedVertices then
+                                            else
+                                                Colors.menuBackground
+                                        ]
+                                        El.none
+                      }
+                    , { header = header " "
+                      , width = El.px 8
+                      , view =
+                            \{ id } ->
+                                cell id <|
+                                    El.el
+                                        [ El.width El.fill
+                                        , El.height El.fill
+                                        , Background.color <|
+                                            if Set.member id m.selectedVertices then
                                                 Colors.selectBlue
 
                                             else
