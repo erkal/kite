@@ -1,5 +1,6 @@
 module Icons exposing
-    ( draw14px
+    ( draw10px
+    , draw14px
     , draw24px
     , draw34px
     , draw40pxWithColor
@@ -10,6 +11,11 @@ import Colors
 import Element exposing (Color)
 import Svg as S exposing (Svg)
 import Svg.Attributes as SA
+
+
+draw10px : String -> Svg msg
+draw10px =
+    draw 10
 
 
 draw14px : String -> Svg msg

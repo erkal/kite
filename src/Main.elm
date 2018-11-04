@@ -923,8 +923,9 @@ update msg m =
                 |> nwUsr newUser
                     ("Changed the label of the vertices "
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
-                        ++ " to "
+                        ++ " to '"
                         ++ str
+                        ++ "'"
                     )
 
         InputVertexFixed b ->
@@ -1490,7 +1491,7 @@ leftBarMenu headerItems content =
                 , El.padding 8
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
-                , Font.medium
+                , Font.bold
                 ]
                 headerItems
     in
@@ -1570,19 +1571,20 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
         header headerText =
             El.el
                 [ Font.alignRight
-                , El.paddingXY 2 4
+                , El.paddingXY 0 6
+                , Font.medium
                 ]
                 (El.text headerText)
 
-        cell cellText =
+        cell content =
             El.el
-                [ Font.alignRight
-                , El.paddingXY 2 4
+                [ El.paddingXY 0 4
+                , Font.alignRight
                 , El.height El.fill
                 , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
                 , Border.color Colors.menuBorder
                 ]
-                (El.text cellText)
+                content
 
         tableOfVertices =
             El.table
@@ -1593,43 +1595,36 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 , columns =
                     [ { header = header "id"
                       , width = El.px 20
-                      , view = \{ id } -> cell (String.fromInt id)
+                      , view = \{ id } -> cell (El.text (String.fromInt id))
                       }
-                    , { header = header "LV"
-                      , width = El.px 16
-                      , view =
-                            \{ label } ->
-                                cell
-                                    (if label.labelIsVisible then
-                                        "x"
-
-                                     else
-                                        ""
-                                    )
-                      }
-                    , { header = header "L"
+                    , { header = header "Label"
                       , width = El.fill
                       , view =
                             \{ label } ->
                                 cell
                                     (case label.label of
                                         Just l ->
-                                            l
+                                            El.text l
 
                                         Nothing ->
-                                            ""
+                                            El.el
+                                                [ El.alpha 0.2
+                                                , El.width El.fill
+                                                , Font.alignRight
+                                                ]
+                                                (El.text "no label")
                                     )
                       }
-                    , { header = header "F"
-                      , width = El.px 16
+                    , { header = header "Fxd"
+                      , width = El.px 20
                       , view =
                             \{ label } ->
                                 cell
                                     (if label.fixed then
-                                        "x"
+                                        El.html (Icons.draw10px Icons.icons.checkMark)
 
                                      else
-                                        ""
+                                        El.none
                                     )
                       }
                     , { header = header "X"
@@ -1640,6 +1635,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                     |> Point2d.xCoordinate
                                     |> round
                                     |> String.fromInt
+                                    |> El.text
                                     |> cell
                       }
                     , { header = header "Y"
@@ -1650,30 +1646,44 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                     |> Point2d.yCoordinate
                                     |> round
                                     |> String.fromInt
+                                    |> El.text
                                     |> cell
                       }
-                    , { header = header "S"
+                    , { header = header "Str"
                       , width = El.px 30
                       , view =
                             \{ label } ->
-                                cell (String.fromFloat label.strength)
+                                cell (El.text (String.fromFloat label.strength))
                       }
-                    , { header = header "C"
+                    , { header = header "Col"
                       , width = El.px 20
                       , view =
                             \{ label } ->
                                 El.el
-                                    [ El.width El.fill
+                                    [ Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
+                                    , Border.color Colors.menuBorder
                                     , El.height El.fill
-                                    , Background.color label.color
                                     ]
-                                    El.none
+                                <|
+                                    El.html <|
+                                        S.svg
+                                            [ SA.width "20"
+                                            , SA.height "16"
+                                            ]
+                                            [ S.circle
+                                                [ SA.r "6"
+                                                , SA.cx "14"
+                                                , SA.cy "10"
+                                                , SA.fill (Colors.toString label.color)
+                                                ]
+                                                []
+                                            ]
                       }
-                    , { header = header "R"
+                    , { header = header "Rad"
                       , width = El.px 24
                       , view =
                             \{ label } ->
-                                cell (String.fromFloat label.radius)
+                                cell (El.text (String.fromFloat label.radius))
                       }
                     , { header = El.none
                       , width = El.px 6
@@ -1683,6 +1693,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                     [ El.width El.fill
                                     , El.height El.fill
                                     , El.alignRight
+                                    , Border.widthEach { top = 0, right = 0, bottom = 1, left = 0 }
+                                    , Border.color Colors.menuBorder
                                     , Background.color <|
                                         if Set.member id m.highlightedVertices then
                                             Colors.highlightPink
