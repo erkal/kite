@@ -1596,14 +1596,14 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                         content
             in
             El.table []
-                { data = User.getBags (presentUser m) |> Dict.values
+                { data = User.getBags (presentUser m)
                 , columns =
                     [ { header = header "id"
                       , width = El.px 20
                       , view =
-                            \{ hasConvexHull } ->
+                            \{ bagId } ->
                                 cell 1 <|
-                                    El.text "TODO"
+                                    El.text (String.fromInt bagId)
                       }
                     ]
                 }

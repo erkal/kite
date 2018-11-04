@@ -118,6 +118,12 @@ type alias BagId =
     Int
 
 
+type alias Bag =
+    { bagId : BagId
+    , bagProperties : BagProperties
+    }
+
+
 type alias BagProperties =
     { highlighted : Bool
     , hasConvexHull : Bool
@@ -204,9 +210,16 @@ getEdges (User { graph }) =
     graph |> Graph.edges
 
 
-getBags : User -> BagDict
+getBags : User -> List Bag
 getBags (User { bags }) =
     bags
+        |> Dict.map
+            (\bagId bagProperties ->
+                { bagId = bagId
+                , bagProperties = bagProperties
+                }
+            )
+        |> Dict.values
 
 
 getBagProperties : BagId -> User -> Maybe BagProperties
@@ -310,7 +323,7 @@ addBag : Set VertexId -> User -> ( User, BagId )
 addBag vs ((User p) as user) =
     let
         idOfTheNewBag =
-            user |> getBags |> Dict.keys |> List.maximum |> Maybe.withDefault 0 |> (+) 1
+            p.bags |> Dict.keys |> List.maximum |> Maybe.withDefault 0 |> (+) 1
 
         l =
             vs |> Set.toList |> List.map (\id -> ( id, () ))
