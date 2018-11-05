@@ -129,7 +129,7 @@ type alias BagProperties =
     { label : Maybe String
     , color : Color
     , hasConvexHull : Bool
-    , pullCenter : Point2d
+    , pullCenter : Maybe Point2d
     , pullStrength : Float
     }
 
@@ -162,16 +162,6 @@ default =
             , strength = 0.7
             }
         }
-
-
-defaultBagProperties : BagProperties
-defaultBagProperties =
-    { label = Nothing
-    , color = Colors.white
-    , hasConvexHull = False
-    , pullStrength = 0.1
-    , pullCenter = Point2d.fromCoordinates ( 300, 300 )
-    }
 
 
 simulation : User -> Force.State
@@ -331,7 +321,15 @@ addBag vs ((User p) as user) =
     in
     ( user
         |> mapGraph (Graph.Extra.updateNodesBy l insertToBag)
-        |> mapBags (Dict.insert idOfTheNewBag defaultBagProperties)
+        |> mapBags
+            (Dict.insert idOfTheNewBag
+                { label = Nothing
+                , color = Colors.white
+                , hasConvexHull = True
+                , pullStrength = 0.1
+                , pullCenter = getCentroid vs user
+                }
+            )
     , idOfTheNewBag
     )
 

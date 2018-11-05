@@ -278,7 +278,7 @@ type Msg
     | MouseOverBagItem BagId
     | MouseOutBagItem BagId
     | ClickOnBagItem BagId
-    | ToggleConvexHull BagId
+    | InputBagConvexHull BagId Bool
       --
     | ClickOnVertexTrash
     | MouseOverVertexItem VertexId
@@ -800,10 +800,10 @@ update msg m =
                 _ ->
                     m
 
-        ToggleConvexHull bagId ->
+        InputBagConvexHull bagId b ->
             let
                 updateCH bag =
-                    { bag | hasConvexHull = not bag.hasConvexHull }
+                    { bag | hasConvexHull = b }
 
                 newUser =
                     presentUser m |> User.updateBag bagId updateCH
@@ -1593,10 +1593,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
-                                    El.el
-                                        [ Events.onClick (ToggleConvexHull bagId)
-                                        ]
-                                    <|
+                                    El.el [] <|
                                         if bagProperties.hasConvexHull then
                                             El.html (Icons.draw10px Icons.icons.checkMark)
 
@@ -1608,7 +1605,13 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
-                                    El.text (pointToString bagProperties.pullCenter)
+                                    El.text <|
+                                        case bagProperties.pullCenter of
+                                            Just pC ->
+                                                pointToString pC
+
+                                            Nothing ->
+                                                "-"
                       }
                     , { header = header "Str"
                       , width = El.px 30
@@ -1665,7 +1668,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                                 ]
                                                 (El.text "no label")
                       }
-                    , { header = header "Fx"
+                    , { header = header "Fix"
                       , width = El.px 20
                       , view =
                             \{ id, label } ->
@@ -2031,6 +2034,15 @@ topBar m =
 
 rightBar : Model -> Element Msg
 rightBar m =
+    let
+        maybeBagPreferences =
+            case m.maybeSelectedBag of
+                Just bagId ->
+                    bagPreferences bagId m
+
+                Nothing ->
+                    El.none
+    in
     El.column
         [ Background.color Colors.menuBackground
         , Border.widthEach { bottom = 0, left = 1, right = 0, top = 0 }
@@ -2040,7 +2052,7 @@ rightBar m =
         ]
         [ history m
         , selector m
-        , bagPreferences m
+        , maybeBagPreferences
         , vertexPreferences m
         , edgePreferences m
         ]
@@ -2376,18 +2388,19 @@ selector m =
         ]
 
 
-bagPreferences : Model -> Element Msg
-bagPreferences m =
-    let
-        headerForBagProperties =
-            case m.maybeSelectedBag of
-                Nothing ->
-                    "Bag Preferences"
-
-                Just bagId ->
-                    "Selected Bag"
-    in
-    subMenu headerForBagProperties []
+bagPreferences : BagId -> Model -> Element Msg
+bagPreferences idOfTheSelectedBag m =
+    subMenu "Selected Bag"
+        [ checkbox
+            { labelText = "Convex Hull"
+            , labelWidth = 80
+            , state =
+                presentUser m
+                    |> User.getBagProperties idOfTheSelectedBag
+                    |> Maybe.map .hasConvexHull
+            , onChange = InputBagConvexHull idOfTheSelectedBag
+            }
+        ]
 
 
 vertexPreferences : Model -> Element Msg
