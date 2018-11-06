@@ -75,6 +75,7 @@ type alias Model =
     , simulationState : Force.State
 
     --
+    , timeTuple : ( Time.Posix, Time.Posix )
     , windowSize : { width : Int, height : Int }
     , mousePosition : MousePosition
     , svgMousePosition : Point2d
@@ -171,6 +172,7 @@ initialModel user =
     , simulationState = user |> User.simulation
 
     --
+    , timeTuple = ( Time.millisToPosix 0, Time.millisToPosix 0 )
     , windowSize = { width = 800, height = 600 }
     , mousePosition = { x = 0, y = 0 }
     , svgMousePosition = Point2d.fromCoordinates ( 0, 0 )
@@ -337,7 +339,7 @@ update msg m =
         NoOp ->
             m
 
-        Tick _ ->
+        Tick t ->
             let
                 ( newSimulationState, newUser_ ) =
                     presentUser m |> User.tick m.simulationState
@@ -362,6 +364,12 @@ update msg m =
             { m
                 | userUL = m.userUL |> UL.mapPresent (Tuple.mapSecond (always newUser))
                 , simulationState = newSimulationState
+                , timeTuple =
+                    let
+                        up ( _, o2 ) nt =
+                            ( o2, nt )
+                    in
+                    up m.timeTuple t
             }
 
         WindowResize wS ->
@@ -1372,11 +1380,36 @@ view m =
             , leftBar m
             , El.column [ El.width El.fill, El.height El.fill ] <|
                 [ topBar m
-                , El.el [ El.width El.fill, El.height El.fill ] <|
-                    El.html (mainSvg m)
+                , El.column
+                    []
+                    [ El.el [ El.width El.fill, El.height El.fill ] <|
+                        El.html (mainSvg m)
+                    , debugView m
+                    ]
                 ]
             , rightBar m
             ]
+
+
+debugView : Model -> Element Msg
+debugView m =
+    let
+        ( old, new ) =
+            m.timeTuple
+
+        fps =
+            round <|
+                1000
+                    / toFloat (Time.posixToMillis new - Time.posixToMillis old)
+    in
+    El.el
+        [ El.width El.fill
+        , El.padding 10
+        , Font.size 10
+        , Background.color Colors.mainSvgBackground
+        ]
+    <|
+        El.text (String.fromInt fps ++ " fps")
 
 
 leftStripe : Model -> Element Msg
