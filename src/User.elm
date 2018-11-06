@@ -329,8 +329,7 @@ addBag vs ((User p) as user) =
                 , hasConvexHull = True
                 , pullStrength = 0.1
                 , pullCenter =
-                    getCentroid vs user
-                        |> Maybe.withDefault Point2d.origin
+                    getCentroid vs user |> Maybe.withDefault Point2d.origin
                 , pullCenterIsActive = True
                 }
             )
