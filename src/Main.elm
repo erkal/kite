@@ -1568,16 +1568,31 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 ]
                 { data = User.getBags (presentUser m)
                 , columns =
-                    [ --{ header = header "id"
-                      --  , width = El.px 20
-                      --  , view =
-                      --        \{ bagId } ->
-                      --            cell bagId <|
-                      --                El.text (String.fromInt bagId)
-                      --  }
-                      --,
-                      { header = header "Elements"
-                      , width = El.px 100
+                    [ { header = header "id"
+                      , width = El.px 20
+                      , view =
+                            \{ bagId } ->
+                                cell bagId <|
+                                    El.text (String.fromInt bagId)
+                      }
+                    , { header = header "Label"
+                      , width = El.fill
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    case bagProperties.label of
+                                        Just l ->
+                                            El.text l
+
+                                        Nothing ->
+                                            El.el
+                                                [ El.alpha 0.2
+                                                , El.width El.fill
+                                                ]
+                                                (El.text "no label")
+                      }
+                    , { header = header "Elements"
+                      , width = El.px 60
                       , view =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
@@ -1593,7 +1608,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
-                                    El.el [] <|
+                                    El.el [ El.centerX ] <|
                                         if bagProperties.hasConvexHull then
                                             El.html (Icons.draw10px Icons.icons.checkMark)
 
@@ -1605,13 +1620,27 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
-                                    El.text <|
-                                        case bagProperties.pullCenter of
-                                            Just pC ->
-                                                pointToString pC
-
-                                            Nothing ->
-                                                "-"
+                                    El.text
+                                        (pointToString bagProperties.pullCenter)
+                      }
+                    , { header = header "Col"
+                      , width = El.px 20
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.html <|
+                                        S.svg
+                                            [ SA.width "16"
+                                            , SA.height "10"
+                                            ]
+                                            [ S.circle
+                                                [ SA.r "5"
+                                                , SA.cx "8"
+                                                , SA.cy "5"
+                                                , SA.fill (Colors.toString bagProperties.color)
+                                                ]
+                                                []
+                                            ]
                       }
                     , { header = header "Str"
                       , width = El.px 30
@@ -1673,12 +1702,13 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ id, label } ->
                                 cell id <|
-                                    if label.fixed then
-                                        El.html
-                                            (Icons.draw10px Icons.icons.checkMark)
+                                    El.el [ El.centerX ] <|
+                                        if label.fixed then
+                                            El.html
+                                                (Icons.draw10px Icons.icons.checkMark)
 
-                                    else
-                                        El.none
+                                        else
+                                            El.none
                       }
                     , { header = header "X"
                       , width = El.px 26
@@ -2391,14 +2421,92 @@ selector m =
 bagPreferences : BagId -> Model -> Element Msg
 bagPreferences idOfTheSelectedBag m =
     subMenu "Selected Bag"
-        [ checkbox
-            { labelText = "Convex Hull"
+        [ El.row []
+            [ textInput
+                { labelText = "Label"
+                , labelWidth = 80
+                , inputWidth = 60
+                , text = ""
+                , onChange = InputVertexLabel
+                }
+            , checkbox
+                { labelText = "Show Label"
+                , labelWidth = 70
+                , state = Nothing
+                , onChange = InputVertexLabelVisibility
+                }
+            ]
+        , El.row []
+            [ colorPicker
+                { labelText = "Color"
+                , labelWidth = 80
+                , isExpanded = m.vertexColorPickerIsExpanded
+                , selectedColor =
+                    if Set.isEmpty m.selectedVertices then
+                        Just
+                            (presentUser m
+                                |> User.getDefaultVertexProperties
+                                |> .color
+                            )
+
+                    else
+                        presentUser m
+                            |> User.getCommonVertexProperty m.selectedVertices .color
+                , msgOnColorClick = InputVertexColor
+                , msgOnExpanderClick = ClickOnVertexColorPicker
+                , msgOnLeave = MouseLeaveVertexColorPicker
+                }
+            , checkbox
+                { labelText = "Convex Hull"
+                , labelWidth = 80
+                , state =
+                    presentUser m
+                        |> User.getBagProperties idOfTheSelectedBag
+                        |> Maybe.map .hasConvexHull
+                , onChange = InputBagConvexHull idOfTheSelectedBag
+                }
+            ]
+        , El.row []
+            [ checkbox
+                { labelText = "Pull Center"
+                , labelWidth = 80
+                , state = {- TODO -} Nothing
+                , onChange = {- TODO -} InputVertexLabelVisibility
+                }
+            , El.el [ El.paddingXY 20 0 ] <|
+                El.text <|
+                    case
+                        presentUser m
+                            |> User.getBagProperties idOfTheSelectedBag
+                            |> Maybe.map .pullCenter
+                    of
+                        Just pC ->
+                            pC |> pointToString
+
+                        Nothing ->
+                            ""
+            ]
+        , sliderInput
+            { labelText = "Pull Strength"
             , labelWidth = 80
-            , state =
-                presentUser m
-                    |> User.getBagProperties idOfTheSelectedBag
-                    |> Maybe.map .hasConvexHull
-            , onChange = InputBagConvexHull idOfTheSelectedBag
+            , value =
+                let
+                    defaultVertexStrength =
+                        presentUser m
+                            |> User.getDefaultVertexProperties
+                            |> .strength
+                in
+                if Set.isEmpty m.selectedVertices then
+                    defaultVertexStrength
+
+                else
+                    presentUser m
+                        |> User.getCommonVertexProperty m.selectedVertices .strength
+                        |> Maybe.withDefault defaultVertexStrength
+            , min = -2000
+            , max = 0
+            , step = 40
+            , onChange = InputVertexStrength
             }
         ]
 
@@ -2419,6 +2527,45 @@ vertexPreferences m =
     in
     subMenu headerForVertexProperties
         [ El.row []
+            [ textInput
+                { labelText = "Label"
+                , labelWidth = 80
+                , inputWidth = 60
+                , text =
+                    if Set.isEmpty m.selectedVertices then
+                        presentUser m
+                            |> User.getDefaultVertexProperties
+                            |> .label
+                            |> Maybe.withDefault ""
+
+                    else
+                        case presentUser m |> User.getCommonVertexProperty m.selectedVertices .label of
+                            Just (Just l) ->
+                                l
+
+                            _ ->
+                                ""
+                , onChange = InputVertexLabel
+                }
+            , checkbox
+                { labelText = "Show Label"
+                , labelWidth = 70
+                , state =
+                    if Set.isEmpty m.selectedVertices then
+                        Just
+                            (presentUser m
+                                |> User.getDefaultVertexProperties
+                                |> .labelIsVisible
+                            )
+
+                    else
+                        presentUser m
+                            |> User.getCommonVertexProperty m.selectedVertices .labelIsVisible
+                , onChange =
+                    InputVertexLabelVisibility
+                }
+            ]
+        , El.row []
             [ checkbox
                 { labelText = "Fixed"
                 , labelWidth = 80
@@ -2463,27 +2610,6 @@ vertexPreferences m =
                 }
             ]
         , sliderInput
-            { labelText = "Radius"
-            , labelWidth = 80
-            , value =
-                if Set.isEmpty m.selectedVertices then
-                    presentUser m
-                        |> User.getDefaultVertexProperties
-                        |> .radius
-
-                else
-                    case presentUser m |> User.getCommonVertexProperty m.selectedVertices .radius of
-                        Just r ->
-                            r
-
-                        Nothing ->
-                            5
-            , min = 4
-            , max = 20
-            , step = 1
-            , onChange = InputVertexRadius
-            }
-        , sliderInput
             { labelText = "Strength"
             , labelWidth = 80
             , value =
@@ -2505,6 +2631,27 @@ vertexPreferences m =
             , step = 40
             , onChange = InputVertexStrength
             }
+        , sliderInput
+            { labelText = "Radius"
+            , labelWidth = 80
+            , value =
+                if Set.isEmpty m.selectedVertices then
+                    presentUser m
+                        |> User.getDefaultVertexProperties
+                        |> .radius
+
+                else
+                    case presentUser m |> User.getCommonVertexProperty m.selectedVertices .radius of
+                        Just r ->
+                            r
+
+                        Nothing ->
+                            5
+            , min = 4
+            , max = 20
+            , step = 1
+            , onChange = InputVertexRadius
+            }
         , colorPicker
             { labelText = "Color"
             , labelWidth = 80
@@ -2524,45 +2671,6 @@ vertexPreferences m =
             , msgOnExpanderClick = ClickOnVertexColorPicker
             , msgOnLeave = MouseLeaveVertexColorPicker
             }
-        , El.row []
-            [ textInput
-                { labelText = "Label"
-                , labelWidth = 80
-                , inputWidth = 60
-                , text =
-                    if Set.isEmpty m.selectedVertices then
-                        presentUser m
-                            |> User.getDefaultVertexProperties
-                            |> .label
-                            |> Maybe.withDefault ""
-
-                    else
-                        case presentUser m |> User.getCommonVertexProperty m.selectedVertices .label of
-                            Just (Just l) ->
-                                l
-
-                            _ ->
-                                ""
-                , onChange = InputVertexLabel
-                }
-            , checkbox
-                { labelText = "Show Label"
-                , labelWidth = 70
-                , state =
-                    if Set.isEmpty m.selectedVertices then
-                        Just
-                            (presentUser m
-                                |> User.getDefaultVertexProperties
-                                |> .labelIsVisible
-                            )
-
-                    else
-                        presentUser m
-                            |> User.getCommonVertexProperty m.selectedVertices .labelIsVisible
-                , onChange =
-                    InputVertexLabelVisibility
-                }
-            ]
         ]
 
 
