@@ -278,7 +278,6 @@ type Msg
     | MouseOverBagItem BagId
     | MouseOutBagItem BagId
     | ClickOnBagItem BagId
-    | InputBagConvexHull BagId Bool
       --
     | ClickOnVertexTrash
     | MouseOverVertexItem VertexId
@@ -290,6 +289,8 @@ type Msg
     | MouseOverEdgeItem EdgeId
     | MouseOutEdgeItem EdgeId
     | ClickOnEdgeItem EdgeId
+      --
+    | InputBagConvexHull BagId Bool
       --
     | InputVertexX String
     | InputVertexY String
@@ -2421,42 +2422,43 @@ selector m =
 bagPreferences : BagId -> Model -> Element Msg
 bagPreferences idOfTheSelectedBag m =
     subMenu "Selected Bag"
-        [ El.row []
-            [ textInput
-                { labelText = "Label"
-                , labelWidth = 80
-                , inputWidth = 60
-                , text = ""
-                , onChange = InputVertexLabel
-                }
-            , checkbox
-                { labelText = "Show Label"
-                , labelWidth = 70
-                , state = Nothing
-                , onChange = InputVertexLabelVisibility
-                }
-            ]
-        , El.row []
-            [ colorPicker
-                { labelText = "Color"
-                , labelWidth = 80
-                , isExpanded = m.vertexColorPickerIsExpanded
-                , selectedColor =
-                    if Set.isEmpty m.selectedVertices then
-                        Just
-                            (presentUser m
-                                |> User.getDefaultVertexProperties
-                                |> .color
-                            )
-
-                    else
-                        presentUser m
-                            |> User.getCommonVertexProperty m.selectedVertices .color
-                , msgOnColorClick = InputVertexColor
-                , msgOnExpanderClick = ClickOnVertexColorPicker
-                , msgOnLeave = MouseLeaveVertexColorPicker
-                }
-            , checkbox
+        [ --    El.row []
+          --    [ textInput
+          --        { labelText = "Label"
+          --        , labelWidth = 80
+          --        , inputWidth = 60
+          --        , text = {- TODO -} ""
+          --        , onChange = {- TODO -} InputVertexLabel
+          --        }
+          --    , checkbox
+          --        { labelText = "Show Label"
+          --        , labelWidth = 70
+          --        , state = {- TODO -} Nothing
+          --        , onChange = {- TODO -} InputVertexLabelVisibility
+          --        }
+          --    ]
+          --,
+          El.row []
+            [ --colorPicker
+              --        { labelText = "Color"
+              --        , labelWidth = 80
+              --        , isExpanded = m.vertexColorPickerIsExpanded
+              --        , selectedColor =
+              --            if Set.isEmpty m.selectedVertices then
+              --                Just
+              --                    (presentUser m
+              --                        |> User.getDefaultVertexProperties
+              --                        |> .color
+              --                    )
+              --            else
+              --                presentUser m
+              --                    |> User.getCommonVertexProperty m.selectedVertices .color
+              --        , msgOnColorClick = InputVertexColor
+              --        , msgOnExpanderClick = ClickOnVertexColorPicker
+              --        , msgOnLeave = MouseLeaveVertexColorPicker
+              --        }
+              --,
+              checkbox
                 { labelText = "Convex Hull"
                 , labelWidth = 80
                 , state =
@@ -2466,48 +2468,47 @@ bagPreferences idOfTheSelectedBag m =
                 , onChange = InputBagConvexHull idOfTheSelectedBag
                 }
             ]
-        , El.row []
-            [ checkbox
-                { labelText = "Pull Center"
-                , labelWidth = 80
-                , state = {- TODO -} Nothing
-                , onChange = {- TODO -} InputVertexLabelVisibility
-                }
-            , El.el [ El.paddingXY 20 0 ] <|
-                El.text <|
-                    case
-                        presentUser m
-                            |> User.getBagProperties idOfTheSelectedBag
-                            |> Maybe.map .pullCenter
-                    of
-                        Just pC ->
-                            pC |> pointToString
 
-                        Nothing ->
-                            ""
-            ]
-        , sliderInput
-            { labelText = "Pull Strength"
-            , labelWidth = 80
-            , value =
-                let
-                    defaultVertexStrength =
-                        presentUser m
-                            |> User.getDefaultVertexProperties
-                            |> .strength
-                in
-                if Set.isEmpty m.selectedVertices then
-                    defaultVertexStrength
-
-                else
-                    presentUser m
-                        |> User.getCommonVertexProperty m.selectedVertices .strength
-                        |> Maybe.withDefault defaultVertexStrength
-            , min = -2000
-            , max = 0
-            , step = 40
-            , onChange = InputVertexStrength
-            }
+        --, El.row []
+        --    [ checkbox
+        --        { labelText = "Pull Center"
+        --        , labelWidth = 80
+        --        , state = {- TODO -} Nothing
+        --        , onChange = {- TODO -} InputVertexLabelVisibility
+        --        }
+        --    , El.el [ El.paddingXY 20 0 ] <|
+        --        El.text <|
+        --            case
+        --                presentUser m
+        --                    |> User.getBagProperties idOfTheSelectedBag
+        --                    |> Maybe.map .pullCenter
+        --            of
+        --                Just pC ->
+        --                    pC |> pointToString
+        --                Nothing ->
+        --                    ""
+        --    ]
+        --, sliderInput
+        --    { labelText = "Pull Strength"
+        --    , labelWidth = 80
+        --    , value =
+        --        let
+        --            defaultVertexStrength =
+        --                presentUser m
+        --                    |> User.getDefaultVertexProperties
+        --                    |> .strength
+        --        in
+        --        if Set.isEmpty m.selectedVertices then
+        --            defaultVertexStrength
+        --        else
+        --            presentUser m
+        --                |> User.getCommonVertexProperty m.selectedVertices .strength
+        --                |> Maybe.withDefault defaultVertexStrength
+        --    , min = -2000
+        --    , max = 0
+        --    , step = 40
+        --    , onChange = InputVertexStrength
+        --    }
         ]
 
 
