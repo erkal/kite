@@ -2395,10 +2395,10 @@ history m =
         content =
             El.column
                 [ El.width El.fill
-                , El.height (El.px 100)
+                , El.height (El.fill |> El.maximum 105)
                 , El.scrollbarY
                 ]
-                (List.reverse itemList)
+                itemList
     in
     menu
         { headerText = "History"
