@@ -153,7 +153,7 @@ default =
             , inBags = Set.empty
             , fixed = False
             , label = Nothing
-            , labelIsVisible = False
+            , labelIsVisible = True
             }
         , defaultEdgeProperties =
             { label = Nothing

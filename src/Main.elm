@@ -2457,8 +2457,8 @@ selector m =
                     ]
                     (El.text "Type")
                 , El.row
-                    [ El.spacing 1
-                    , El.padding 1
+                    [ El.spacing 3
+                    , El.padding 3
                     , Border.rounded 16
                     , Border.width 1
                     , Border.color Colors.menuBorder
