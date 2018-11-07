@@ -1156,7 +1156,10 @@ update msg m =
                 ( newUser, idOfTheNewBag ) =
                     presentUser m |> User.addBag m.selectedVertices
             in
-            { m | maybeSelectedBag = Just idOfTheNewBag }
+            { m
+                | maybeSelectedBag = Just idOfTheNewBag
+                , bagsIsOn = True
+            }
                 |> nwUsr newUser
                     ("Added bag " ++ bagIdToString idOfTheNewBag)
 
@@ -2395,7 +2398,7 @@ history m =
         content =
             El.column
                 [ El.width El.fill
-                , El.height (El.fill |> El.maximum 105)
+                , El.height (El.px 105)
                 , El.scrollbarY
                 ]
                 itemList
