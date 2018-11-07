@@ -99,14 +99,13 @@ type alias Model =
     , selectedMode : Mode
 
     --
-    , tableOfBagsIsOn : Bool
     , tableOfVerticesIsOn : Bool
     , tableOfEdgesIsOn : Bool
 
     --
     , historyIsOn : Bool
     , selectorIsOn : Bool
-    , bagPreferencesIsOn : Bool
+    , bagsIsOn : Bool
     , vertexPreferencesIsOn : Bool
     , edgePreferencesIsOn : Bool
 
@@ -210,14 +209,13 @@ initialModel user =
     , selectedMode = ListsOfBagsVerticesAndEdges
 
     --
-    , tableOfBagsIsOn = True
     , tableOfVerticesIsOn = True
     , tableOfEdgesIsOn = True
 
     --
     , historyIsOn = True
     , selectorIsOn = True
-    , bagPreferencesIsOn = True
+    , bagsIsOn = True
     , vertexPreferencesIsOn = True
     , edgePreferencesIsOn = True
 
@@ -303,13 +301,12 @@ type Msg
     | MouseDownOnEdge EdgeId
     | MouseUpOnEdge EdgeId
       --
-    | ToggleTableOfBags
     | ToggleTableOfVertices
     | ToggleTableOfEdges
       --
     | ToggleHistory
     | ToggleSelector
-    | ToggleBagPreferences
+    | ToggleBags
     | ToggleVertexPreferences
     | ToggleEdgePreferences
       --
@@ -1116,9 +1113,6 @@ update msg m =
                         ++ String.fromFloat num
                     )
 
-        ToggleTableOfBags ->
-            { m | tableOfBagsIsOn = not m.tableOfBagsIsOn }
-
         ToggleTableOfVertices ->
             { m | tableOfVerticesIsOn = not m.tableOfVerticesIsOn }
 
@@ -1131,8 +1125,8 @@ update msg m =
         ToggleSelector ->
             { m | selectorIsOn = not m.selectorIsOn }
 
-        ToggleBagPreferences ->
-            { m | bagPreferencesIsOn = not m.bagPreferencesIsOn }
+        ToggleBags ->
+            { m | bagsIsOn = not m.bagsIsOn }
 
         ToggleVertexPreferences ->
             { m | vertexPreferencesIsOn = not m.vertexPreferencesIsOn }
@@ -1695,133 +1689,21 @@ pointToString p =
         ++ ")"
 
 
+columnHeader : String -> Element Msg
+columnHeader headerText =
+    El.el
+        [ El.paddingXY 2 6
+        , Border.widthEach { top = 0, right = 0, bottom = 2, left = 1 }
+        , Border.color Colors.menuBorder
+        , Font.medium
+        , Font.center
+        ]
+        (El.text headerText)
+
+
 leftBarContentForListsOfBagsVerticesAndEdges : Model -> Element Msg
 leftBarContentForListsOfBagsVerticesAndEdges m =
     let
-        header headerText =
-            El.el
-                [ El.paddingXY 2 6
-                , Border.widthEach { top = 0, right = 0, bottom = 2, left = 1 }
-                , Border.color Colors.menuBorder
-                , Font.medium
-                , Font.center
-                ]
-                (El.text headerText)
-
-        tableOfBags =
-            let
-                cell bagId content =
-                    El.el
-                        [ El.padding 2
-                        , El.width El.fill
-                        , El.height El.fill
-                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
-                        , Border.color Colors.menuBorder
-                        , Background.color <|
-                            if Just bagId == m.maybeSelectedBag then
-                                Colors.selectedItem
-
-                            else
-                                Colors.menuBackground
-                        , Events.onMouseEnter (MouseOverBagItem bagId)
-                        , Events.onMouseLeave (MouseOutBagItem bagId)
-                        , Events.onClick (ClickOnBagItem bagId)
-                        , El.scrollbarX
-                        , Font.center
-                        ]
-                        content
-            in
-            El.table
-                [ El.width El.fill
-                , El.height (El.fill |> El.maximum 105)
-                , El.scrollbarY
-                ]
-                { data = User.getBags (presentUser m)
-                , columns =
-                    [ { header = header "id"
-                      , width = El.px 20
-                      , view =
-                            \{ bagId } ->
-                                cell bagId <|
-                                    El.text (String.fromInt bagId)
-                      }
-                    , { header = header "Label"
-                      , width = El.fill
-                      , view =
-                            \{ bagId, bagProperties } ->
-                                cell bagId <|
-                                    case bagProperties.label of
-                                        Just l ->
-                                            El.text l
-
-                                        Nothing ->
-                                            El.el
-                                                [ El.alpha 0.2
-                                                , El.width El.fill
-                                                ]
-                                                (El.text "no label")
-                      }
-                    , { header = header "Elements"
-                      , width = El.px 60
-                      , view =
-                            \{ bagId, bagProperties } ->
-                                cell bagId <|
-                                    El.text
-                                        (presentUser m
-                                            |> User.getVerticesInBag bagId
-                                            |> Set.toList
-                                            |> vertexIdsToString
-                                        )
-                      }
-                    , { header = header "CH"
-                      , width = El.px 20
-                      , view =
-                            \{ bagId, bagProperties } ->
-                                cell bagId <|
-                                    El.el [ El.centerX ] <|
-                                        if bagProperties.hasConvexHull then
-                                            El.html (Icons.draw10px Icons.icons.checkMark)
-
-                                        else
-                                            El.none
-                      }
-                    , { header = header "Pull Center"
-                      , width = El.fill
-                      , view =
-                            \{ bagId, bagProperties } ->
-                                cell bagId <|
-                                    El.text
-                                        (pointToString bagProperties.pullCenter)
-                      }
-                    , { header = header "Col"
-                      , width = El.px 20
-                      , view =
-                            \{ bagId, bagProperties } ->
-                                cell bagId <|
-                                    El.html <|
-                                        S.svg
-                                            [ SA.width "16"
-                                            , SA.height "10"
-                                            ]
-                                            [ S.circle
-                                                [ SA.r "5"
-                                                , SA.cx "8"
-                                                , SA.cy "5"
-                                                , SA.fill (Colors.toString bagProperties.color)
-                                                ]
-                                                []
-                                            ]
-                      }
-                    , { header = header "Str"
-                      , width = El.px 30
-                      , view =
-                            \{ bagId, bagProperties } ->
-                                cell bagId <|
-                                    El.text (String.fromFloat bagProperties.pullStrength)
-                      }
-                    ]
-                }
-
         tableOfVertices =
             let
                 cell id content =
@@ -1845,14 +1727,14 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 ]
                 { data = User.getVertices (presentUser m)
                 , columns =
-                    [ { header = header "id"
+                    [ { header = columnHeader "id"
                       , width = El.px 20
                       , view =
                             \{ id } ->
                                 cell id <|
                                     El.text (String.fromInt id)
                       }
-                    , { header = header "Label"
+                    , { header = columnHeader "Label"
                       , width = El.fill
                       , view =
                             \{ id, label } ->
@@ -1868,7 +1750,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                                 ]
                                                 (El.text "no label")
                       }
-                    , { header = header "Fix"
+                    , { header = columnHeader "Fix"
                       , width = El.px 20
                       , view =
                             \{ id, label } ->
@@ -1881,7 +1763,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                         else
                                             El.none
                       }
-                    , { header = header "X"
+                    , { header = columnHeader "X"
                       , width = El.px 26
                       , view =
                             \{ id, label } ->
@@ -1892,7 +1774,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                     |> El.text
                                     |> cell id
                       }
-                    , { header = header "Y"
+                    , { header = columnHeader "Y"
                       , width = El.px 26
                       , view =
                             \{ id, label } ->
@@ -1903,14 +1785,14 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                     |> El.text
                                     |> cell id
                       }
-                    , { header = header "Str"
+                    , { header = columnHeader "Str"
                       , width = El.px 30
                       , view =
                             \{ id, label } ->
                                 cell id <|
                                     El.text (String.fromFloat label.strength)
                       }
-                    , { header = header "Col"
+                    , { header = columnHeader "Col"
                       , width = El.px 20
                       , view =
                             \{ id, label } ->
@@ -1929,14 +1811,14 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                                 []
                                             ]
                       }
-                    , { header = header "Rad"
+                    , { header = columnHeader "Rad"
                       , width = El.px 24
                       , view =
                             \{ id, label } ->
                                 cell id <|
                                     El.text (String.fromFloat label.radius)
                       }
-                    , { header = header " "
+                    , { header = columnHeader " "
                       , width = El.px 8
                       , view =
                             \{ id } ->
@@ -1953,7 +1835,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                         ]
                                         El.none
                       }
-                    , { header = header " "
+                    , { header = columnHeader " "
                       , width = El.px 8
                       , view =
                             \{ id } ->
@@ -2014,24 +1896,6 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
     in
     El.column [ El.width El.fill ]
         [ menu
-            { headerText = "Bags (TODO Put this to the right)"
-            , isOn = m.tableOfBagsIsOn
-            , headerButtons =
-                [ leftBarHeaderButton
-                    { title = "Add New Bag"
-                    , onClickMsg = ClickOnBagPlus
-                    , iconPath = Icons.icons.plus
-                    }
-                , leftBarHeaderButton
-                    { title = "Remove Selected Bag"
-                    , onClickMsg = ClickOnBagTrash
-                    , iconPath = Icons.icons.trash
-                    }
-                ]
-            , toggleMsg = ToggleTableOfBags
-            , contentItems = [ tableOfBags ]
-            }
-        , menu
             { headerText = "Vertices"
             , isOn = m.tableOfVerticesIsOn
             , headerButtons =
@@ -2285,15 +2149,6 @@ topBar m =
 
 rightBar : Model -> Element Msg
 rightBar m =
-    let
-        maybeBagPreferences =
-            case m.maybeSelectedBag of
-                Just bagId ->
-                    bagPreferences bagId m
-
-                Nothing ->
-                    El.none
-    in
     El.column
         [ Background.color Colors.menuBackground
         , Border.widthEach { bottom = 0, left = 1, right = 0, top = 0 }
@@ -2303,7 +2158,7 @@ rightBar m =
         ]
         [ history m
         , selector m
-        , maybeBagPreferences
+        , bags m
         , vertexPreferences m
         , edgePreferences m
         ]
@@ -2623,102 +2478,235 @@ selector m =
         }
 
 
-bagPreferences : BagId -> Model -> Element Msg
-bagPreferences idOfTheSelectedBag m =
-    menu
-        { headerText = "Selected Bag"
-        , isOn = m.bagPreferencesIsOn
-        , headerButtons = []
-        , toggleMsg = ToggleBagPreferences
-        , contentItems =
-            [ --    El.row []
-              --    [ textInput
-              --        { labelText = "Label"
-              --        , labelWidth = 80
-              --        , inputWidth = 60
-              --        , text = {- TODO -} ""
-              --        , onChange = {- TODO -} InputVertexLabel
-              --        }
-              --    , checkbox
-              --        { labelText = "Show Label"
-              --        , labelWidth = 70
-              --        , state = {- TODO -} Nothing
-              --        , onChange = {- TODO -} InputVertexLabelVisibility
-              --        }
-              --    ]
-              --,
-              El.row []
-                [ --colorPicker
-                  --        { labelText = "Color"
-                  --        , labelWidth = 80
-                  --        , isExpanded = m.vertexColorPickerIsExpanded
-                  --        , selectedColor =
-                  --            if Set.isEmpty m.selectedVertices then
-                  --                Just
-                  --                    (presentUser m
-                  --                        |> User.getDefaultVertexProperties
-                  --                        |> .color
-                  --                    )
-                  --            else
-                  --                presentUser m
-                  --                    |> User.getCommonVertexProperty m.selectedVertices .color
-                  --        , msgOnColorClick = InputVertexColor
-                  --        , msgOnExpanderClick = ClickOnVertexColorPicker
-                  --        , msgOnLeave = MouseLeaveVertexColorPicker
-                  --        }
-                  --,
-                  checkbox
-                    { labelText = "Convex Hull"
-                    , labelWidth = 80
-                    , state =
-                        presentUser m
-                            |> User.getBagProperties idOfTheSelectedBag
-                            |> Maybe.map .hasConvexHull
-                    , onChange = InputBagConvexHull idOfTheSelectedBag
-                    }
-                ]
+bags : Model -> Element Msg
+bags m =
+    let
+        tableOfBags =
+            let
+                cell bagId content =
+                    El.el
+                        [ El.padding 2
+                        , El.width El.fill
+                        , El.height El.fill
+                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
+                        , Border.color Colors.menuBorder
+                        , Background.color <|
+                            if Just bagId == m.maybeSelectedBag then
+                                Colors.selectedItem
 
-            --, El.row []
-            --    [ checkbox
-            --        { labelText = "Pull Center"
-            --        , labelWidth = 80
-            --        , state = {- TODO -} Nothing
-            --        , onChange = {- TODO -} InputVertexLabelVisibility
-            --        }
-            --    , El.el [ El.paddingXY 20 0 ] <|
-            --        El.text <|
-            --            case
-            --                presentUser m
-            --                    |> User.getBagProperties idOfTheSelectedBag
-            --                    |> Maybe.map .pullCenter
-            --            of
-            --                Just pC ->
-            --                    pC |> pointToString
-            --                Nothing ->
-            --                    ""
-            --    ]
-            --, sliderInput
-            --    { labelText = "Pull Strength"
-            --    , labelWidth = 80
-            --    , value =
-            --        let
-            --            defaultVertexStrength =
-            --                presentUser m
-            --                    |> User.getDefaultVertexProperties
-            --                    |> .strength
-            --        in
-            --        if Set.isEmpty m.selectedVertices then
-            --            defaultVertexStrength
-            --        else
-            --            presentUser m
-            --                |> User.getCommonVertexProperty m.selectedVertices .strength
-            --                |> Maybe.withDefault defaultVertexStrength
-            --    , min = -2000
-            --    , max = 0
-            --    , step = 40
-            --    , onChange = InputVertexStrength
-            --    }
+                            else
+                                Colors.menuBackground
+                        , Events.onMouseEnter (MouseOverBagItem bagId)
+                        , Events.onMouseLeave (MouseOutBagItem bagId)
+                        , Events.onClick (ClickOnBagItem bagId)
+                        , El.scrollbarX
+                        , Font.center
+                        ]
+                        content
+            in
+            El.table
+                [ El.width El.fill
+                , El.height (El.fill |> El.maximum 105)
+                , El.scrollbarY
+                ]
+                { data = User.getBags (presentUser m)
+                , columns =
+                    [ { header = columnHeader "id"
+                      , width = El.px 20
+                      , view =
+                            \{ bagId } ->
+                                cell bagId <|
+                                    El.text (String.fromInt bagId)
+                      }
+                    , { header = columnHeader "Label"
+                      , width = El.fill
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    case bagProperties.label of
+                                        Just l ->
+                                            El.text l
+
+                                        Nothing ->
+                                            El.el
+                                                [ El.alpha 0.2
+                                                , El.width El.fill
+                                                ]
+                                                (El.text "no label")
+                      }
+                    , { header = columnHeader "Elements"
+                      , width = El.px 60
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.text
+                                        (presentUser m
+                                            |> User.getVerticesInBag bagId
+                                            |> Set.toList
+                                            |> vertexIdsToString
+                                        )
+                      }
+                    , { header = columnHeader "CH"
+                      , width = El.px 20
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.el [ El.centerX ] <|
+                                        if bagProperties.hasConvexHull then
+                                            El.html (Icons.draw10px Icons.icons.checkMark)
+
+                                        else
+                                            El.none
+                      }
+                    , { header = columnHeader "Pull Center"
+                      , width = El.fill
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.text
+                                        (pointToString bagProperties.pullCenter)
+                      }
+                    , { header = columnHeader "Col"
+                      , width = El.px 20
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.html <|
+                                        S.svg
+                                            [ SA.width "16"
+                                            , SA.height "10"
+                                            ]
+                                            [ S.circle
+                                                [ SA.r "5"
+                                                , SA.cx "8"
+                                                , SA.cy "5"
+                                                , SA.fill (Colors.toString bagProperties.color)
+                                                ]
+                                                []
+                                            ]
+                      }
+                    , { header = columnHeader "Str"
+                      , width = El.px 30
+                      , view =
+                            \{ bagId, bagProperties } ->
+                                cell bagId <|
+                                    El.text (String.fromFloat bagProperties.pullStrength)
+                      }
+                    ]
+                }
+
+        maybeBagPreferences =
+            case m.maybeSelectedBag of
+                Nothing ->
+                    []
+
+                Just idOfTheSelectedBag ->
+                    [ --    El.row []
+                      --    [ textInput
+                      --        { labelText = "Label"
+                      --        , labelWidth = 80
+                      --        , inputWidth = 60
+                      --        , text = {- TODO -} ""
+                      --        , onChange = {- TODO -} InputVertexLabel
+                      --        }
+                      --    , checkbox
+                      --        { labelText = "Show Label"
+                      --        , labelWidth = 70
+                      --        , state = {- TODO -} Nothing
+                      --        , onChange = {- TODO -} InputVertexLabelVisibility
+                      --        }
+                      --    ]
+                      --,
+                      El.row []
+                        [ --colorPicker
+                          --        { labelText = "Color"
+                          --        , labelWidth = 80
+                          --        , isExpanded = m.vertexColorPickerIsExpanded
+                          --        , selectedColor =
+                          --            if Set.isEmpty m.selectedVertices then
+                          --                Just
+                          --                    (presentUser m
+                          --                        |> User.getDefaultVertexProperties
+                          --                        |> .color
+                          --                    )
+                          --            else
+                          --                presentUser m
+                          --                    |> User.getCommonVertexProperty m.selectedVertices .color
+                          --        , msgOnColorClick = InputVertexColor
+                          --        , msgOnExpanderClick = ClickOnVertexColorPicker
+                          --        , msgOnLeave = MouseLeaveVertexColorPicker
+                          --        }
+                          --,
+                          checkbox
+                            { labelText = "Convex Hull"
+                            , labelWidth = 80
+                            , state =
+                                presentUser m
+                                    |> User.getBagProperties idOfTheSelectedBag
+                                    |> Maybe.map .hasConvexHull
+                            , onChange = InputBagConvexHull idOfTheSelectedBag
+                            }
+                        ]
+
+                    --, El.row []
+                    --    [ checkbox
+                    --        { labelText = "Pull Center"
+                    --        , labelWidth = 80
+                    --        , state = {- TODO -} Nothing
+                    --        , onChange = {- TODO -} InputVertexLabelVisibility
+                    --        }
+                    --    , El.el [ El.paddingXY 20 0 ] <|
+                    --        El.text <|
+                    --            case
+                    --                presentUser m
+                    --                    |> User.getBagProperties idOfTheSelectedBag
+                    --                    |> Maybe.map .pullCenter
+                    --            of
+                    --                Just pC ->
+                    --                    pC |> pointToString
+                    --                Nothing ->
+                    --                    ""
+                    --    ]
+                    --, sliderInput
+                    --    { labelText = "Pull Strength"
+                    --    , labelWidth = 80
+                    --    , value =
+                    --        let
+                    --            defaultVertexStrength =
+                    --                presentUser m
+                    --                    |> User.getDefaultVertexProperties
+                    --                    |> .strength
+                    --        in
+                    --        if Set.isEmpty m.selectedVertices then
+                    --            defaultVertexStrength
+                    --        else
+                    --            presentUser m
+                    --                |> User.getCommonVertexProperty m.selectedVertices .strength
+                    --                |> Maybe.withDefault defaultVertexStrength
+                    --    , min = -2000
+                    --    , max = 0
+                    --    , step = 40
+                    --    , onChange = InputVertexStrength
+                    --    }
+                    ]
+    in
+    menu
+        { headerText = "Bags"
+        , isOn = m.bagsIsOn
+        , headerButtons =
+            [ leftBarHeaderButton
+                { title = "Add New Bag"
+                , onClickMsg = ClickOnBagPlus
+                , iconPath = Icons.icons.plus
+                }
+            , leftBarHeaderButton
+                { title = "Remove Selected Bag"
+                , onClickMsg = ClickOnBagTrash
+                , iconPath = Icons.icons.trash
+                }
             ]
+        , toggleMsg = ToggleBags
+        , contentItems = tableOfBags :: maybeBagPreferences
         }
 
 
