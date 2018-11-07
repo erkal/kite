@@ -1455,9 +1455,14 @@ debugView m =
             case ( m.timeList, List.reverse m.timeList ) of
                 ( newest :: _, oldest :: _ ) ->
                     let
+                        delta =
+                            max 1
+                                (Time.posixToMillis newest
+                                    - Time.posixToMillis oldest
+                                )
+
                         averageFrameDuration =
-                            toFloat (Time.posixToMillis newest - Time.posixToMillis oldest)
-                                / toFloat (List.length m.timeList)
+                            toFloat delta / toFloat (List.length m.timeList)
                     in
                     1000 / averageFrameDuration
 
