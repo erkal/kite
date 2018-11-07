@@ -97,9 +97,18 @@ type alias Model =
 
     --
     , selectedMode : Mode
+
+    --
     , tableOfBagsIsOn : Bool
     , tableOfVerticesIsOn : Bool
     , tableOfEdgesIsOn : Bool
+
+    --
+    , historyIsOn : Bool
+    , selectorIsOn : Bool
+    , bagPreferencesIsOn : Bool
+    , vertexPreferencesIsOn : Bool
+    , edgePreferencesIsOn : Bool
 
     --
     , selectedTool : Tool
@@ -199,9 +208,18 @@ initialModel user =
 
     --
     , selectedMode = ListsOfBagsVerticesAndEdges
+
+    --
     , tableOfBagsIsOn = True
     , tableOfVerticesIsOn = True
     , tableOfEdgesIsOn = True
+
+    --
+    , historyIsOn = True
+    , selectorIsOn = True
+    , bagPreferencesIsOn = True
+    , vertexPreferencesIsOn = True
+    , edgePreferencesIsOn = True
 
     --
     , selectedTool = Draw DrawIdle
@@ -288,6 +306,12 @@ type Msg
     | ToggleTableOfBags
     | ToggleTableOfVertices
     | ToggleTableOfEdges
+      --
+    | ToggleHistory
+    | ToggleSelector
+    | ToggleBagPreferences
+    | ToggleVertexPreferences
+    | ToggleEdgePreferences
       --
     | ClickOnBagPlus
     | ClickOnBagTrash
@@ -1101,6 +1125,21 @@ update msg m =
         ToggleTableOfEdges ->
             { m | tableOfEdgesIsOn = not m.tableOfEdgesIsOn }
 
+        ToggleHistory ->
+            { m | historyIsOn = not m.historyIsOn }
+
+        ToggleSelector ->
+            { m | selectorIsOn = not m.selectorIsOn }
+
+        ToggleBagPreferences ->
+            { m | bagPreferencesIsOn = not m.bagPreferencesIsOn }
+
+        ToggleVertexPreferences ->
+            { m | vertexPreferencesIsOn = not m.vertexPreferencesIsOn }
+
+        ToggleEdgePreferences ->
+            { m | edgePreferencesIsOn = not m.edgePreferencesIsOn }
+
         ClickOnVertexTrash ->
             let
                 newUser =
@@ -1560,15 +1599,15 @@ leftBar m =
                 leftBarContentForGamesOnGraphs m
 
 
-leftBarMenu :
+menu :
     { headerText : String
     , isOn : Bool
     , headerButtons : List (Element Msg)
     , toggleMsg : Msg
-    , content : Element Msg
+    , contentItems : List (Element Msg)
     }
     -> Element Msg
-leftBarMenu { headerText, isOn, headerButtons, toggleMsg, content } =
+menu { headerText, isOn, headerButtons, toggleMsg, contentItems } =
     let
         onOffButton =
             El.el
@@ -1587,13 +1626,26 @@ leftBarMenu { headerText, isOn, headerButtons, toggleMsg, content } =
             El.row
                 [ Background.color Colors.leftBarHeader
                 , El.width El.fill
-                , El.padding 0
+                , El.padding 4
+                , El.spacing 4
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
                 , Font.bold
                 ]
             <|
                 (onOffButton :: El.text headerText :: headerButtons)
+
+        content =
+            if isOn then
+                El.column
+                    [ El.width El.fill
+                    , El.paddingXY 0 4
+                    , El.spacing 4
+                    ]
+                    contentItems
+
+            else
+                El.none
     in
     El.column [ El.width El.fill ]
         [ header, content ]
@@ -1615,17 +1667,17 @@ leftBarHeaderButton { title, onClickMsg, iconPath } =
         , El.mouseOver [ Background.color Colors.mouseOveredItem ]
         , El.pointer
         ]
-        (El.html (Icons.draw24px iconPath))
+        (El.html (Icons.draw14px iconPath))
 
 
 leftBarContentForPreferences : Model -> Element Msg
 leftBarContentForPreferences m =
-    leftBarMenu
+    menu
         { headerText = "Preferences (coming soon)"
         , isOn = True
         , headerButtons = []
         , toggleMsg = NoOp
-        , content = El.none
+        , contentItems = []
         }
 
 
@@ -1676,7 +1728,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             in
             El.table
                 [ El.width El.fill
-                , El.paddingEach { top = 4, right = 0, bottom = 4, left = 0 }
+                , El.height (El.fill |> El.maximum 105)
+                , El.scrollbarY
                 ]
                 { data = User.getBags (presentUser m)
                 , columns =
@@ -1782,7 +1835,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             in
             El.table
                 [ El.width El.fill
-                , El.paddingEach { top = 4, right = 0, bottom = 4, left = 0 }
+                , El.height (El.fill |> El.maximum 300)
+                , El.scrollbarY
                 ]
                 { data = User.getVertices (presentUser m)
                 , columns =
@@ -1954,7 +2008,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             )
     in
     El.column [ El.width El.fill ]
-        [ leftBarMenu
+        [ menu
             { headerText = "Bags (TODO Put this to the right)"
             , isOn = m.tableOfBagsIsOn
             , headerButtons =
@@ -1970,14 +2024,9 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     }
                 ]
             , toggleMsg = ToggleTableOfBags
-            , content =
-                if m.tableOfBagsIsOn then
-                    tableOfBags
-
-                else
-                    El.none
+            , contentItems = [ tableOfBags ]
             }
-        , leftBarMenu
+        , menu
             { headerText = "Vertices"
             , isOn = m.tableOfVerticesIsOn
             , headerButtons =
@@ -1988,14 +2037,9 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     }
                 ]
             , toggleMsg = ToggleTableOfVertices
-            , content =
-                if m.tableOfVerticesIsOn then
-                    tableOfVertices
-
-                else
-                    El.none
+            , contentItems = [ tableOfVertices ]
             }
-        , leftBarMenu
+        , menu
             { headerText = "Edges"
             , isOn = m.tableOfEdgesIsOn
             , headerButtons =
@@ -2006,68 +2050,63 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     }
                 ]
             , toggleMsg = ToggleTableOfEdges
-            , content =
-                if m.tableOfEdgesIsOn then
-                    listOfEdges
-
-                else
-                    El.none
+            , contentItems = [ listOfEdges ]
             }
         ]
 
 
 leftBarContentForGraphOperations : Model -> Element Msg
 leftBarContentForGraphOperations m =
-    leftBarMenu
+    menu
         { headerText = "Graph Operations (coming soon)"
         , isOn = True
         , headerButtons = []
         , toggleMsg = NoOp
-        , content = El.none
+        , contentItems = []
         }
 
 
 leftBarContentForGraphQueries : Model -> Element Msg
 leftBarContentForGraphQueries m =
-    leftBarMenu
+    menu
         { headerText = "Graph Queries (coming soon)"
         , isOn = True
         , headerButtons = []
         , toggleMsg = NoOp
-        , content = El.none
+        , contentItems = []
         }
 
 
 leftBarContentForGraphGenerators : Model -> Element Msg
 leftBarContentForGraphGenerators m =
-    leftBarMenu
+    menu
         { headerText = "Graph Generators (coming soon)"
         , isOn = True
         , headerButtons = []
         , toggleMsg = NoOp
-        , content = El.none
+        , contentItems = []
         }
 
 
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
 leftBarContentForAlgorithmVisualizations m =
-    leftBarMenu
+    menu
         { headerText = "Algorithm Visualizations (coming soon)"
         , isOn = True
         , headerButtons = []
         , toggleMsg = NoOp
-        , content = El.none
+        , contentItems = []
         }
 
 
 leftBarContentForGamesOnGraphs : Model -> Element Msg
 leftBarContentForGamesOnGraphs m =
-    leftBarMenu
+    menu
         { headerText = "Games on Graphs (coming soon)"
         , isOn = True
         , headerButtons = []
         , toggleMsg = NoOp
-        , content = El.none
+        , contentItems = []
         }
 
 
@@ -2262,36 +2301,6 @@ rightBar m =
         , maybeBagPreferences
         , vertexPreferences m
         , edgePreferences m
-        ]
-
-
-subMenu : String -> List (Element Msg) -> Element Msg
-subMenu header contentLines =
-    let
-        headerBar =
-            El.el
-                [ El.width El.fill
-                , El.paddingXY 12 6
-                , Background.color Colors.rightBarHeader
-                , Font.bold
-                ]
-                (El.text header)
-
-        content =
-            El.column
-                [ El.width El.fill
-                , El.paddingXY 0 8
-                , El.spacing 4
-                ]
-                contentLines
-    in
-    El.column
-        [ El.width El.fill
-        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        , Border.color Colors.menuBorder
-        ]
-        [ headerBar
-        , content
         ]
 
 
@@ -2522,15 +2531,22 @@ history m =
             m.userUL
                 |> UL.toList
                 |> List.indexedMap item
+
+        content =
+            El.column
+                [ El.width El.fill
+                , El.height (El.px 100)
+                , El.scrollbarY
+                ]
+                (List.reverse itemList)
     in
-    subMenu "History"
-        [ El.column
-            [ El.width El.fill
-            , El.height (El.px 100)
-            , El.scrollbarY
-            ]
-            (List.reverse itemList)
-        ]
+    menu
+        { headerText = "History"
+        , isOn = m.historyIsOn
+        , headerButtons = []
+        , toggleMsg = ToggleHistory
+        , contentItems = [ content ]
+        }
 
 
 selector : Model -> Element Msg
@@ -2571,121 +2587,134 @@ selector m =
                 , El.mouseOver [ Background.color Colors.mouseOveredItem ]
                 ]
                 (El.html (Icons.draw24px Icons.icons.selectionLine))
+
+        content =
+            El.row [ El.spacing 8 ]
+                [ El.el
+                    [ El.centerY
+                    , El.width (El.px 60)
+                    , Font.alignRight
+                    ]
+                    (El.text "Type")
+                , El.row
+                    [ El.spacing 1
+                    , El.padding 1
+                    , Border.rounded 16
+                    , Border.width 1
+                    , Border.color Colors.menuBorder
+                    , El.mouseOver [ Border.color Colors.menuBorderOnMouseOver ]
+                    ]
+                    [ rectSelector
+                    , lineSelector
+                    ]
+                ]
     in
-    subMenu "Selector"
-        [ El.row [ El.spacing 8 ]
-            [ El.el
-                [ El.centerY
-                , El.width (El.px 60)
-                , Font.alignRight
-                ]
-                (El.text "Type")
-            , El.row
-                [ El.spacing 1
-                , El.padding 1
-                , Border.rounded 16
-                , Border.width 1
-                , Border.color Colors.menuBorder
-                , El.mouseOver [ Border.color Colors.menuBorderOnMouseOver ]
-                ]
-                [ rectSelector
-                , lineSelector
-                ]
-            ]
-        ]
+    menu
+        { headerText = "Selector"
+        , isOn = m.selectorIsOn
+        , headerButtons = []
+        , toggleMsg = ToggleSelector
+        , contentItems = [ content ]
+        }
 
 
 bagPreferences : BagId -> Model -> Element Msg
 bagPreferences idOfTheSelectedBag m =
-    subMenu "Selected Bag"
-        [ --    El.row []
-          --    [ textInput
-          --        { labelText = "Label"
-          --        , labelWidth = 80
-          --        , inputWidth = 60
-          --        , text = {- TODO -} ""
-          --        , onChange = {- TODO -} InputVertexLabel
-          --        }
-          --    , checkbox
-          --        { labelText = "Show Label"
-          --        , labelWidth = 70
-          --        , state = {- TODO -} Nothing
-          --        , onChange = {- TODO -} InputVertexLabelVisibility
-          --        }
-          --    ]
-          --,
-          El.row []
-            [ --colorPicker
-              --        { labelText = "Color"
+    menu
+        { headerText = "Selected Bag"
+        , isOn = m.bagPreferencesIsOn
+        , headerButtons = []
+        , toggleMsg = ToggleBagPreferences
+        , contentItems =
+            [ --    El.row []
+              --    [ textInput
+              --        { labelText = "Label"
               --        , labelWidth = 80
-              --        , isExpanded = m.vertexColorPickerIsExpanded
-              --        , selectedColor =
-              --            if Set.isEmpty m.selectedVertices then
-              --                Just
-              --                    (presentUser m
-              --                        |> User.getDefaultVertexProperties
-              --                        |> .color
-              --                    )
-              --            else
-              --                presentUser m
-              --                    |> User.getCommonVertexProperty m.selectedVertices .color
-              --        , msgOnColorClick = InputVertexColor
-              --        , msgOnExpanderClick = ClickOnVertexColorPicker
-              --        , msgOnLeave = MouseLeaveVertexColorPicker
+              --        , inputWidth = 60
+              --        , text = {- TODO -} ""
+              --        , onChange = {- TODO -} InputVertexLabel
               --        }
+              --    , checkbox
+              --        { labelText = "Show Label"
+              --        , labelWidth = 70
+              --        , state = {- TODO -} Nothing
+              --        , onChange = {- TODO -} InputVertexLabelVisibility
+              --        }
+              --    ]
               --,
-              checkbox
-                { labelText = "Convex Hull"
-                , labelWidth = 80
-                , state =
-                    presentUser m
-                        |> User.getBagProperties idOfTheSelectedBag
-                        |> Maybe.map .hasConvexHull
-                , onChange = InputBagConvexHull idOfTheSelectedBag
-                }
-            ]
+              El.row []
+                [ --colorPicker
+                  --        { labelText = "Color"
+                  --        , labelWidth = 80
+                  --        , isExpanded = m.vertexColorPickerIsExpanded
+                  --        , selectedColor =
+                  --            if Set.isEmpty m.selectedVertices then
+                  --                Just
+                  --                    (presentUser m
+                  --                        |> User.getDefaultVertexProperties
+                  --                        |> .color
+                  --                    )
+                  --            else
+                  --                presentUser m
+                  --                    |> User.getCommonVertexProperty m.selectedVertices .color
+                  --        , msgOnColorClick = InputVertexColor
+                  --        , msgOnExpanderClick = ClickOnVertexColorPicker
+                  --        , msgOnLeave = MouseLeaveVertexColorPicker
+                  --        }
+                  --,
+                  checkbox
+                    { labelText = "Convex Hull"
+                    , labelWidth = 80
+                    , state =
+                        presentUser m
+                            |> User.getBagProperties idOfTheSelectedBag
+                            |> Maybe.map .hasConvexHull
+                    , onChange = InputBagConvexHull idOfTheSelectedBag
+                    }
+                ]
 
-        --, El.row []
-        --    [ checkbox
-        --        { labelText = "Pull Center"
-        --        , labelWidth = 80
-        --        , state = {- TODO -} Nothing
-        --        , onChange = {- TODO -} InputVertexLabelVisibility
-        --        }
-        --    , El.el [ El.paddingXY 20 0 ] <|
-        --        El.text <|
-        --            case
-        --                presentUser m
-        --                    |> User.getBagProperties idOfTheSelectedBag
-        --                    |> Maybe.map .pullCenter
-        --            of
-        --                Just pC ->
-        --                    pC |> pointToString
-        --                Nothing ->
-        --                    ""
-        --    ]
-        --, sliderInput
-        --    { labelText = "Pull Strength"
-        --    , labelWidth = 80
-        --    , value =
-        --        let
-        --            defaultVertexStrength =
-        --                presentUser m
-        --                    |> User.getDefaultVertexProperties
-        --                    |> .strength
-        --        in
-        --        if Set.isEmpty m.selectedVertices then
-        --            defaultVertexStrength
-        --        else
-        --            presentUser m
-        --                |> User.getCommonVertexProperty m.selectedVertices .strength
-        --                |> Maybe.withDefault defaultVertexStrength
-        --    , min = -2000
-        --    , max = 0
-        --    , step = 40
-        --    , onChange = InputVertexStrength
-        --    }
-        ]
+            --, El.row []
+            --    [ checkbox
+            --        { labelText = "Pull Center"
+            --        , labelWidth = 80
+            --        , state = {- TODO -} Nothing
+            --        , onChange = {- TODO -} InputVertexLabelVisibility
+            --        }
+            --    , El.el [ El.paddingXY 20 0 ] <|
+            --        El.text <|
+            --            case
+            --                presentUser m
+            --                    |> User.getBagProperties idOfTheSelectedBag
+            --                    |> Maybe.map .pullCenter
+            --            of
+            --                Just pC ->
+            --                    pC |> pointToString
+            --                Nothing ->
+            --                    ""
+            --    ]
+            --, sliderInput
+            --    { labelText = "Pull Strength"
+            --    , labelWidth = 80
+            --    , value =
+            --        let
+            --            defaultVertexStrength =
+            --                presentUser m
+            --                    |> User.getDefaultVertexProperties
+            --                    |> .strength
+            --        in
+            --        if Set.isEmpty m.selectedVertices then
+            --            defaultVertexStrength
+            --        else
+            --            presentUser m
+            --                |> User.getCommonVertexProperty m.selectedVertices .strength
+            --                |> Maybe.withDefault defaultVertexStrength
+            --    , min = -2000
+            --    , max = 0
+            --    , step = 40
+            --    , onChange = InputVertexStrength
+            --    }
+            ]
+        }
 
 
 vertexPreferences : Model -> Element Msg
@@ -2702,153 +2731,159 @@ vertexPreferences m =
                 _ ->
                     "Selected Vertices"
     in
-    subMenu headerForVertexProperties
-        [ El.row []
-            [ textInput
-                { labelText = "Label"
+    menu
+        { headerText = headerForVertexProperties
+        , isOn = m.vertexPreferencesIsOn
+        , headerButtons = []
+        , toggleMsg = ToggleVertexPreferences
+        , contentItems =
+            [ El.row []
+                [ textInput
+                    { labelText = "Label"
+                    , labelWidth = 80
+                    , inputWidth = 60
+                    , text =
+                        if Set.isEmpty m.selectedVertices then
+                            presentUser m
+                                |> User.getDefaultVertexProperties
+                                |> .label
+                                |> Maybe.withDefault ""
+
+                        else
+                            case presentUser m |> User.getCommonVertexProperty m.selectedVertices .label of
+                                Just (Just l) ->
+                                    l
+
+                                _ ->
+                                    ""
+                    , onChange = InputVertexLabel
+                    }
+                , checkbox
+                    { labelText = "Show Label"
+                    , labelWidth = 70
+                    , state =
+                        if Set.isEmpty m.selectedVertices then
+                            Just
+                                (presentUser m
+                                    |> User.getDefaultVertexProperties
+                                    |> .labelIsVisible
+                                )
+
+                        else
+                            presentUser m
+                                |> User.getCommonVertexProperty m.selectedVertices .labelIsVisible
+                    , onChange =
+                        InputVertexLabelVisibility
+                    }
+                ]
+            , El.row []
+                [ checkbox
+                    { labelText = "Fixed"
+                    , labelWidth = 80
+                    , state =
+                        if Set.isEmpty m.selectedVertices then
+                            Just
+                                (presentUser m
+                                    |> User.getDefaultVertexProperties
+                                    |> .fixed
+                                )
+
+                        else
+                            presentUser m
+                                |> User.getCommonVertexProperty m.selectedVertices .fixed
+                    , onChange = InputVertexFixed
+                    }
+                , textInput
+                    { labelText = "X"
+                    , labelWidth = 20
+                    , inputWidth = 40
+                    , text =
+                        presentUser m
+                            |> User.getCentroid m.selectedVertices
+                            |> Maybe.map Point2d.xCoordinate
+                            |> Maybe.map round
+                            |> Maybe.map String.fromInt
+                            |> Maybe.withDefault "?"
+                    , onChange = InputVertexX
+                    }
+                , textInput
+                    { labelText = "Y"
+                    , labelWidth = 20
+                    , inputWidth = 40
+                    , text =
+                        presentUser m
+                            |> User.getCentroid m.selectedVertices
+                            |> Maybe.map Point2d.yCoordinate
+                            |> Maybe.map round
+                            |> Maybe.map String.fromInt
+                            |> Maybe.withDefault "?"
+                    , onChange = InputVertexY
+                    }
+                ]
+            , sliderInput
+                { labelText = "Strength"
                 , labelWidth = 80
-                , inputWidth = 60
-                , text =
+                , value =
+                    let
+                        defaultVertexStrength =
+                            presentUser m
+                                |> User.getDefaultVertexProperties
+                                |> .strength
+                    in
+                    if Set.isEmpty m.selectedVertices then
+                        defaultVertexStrength
+
+                    else
+                        presentUser m
+                            |> User.getCommonVertexProperty m.selectedVertices .strength
+                            |> Maybe.withDefault defaultVertexStrength
+                , min = -2000
+                , max = 0
+                , step = 40
+                , onChange = InputVertexStrength
+                }
+            , sliderInput
+                { labelText = "Radius"
+                , labelWidth = 80
+                , value =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
                             |> User.getDefaultVertexProperties
-                            |> .label
-                            |> Maybe.withDefault ""
+                            |> .radius
 
                     else
-                        case presentUser m |> User.getCommonVertexProperty m.selectedVertices .label of
-                            Just (Just l) ->
-                                l
+                        case presentUser m |> User.getCommonVertexProperty m.selectedVertices .radius of
+                            Just r ->
+                                r
 
-                            _ ->
-                                ""
-                , onChange = InputVertexLabel
+                            Nothing ->
+                                5
+                , min = 4
+                , max = 20
+                , step = 1
+                , onChange = InputVertexRadius
                 }
-            , checkbox
-                { labelText = "Show Label"
-                , labelWidth = 70
-                , state =
+            , colorPicker
+                { labelText = "Color"
+                , labelWidth = 80
+                , isExpanded = m.vertexColorPickerIsExpanded
+                , selectedColor =
                     if Set.isEmpty m.selectedVertices then
                         Just
                             (presentUser m
                                 |> User.getDefaultVertexProperties
-                                |> .labelIsVisible
+                                |> .color
                             )
 
                     else
                         presentUser m
-                            |> User.getCommonVertexProperty m.selectedVertices .labelIsVisible
-                , onChange =
-                    InputVertexLabelVisibility
+                            |> User.getCommonVertexProperty m.selectedVertices .color
+                , msgOnColorClick = InputVertexColor
+                , msgOnExpanderClick = ClickOnVertexColorPicker
+                , msgOnLeave = MouseLeaveVertexColorPicker
                 }
             ]
-        , El.row []
-            [ checkbox
-                { labelText = "Fixed"
-                , labelWidth = 80
-                , state =
-                    if Set.isEmpty m.selectedVertices then
-                        Just
-                            (presentUser m
-                                |> User.getDefaultVertexProperties
-                                |> .fixed
-                            )
-
-                    else
-                        presentUser m
-                            |> User.getCommonVertexProperty m.selectedVertices .fixed
-                , onChange = InputVertexFixed
-                }
-            , textInput
-                { labelText = "X"
-                , labelWidth = 20
-                , inputWidth = 40
-                , text =
-                    presentUser m
-                        |> User.getCentroid m.selectedVertices
-                        |> Maybe.map Point2d.xCoordinate
-                        |> Maybe.map round
-                        |> Maybe.map String.fromInt
-                        |> Maybe.withDefault "?"
-                , onChange = InputVertexX
-                }
-            , textInput
-                { labelText = "Y"
-                , labelWidth = 20
-                , inputWidth = 40
-                , text =
-                    presentUser m
-                        |> User.getCentroid m.selectedVertices
-                        |> Maybe.map Point2d.yCoordinate
-                        |> Maybe.map round
-                        |> Maybe.map String.fromInt
-                        |> Maybe.withDefault "?"
-                , onChange = InputVertexY
-                }
-            ]
-        , sliderInput
-            { labelText = "Strength"
-            , labelWidth = 80
-            , value =
-                let
-                    defaultVertexStrength =
-                        presentUser m
-                            |> User.getDefaultVertexProperties
-                            |> .strength
-                in
-                if Set.isEmpty m.selectedVertices then
-                    defaultVertexStrength
-
-                else
-                    presentUser m
-                        |> User.getCommonVertexProperty m.selectedVertices .strength
-                        |> Maybe.withDefault defaultVertexStrength
-            , min = -2000
-            , max = 0
-            , step = 40
-            , onChange = InputVertexStrength
-            }
-        , sliderInput
-            { labelText = "Radius"
-            , labelWidth = 80
-            , value =
-                if Set.isEmpty m.selectedVertices then
-                    presentUser m
-                        |> User.getDefaultVertexProperties
-                        |> .radius
-
-                else
-                    case presentUser m |> User.getCommonVertexProperty m.selectedVertices .radius of
-                        Just r ->
-                            r
-
-                        Nothing ->
-                            5
-            , min = 4
-            , max = 20
-            , step = 1
-            , onChange = InputVertexRadius
-            }
-        , colorPicker
-            { labelText = "Color"
-            , labelWidth = 80
-            , isExpanded = m.vertexColorPickerIsExpanded
-            , selectedColor =
-                if Set.isEmpty m.selectedVertices then
-                    Just
-                        (presentUser m
-                            |> User.getDefaultVertexProperties
-                            |> .color
-                        )
-
-                else
-                    presentUser m
-                        |> User.getCommonVertexProperty m.selectedVertices .color
-            , msgOnColorClick = InputVertexColor
-            , msgOnExpanderClick = ClickOnVertexColorPicker
-            , msgOnLeave = MouseLeaveVertexColorPicker
-            }
-        ]
+        }
 
 
 edgePreferences : Model -> Element Msg
@@ -2865,85 +2900,91 @@ edgePreferences m =
                 _ ->
                     "Selected Edges"
     in
-    subMenu headerForEdgeProperties
-        [ sliderInput
-            { labelText = "Thickness"
-            , labelWidth = 80
-            , value =
-                if Set.isEmpty m.selectedEdges then
-                    presentUser
-                        m
-                        |> User.getDefaultEdgeProperties
-                        |> .thickness
-
-                else
-                    presentUser
-                        m
-                        |> User.getCommonEdgeProperty m.selectedEdges .thickness
-                        |> Maybe.withDefault 3
-            , min = 1
-            , max = 20
-            , step = 1
-            , onChange = InputEdgeThickness
-            }
-        , sliderInput
-            { labelText = "Distance"
-            , labelWidth = 80
-            , value =
-                if Set.isEmpty m.selectedEdges then
-                    presentUser
-                        m
-                        |> User.getDefaultEdgeProperties
-                        |> .distance
-
-                else
-                    presentUser
-                        m
-                        |> User.getCommonEdgeProperty m.selectedEdges .distance
-                        |> Maybe.withDefault 40
-            , min = 10
-            , max = 200
-            , step = 10
-            , onChange = InputEdgeDistance
-            }
-        , sliderInput
-            { labelText = "Strength"
-            , labelWidth = 80
-            , value =
-                if Set.isEmpty m.selectedEdges then
-                    presentUser m
-                        |> User.getDefaultEdgeProperties
-                        |> .strength
-
-                else
-                    presentUser m
-                        |> User.getCommonEdgeProperty m.selectedEdges .strength
-                        |> Maybe.withDefault 0.7
-            , min = 0
-            , max = 1
-            , step = 0.05
-            , onChange = InputEdgeStrength
-            }
-        , colorPicker
-            { labelText = "Color"
-            , labelWidth = 80
-            , isExpanded = m.edgeColorPickerIsExpanded
-            , selectedColor =
-                if Set.isEmpty m.selectedEdges then
-                    Just
-                        (presentUser m
+    menu
+        { headerText = headerForEdgeProperties
+        , isOn = m.edgePreferencesIsOn
+        , headerButtons = []
+        , toggleMsg = ToggleEdgePreferences
+        , contentItems =
+            [ sliderInput
+                { labelText = "Thickness"
+                , labelWidth = 80
+                , value =
+                    if Set.isEmpty m.selectedEdges then
+                        presentUser
+                            m
                             |> User.getDefaultEdgeProperties
-                            |> .color
-                        )
+                            |> .thickness
 
-                else
-                    presentUser m
-                        |> User.getCommonEdgeProperty m.selectedEdges .color
-            , msgOnColorClick = InputEdgeColor
-            , msgOnExpanderClick = ClickOnEdgeColorPicker
-            , msgOnLeave = MouseLeaveEdgeColorPicker
-            }
-        ]
+                    else
+                        presentUser
+                            m
+                            |> User.getCommonEdgeProperty m.selectedEdges .thickness
+                            |> Maybe.withDefault 3
+                , min = 1
+                , max = 20
+                , step = 1
+                , onChange = InputEdgeThickness
+                }
+            , sliderInput
+                { labelText = "Distance"
+                , labelWidth = 80
+                , value =
+                    if Set.isEmpty m.selectedEdges then
+                        presentUser
+                            m
+                            |> User.getDefaultEdgeProperties
+                            |> .distance
+
+                    else
+                        presentUser
+                            m
+                            |> User.getCommonEdgeProperty m.selectedEdges .distance
+                            |> Maybe.withDefault 40
+                , min = 10
+                , max = 200
+                , step = 10
+                , onChange = InputEdgeDistance
+                }
+            , sliderInput
+                { labelText = "Strength"
+                , labelWidth = 80
+                , value =
+                    if Set.isEmpty m.selectedEdges then
+                        presentUser m
+                            |> User.getDefaultEdgeProperties
+                            |> .strength
+
+                    else
+                        presentUser m
+                            |> User.getCommonEdgeProperty m.selectedEdges .strength
+                            |> Maybe.withDefault 0.7
+                , min = 0
+                , max = 1
+                , step = 0.05
+                , onChange = InputEdgeStrength
+                }
+            , colorPicker
+                { labelText = "Color"
+                , labelWidth = 80
+                , isExpanded = m.edgeColorPickerIsExpanded
+                , selectedColor =
+                    if Set.isEmpty m.selectedEdges then
+                        Just
+                            (presentUser m
+                                |> User.getDefaultEdgeProperties
+                                |> .color
+                            )
+
+                    else
+                        presentUser m
+                            |> User.getCommonEdgeProperty m.selectedEdges .color
+                , msgOnColorClick = InputEdgeColor
+                , msgOnExpanderClick = ClickOnEdgeColorPicker
+                , msgOnLeave = MouseLeaveEdgeColorPicker
+                }
+            ]
+        }
 
 
 
