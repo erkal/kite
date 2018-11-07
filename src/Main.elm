@@ -97,6 +97,11 @@ type alias Model =
 
     --
     , selectedMode : Mode
+    , tableOfBagsIsOn : Bool
+    , tableOfVerticesIsOn : Bool
+    , tableOfEdgesIsOn : Bool
+
+    --
     , selectedTool : Tool
     , selectedSelector : Selector
 
@@ -194,6 +199,11 @@ initialModel user =
 
     --
     , selectedMode = ListsOfBagsVerticesAndEdges
+    , tableOfBagsIsOn = True
+    , tableOfVerticesIsOn = True
+    , tableOfEdgesIsOn = True
+
+    --
     , selectedTool = Draw DrawIdle
     , selectedSelector = RectSelector
 
@@ -274,6 +284,10 @@ type Msg
     | MouseOutEdge EdgeId
     | MouseDownOnEdge EdgeId
     | MouseUpOnEdge EdgeId
+      --
+    | ToggleTableOfBags
+    | ToggleTableOfVertices
+    | ToggleTableOfEdges
       --
     | ClickOnBagPlus
     | ClickOnBagTrash
@@ -364,7 +378,7 @@ update msg m =
             { m
                 | userUL = m.userUL |> UL.mapPresent (Tuple.mapSecond (always newUser))
                 , simulationState = newSimulationState
-                , timeList = t :: m.timeList |> List.take 60
+                , timeList = t :: m.timeList |> List.take 42
             }
 
         WindowResize wS ->
@@ -1078,6 +1092,15 @@ update msg m =
                         ++ String.fromFloat num
                     )
 
+        ToggleTableOfBags ->
+            { m | tableOfBagsIsOn = not m.tableOfBagsIsOn }
+
+        ToggleTableOfVertices ->
+            { m | tableOfVerticesIsOn = not m.tableOfVerticesIsOn }
+
+        ToggleTableOfEdges ->
+            { m | tableOfEdgesIsOn = not m.tableOfEdgesIsOn }
+
         ClickOnVertexTrash ->
             let
                 newUser =
@@ -1094,6 +1117,30 @@ update msg m =
                     ("Removed vertices "
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
                     )
+
+        ClickOnBagPlus ->
+            let
+                ( newUser, idOfTheNewBag ) =
+                    presentUser m |> User.addBag m.selectedVertices
+            in
+            { m | maybeSelectedBag = Just idOfTheNewBag }
+                |> nwUsr newUser
+                    ("Added bag " ++ bagIdToString idOfTheNewBag)
+
+        ClickOnBagTrash ->
+            case m.maybeSelectedBag of
+                Just bagId ->
+                    let
+                        newUser =
+                            presentUser m |> User.removeBag bagId
+                    in
+                    { m | maybeSelectedBag = Nothing }
+                        |> reheatSimulation
+                        |> nwUsr newUser
+                            ("Removed bag " ++ bagIdToString bagId)
+
+                Nothing ->
+                    m
 
         ClickOnEdgeTrash ->
             let
@@ -1127,30 +1174,6 @@ update msg m =
 
                 _ ->
                     m
-
-        ClickOnBagTrash ->
-            case m.maybeSelectedBag of
-                Just bagId ->
-                    let
-                        newUser =
-                            presentUser m |> User.removeBag bagId
-                    in
-                    { m | maybeSelectedBag = Nothing }
-                        |> reheatSimulation
-                        |> nwUsr newUser
-                            ("Removed bag " ++ bagIdToString bagId)
-
-                Nothing ->
-                    m
-
-        ClickOnBagPlus ->
-            let
-                ( newUser, idOfTheNewBag ) =
-                    presentUser m |> User.addBag m.selectedVertices
-            in
-            { m | maybeSelectedBag = Just idOfTheNewBag }
-                |> nwUsr newUser
-                    ("Added bag " ++ bagIdToString idOfTheNewBag)
 
         MouseOverVertexItem id ->
             { m | highlightedVertices = Set.singleton id }
@@ -1537,25 +1560,52 @@ leftBar m =
                 leftBarContentForGamesOnGraphs m
 
 
-leftBarMenu : List (Element Msg) -> Element Msg -> Element Msg
-leftBarMenu headerItems content =
+leftBarMenu :
+    { headerText : String
+    , isOn : Bool
+    , headerButtons : List (Element Msg)
+    , toggleMsg : Msg
+    , content : Element Msg
+    }
+    -> Element Msg
+leftBarMenu { headerText, isOn, headerButtons, toggleMsg, content } =
     let
+        onOffButton =
+            El.el
+                [ El.paddingXY 6 0
+                , Events.onClick toggleMsg
+                ]
+            <|
+                El.html <|
+                    if isOn then
+                        Icons.draw14px Icons.icons.menuOff
+
+                    else
+                        Icons.draw14px Icons.icons.menuOn
+
         header =
             El.row
                 [ Background.color Colors.leftBarHeader
                 , El.width El.fill
-                , El.padding 8
+                , El.padding 0
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
                 , Font.bold
                 ]
-                headerItems
+            <|
+                (onOffButton :: El.text headerText :: headerButtons)
     in
     El.column [ El.width El.fill ]
         [ header, content ]
 
 
-leftBarHeaderButton title onClickMsg iconPath =
+leftBarHeaderButton :
+    { title : String
+    , onClickMsg : Msg
+    , iconPath : String
+    }
+    -> Element Msg
+leftBarHeaderButton { title, onClickMsg, iconPath } =
     El.el
         [ El.htmlAttribute (HA.title title)
         , Events.onClick onClickMsg
@@ -1570,7 +1620,13 @@ leftBarHeaderButton title onClickMsg iconPath =
 
 leftBarContentForPreferences : Model -> Element Msg
 leftBarContentForPreferences m =
-    leftBarMenu [ El.text "Preferences (coming soon)" ] El.none
+    leftBarMenu
+        { headerText = "Preferences (coming soon)"
+        , isOn = True
+        , headerButtons = []
+        , toggleMsg = NoOp
+        , content = El.none
+        }
 
 
 pointToString : Point2d -> String
@@ -1899,55 +1955,120 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
     in
     El.column [ El.width El.fill ]
         [ leftBarMenu
-            [ El.text "Bags (TODO Put this to right bar toghether with preferences)"
-            , leftBarHeaderButton "Add New Bag"
-                ClickOnBagPlus
-                Icons.icons.plus
-            , leftBarHeaderButton "Remove Selected Bag"
-                ClickOnBagTrash
-                Icons.icons.trash
-            ]
-            tableOfBags
+            { headerText = "Bags (TODO Put this to the right)"
+            , isOn = m.tableOfBagsIsOn
+            , headerButtons =
+                [ leftBarHeaderButton
+                    { title = "Add New Bag"
+                    , onClickMsg = ClickOnBagPlus
+                    , iconPath = Icons.icons.plus
+                    }
+                , leftBarHeaderButton
+                    { title = "Remove Selected Bag"
+                    , onClickMsg = ClickOnBagTrash
+                    , iconPath = Icons.icons.trash
+                    }
+                ]
+            , toggleMsg = ToggleTableOfBags
+            , content =
+                if m.tableOfBagsIsOn then
+                    tableOfBags
+
+                else
+                    El.none
+            }
         , leftBarMenu
-            [ El.text "Vertices"
-            , leftBarHeaderButton "Remove Selected Vertices"
-                ClickOnVertexTrash
-                Icons.icons.trash
-            ]
-            tableOfVertices
+            { headerText = "Vertices"
+            , isOn = m.tableOfVerticesIsOn
+            , headerButtons =
+                [ leftBarHeaderButton
+                    { title = "Remove Selected Vertices"
+                    , onClickMsg = ClickOnVertexTrash
+                    , iconPath = Icons.icons.trash
+                    }
+                ]
+            , toggleMsg = ToggleTableOfVertices
+            , content =
+                if m.tableOfVerticesIsOn then
+                    tableOfVertices
+
+                else
+                    El.none
+            }
         , leftBarMenu
-            [ El.text "Edges"
-            , leftBarHeaderButton "Remove Selected Edges"
-                ClickOnEdgeTrash
-                Icons.icons.trash
-            ]
-            listOfEdges
+            { headerText = "Edges"
+            , isOn = m.tableOfEdgesIsOn
+            , headerButtons =
+                [ leftBarHeaderButton
+                    { title = "Remove Selected Edges"
+                    , onClickMsg = ClickOnEdgeTrash
+                    , iconPath = Icons.icons.trash
+                    }
+                ]
+            , toggleMsg = ToggleTableOfEdges
+            , content =
+                if m.tableOfEdgesIsOn then
+                    listOfEdges
+
+                else
+                    El.none
+            }
         ]
 
 
 leftBarContentForGraphOperations : Model -> Element Msg
 leftBarContentForGraphOperations m =
-    leftBarMenu [ El.text "Graph Operations (coming soon)" ] <| El.none
+    leftBarMenu
+        { headerText = "Graph Operations (coming soon)"
+        , isOn = True
+        , headerButtons = []
+        , toggleMsg = NoOp
+        , content = El.none
+        }
 
 
 leftBarContentForGraphQueries : Model -> Element Msg
 leftBarContentForGraphQueries m =
-    leftBarMenu [ El.text "Graph Queries (coming soon)" ] <| El.none
+    leftBarMenu
+        { headerText = "Graph Queries (coming soon)"
+        , isOn = True
+        , headerButtons = []
+        , toggleMsg = NoOp
+        , content = El.none
+        }
 
 
 leftBarContentForGraphGenerators : Model -> Element Msg
 leftBarContentForGraphGenerators m =
-    leftBarMenu [ El.text "Graph Generators (coming soon)" ] <| El.none
+    leftBarMenu
+        { headerText = "Graph Generators (coming soon)"
+        , isOn = True
+        , headerButtons = []
+        , toggleMsg = NoOp
+        , content = El.none
+        }
 
 
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
 leftBarContentForAlgorithmVisualizations m =
-    leftBarMenu [ El.text "Algorithm Visualizations (coming soon)" ] <| El.none
+    leftBarMenu
+        { headerText = "Algorithm Visualizations (coming soon)"
+        , isOn = True
+        , headerButtons = []
+        , toggleMsg = NoOp
+        , content = El.none
+        }
 
 
 leftBarContentForGamesOnGraphs : Model -> Element Msg
 leftBarContentForGamesOnGraphs m =
-    leftBarMenu [ El.text "Games on Graphs (coming soon)" ] <| El.none
+    leftBarMenu
+        { headerText = "Games on Graphs (coming soon)"
+        , isOn = True
+        , headerButtons = []
+        , toggleMsg = NoOp
+        , content = El.none
+        }
 
 
 
