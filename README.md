@@ -4,7 +4,7 @@
 
 ***An Interactive Visualization Tool for Graph Theory***
 
-This is work in progress, still in **pre-alpha**.
+This is lighwork in progress, still in **pre-alpha**.
 See the [road map](https://github.com/erkal/kite/projects/1).
 
 [A **demo** of the latest state can be found here](https://erkal.github.io/kite/).

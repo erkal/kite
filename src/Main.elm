@@ -75,7 +75,7 @@ type alias Model =
     , simulationState : Force.State
 
     --
-    , timeTuple : ( Time.Posix, Time.Posix )
+    , timeList : List Time.Posix
     , windowSize : { width : Int, height : Int }
     , mousePosition : MousePosition
     , svgMousePosition : Point2d
@@ -172,7 +172,7 @@ initialModel user =
     , simulationState = user |> User.simulation
 
     --
-    , timeTuple = ( Time.millisToPosix 0, Time.millisToPosix 0 )
+    , timeList = []
     , windowSize = { width = 800, height = 600 }
     , mousePosition = { x = 0, y = 0 }
     , svgMousePosition = Point2d.fromCoordinates ( 0, 0 )
@@ -364,12 +364,7 @@ update msg m =
             { m
                 | userUL = m.userUL |> UL.mapPresent (Tuple.mapSecond (always newUser))
                 , simulationState = newSimulationState
-                , timeTuple =
-                    let
-                        up ( _, o2 ) nt =
-                            ( o2, nt )
-                    in
-                    up m.timeTuple t
+                , timeList = t :: m.timeList |> List.take 60
             }
 
         WindowResize wS ->
@@ -1394,22 +1389,49 @@ view m =
 debugView : Model -> Element Msg
 debugView m =
     let
-        ( old, new ) =
-            m.timeTuple
-
         fps =
-            round <|
-                1000
-                    / toFloat (Time.posixToMillis new - Time.posixToMillis old)
+            case ( m.timeList, List.reverse m.timeList ) of
+                ( newest :: _, oldest :: _ ) ->
+                    let
+                        averageFrameDuration =
+                            toFloat (Time.posixToMillis newest - Time.posixToMillis oldest)
+                                / toFloat (List.length m.timeList)
+                    in
+                    1000 / averageFrameDuration
+
+                _ ->
+                    0
+
+        scale =
+            2
     in
-    El.el
+    El.row
         [ El.width El.fill
         , El.padding 10
         , Font.size 10
         , Background.color Colors.mainSvgBackground
         ]
     <|
-        El.text (String.fromInt fps ++ " fps")
+        [ El.el [ El.width (El.px 20) ] <| El.text (String.fromInt (round fps))
+        , El.el [ El.width (El.px 40) ] <| El.text "fps"
+        , El.el [] <|
+            El.html <|
+                S.svg [ SA.height "10px" ]
+                    [ S.rect
+                        [ SA.height "10"
+                        , SA.width (String.fromFloat (scale * fps))
+                        , SA.fill (Colors.toString Colors.icon)
+                        ]
+                        []
+                    , S.rect
+                        [ SA.height "10"
+                        , SA.width (String.fromFloat (scale * 60))
+                        , SA.fill "none"
+                        , SA.stroke (Colors.toString Colors.white)
+                        ]
+                        []
+                    ]
+        ]
 
 
 leftStripe : Model -> Element Msg
@@ -1877,7 +1899,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
     in
     El.column [ El.width El.fill ]
         [ leftBarMenu
-            [ El.text "Bags"
+            [ El.text "Bags (TODO Put this to right bar toghether with preferences)"
             , leftBarHeaderButton "Add New Bag"
                 ClickOnBagPlus
                 Icons.icons.plus
