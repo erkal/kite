@@ -7,6 +7,7 @@ import Browser.Events exposing (Visibility(..))
 import Circle2d exposing (Circle2d)
 import Colors
 import Dict exposing (Dict)
+import Direction2d exposing (Direction2d)
 import Element as El exposing (Color, Element)
 import Element.Background as Background
 import Element.Border as Border
@@ -3452,9 +3453,57 @@ mainSvg m =
 viewEdges : User -> Html Msg
 viewEdges user =
     let
+        labelDistance =
+            10
+
+        labelPosition : LineSegment2d -> Point2d
+        labelPosition edgeLine =
+            let
+                fromEdgeMidpointToLabelMidpoint =
+                    edgeLine
+                        |> LineSegment2d.perpendicularDirection
+                        |> Maybe.withDefault Direction2d.negativeY
+                        |> Direction2d.reverse
+                        |> Direction2d.toVector
+                        |> Vector2d.scaleBy labelDistance
+            in
+            edgeLine
+                |> LineSegment2d.midpoint
+                |> Point2d.translateBy fromEdgeMidpointToLabelMidpoint
+
         edgeWithKey { from, to, label } =
             case ( User.getVertexProperties from user, User.getVertexProperties to user ) of
                 ( Just v, Just w ) ->
+                    let
+                        edgeLine =
+                            LineSegment2d.from v.position w.position
+
+                        lP =
+                            labelPosition edgeLine
+
+                        eL =
+                            S.text_
+                                [ SA.x (String.fromFloat (Point2d.xCoordinate lP))
+                                , SA.y (String.fromFloat (Point2d.yCoordinate lP))
+                                , SA.textAnchor "middle"
+                                , SA.fill (Colors.toString Colors.lightText)
+                                ]
+                                [ S.text <|
+                                    case label.label of
+                                        Just l ->
+                                            l
+
+                                        Nothing ->
+                                            ""
+                                ]
+
+                        edgeLabel =
+                            if label.labelIsVisible then
+                                eL
+
+                            else
+                                emptySvgElement
+                    in
                     ( String.fromInt from ++ "-" ++ String.fromInt to
                     , S.g
                         [ SE.onMouseDown (MouseDownOnEdge ( from, to ))
@@ -3467,12 +3516,13 @@ viewEdges user =
                             , SA.strokeOpacity "0"
                             , SA.strokeWidth (String.fromFloat (label.thickness + 6))
                             ]
-                            (LineSegment2d.from v.position w.position)
+                            edgeLine
                         , Geometry.Svg.lineSegment2d
                             [ SA.stroke (Colors.toString label.color)
                             , SA.strokeWidth (String.fromFloat label.thickness)
                             ]
-                            (LineSegment2d.from v.position w.position)
+                            edgeLine
+                        , edgeLabel
                         ]
                     )
 
