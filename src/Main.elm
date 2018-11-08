@@ -17,6 +17,7 @@ import Element.Input as Input
 import Element.Keyed
 import Force exposing (Force)
 import Geometry.Svg
+import Graph.Generators
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
 import Html.Events as HE
