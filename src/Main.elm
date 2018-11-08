@@ -1730,7 +1730,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             in
             El.table
                 [ El.width El.fill
-                , El.height (El.fill |> El.maximum 300)
+                , El.height (El.fill |> El.maximum 250)
                 , El.scrollbarY
                 ]
                 { data = User.getVertices (presentUser m)
@@ -1878,7 +1878,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             in
             El.table
                 [ El.width El.fill
-                , El.height (El.fill |> El.maximum 500)
+                , El.height (El.fill |> El.maximum 250)
                 , El.scrollbarY
                 ]
                 { data = User.getEdges (presentUser m)
@@ -1890,121 +1890,96 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                 cell ( from, to ) <|
                                     El.text (edgeIdToString ( from, to ))
                       }
+                    , { header = columnHeader "Label"
+                      , width = El.fill
+                      , view =
+                            \{ from, to, label } ->
+                                cell ( from, to ) <|
+                                    case label.label of
+                                        Just l ->
+                                            El.text l
 
-                    --, { header = columnHeader "Label"
-                    --  , width = El.fill
-                    --  , view =
-                    --        \{ id, label } ->
-                    --            cell id <|
-                    --                case label.label of
-                    --                    Just l ->
-                    --                        El.text l
-                    --                    Nothing ->
-                    --                        El.el
-                    --                            [ El.alpha 0.2
-                    --                            , El.width El.fill
-                    --                            ]
-                    --                            (El.text "no label")
-                    --  }
-                    --, { header = columnHeader "Fix"
-                    --  , width = El.px 20
-                    --  , view =
-                    --        \{ id, label } ->
-                    --            cell id <|
-                    --                El.el [ El.centerX ] <|
-                    --                    if label.fixed then
-                    --                        El.html
-                    --                            (Icons.draw10px Icons.icons.checkMark)
-                    --                    else
-                    --                        El.none
-                    --  }
-                    --, { header = columnHeader "X"
-                    --  , width = El.px 26
-                    --  , view =
-                    --        \{ id, label } ->
-                    --            label.position
-                    --                |> Point2d.xCoordinate
-                    --                |> round
-                    --                |> String.fromInt
-                    --                |> El.text
-                    --                |> cell id
-                    --  }
-                    --, { header = columnHeader "Y"
-                    --  , width = El.px 26
-                    --  , view =
-                    --        \{ id, label } ->
-                    --            label.position
-                    --                |> Point2d.yCoordinate
-                    --                |> round
-                    --                |> String.fromInt
-                    --                |> El.text
-                    --                |> cell id
-                    --  }
-                    --, { header = columnHeader "Str"
-                    --  , width = El.px 30
-                    --  , view =
-                    --        \{ id, label } ->
-                    --            cell id <|
-                    --                El.text (String.fromFloat label.strength)
-                    --  }
-                    --, { header = columnHeader "Col"
-                    --  , width = El.px 20
-                    --  , view =
-                    --        \{ id, label } ->
-                    --            cell id <|
-                    --                El.html <|
-                    --                    S.svg
-                    --                        [ SA.width "16"
-                    --                        , SA.height "10"
-                    --                        ]
-                    --                        [ S.circle
-                    --                            [ SA.r "5"
-                    --                            , SA.cx "8"
-                    --                            , SA.cy "5"
-                    --                            , SA.fill (Colors.toString label.color)
-                    --                            ]
-                    --                            []
-                    --                        ]
-                    --  }
-                    --, { header = columnHeader "Rad"
-                    --  , width = El.px 24
-                    --  , view =
-                    --        \{ id, label } ->
-                    --            cell id <|
-                    --                El.text (String.fromFloat label.radius)
-                    --  }
-                    --, { header = columnHeader " "
-                    --  , width = El.px 8
-                    --  , view =
-                    --        \{ id } ->
-                    --            cell id <|
-                    --                El.el
-                    --                    [ El.width El.fill
-                    --                    , El.height El.fill
-                    --                    , Background.color <|
-                    --                        if Set.member id m.highlightedVertices then
-                    --                            Colors.highlightPink
-                    --                        else
-                    --                            Colors.menuBackground
-                    --                    ]
-                    --                    El.none
-                    --  }
-                    --, { header = columnHeader " "
-                    --  , width = El.px 8
-                    --  , view =
-                    --        \{ id } ->
-                    --            cell id <|
-                    --                El.el
-                    --                    [ El.width El.fill
-                    --                    , El.height El.fill
-                    --                    , Background.color <|
-                    --                        if Set.member id m.selectedVertices then
-                    --                            Colors.selectBlue
-                    --                        else
-                    --                            Colors.menuBackground
-                    --                    ]
-                    --                    El.none
-                    --  }
+                                        Nothing ->
+                                            El.el
+                                                [ El.alpha 0.2
+                                                , El.width El.fill
+                                                ]
+                                                (El.text "no label")
+                      }
+                    , { header = columnHeader "Str"
+                      , width = El.px 30
+                      , view =
+                            \{ from, to, label } ->
+                                cell ( from, to ) <|
+                                    El.text (String.fromFloat label.strength)
+                      }
+                    , { header = columnHeader "Dist"
+                      , width = El.px 30
+                      , view =
+                            \{ from, to, label } ->
+                                cell ( from, to ) <|
+                                    El.text (String.fromFloat label.distance)
+                      }
+                    , { header = columnHeader "Thc"
+                      , width = El.px 30
+                      , view =
+                            \{ from, to, label } ->
+                                cell ( from, to ) <|
+                                    El.text (String.fromFloat label.thickness)
+                      }
+                    , { header = columnHeader "Col"
+                      , width = El.px 20
+                      , view =
+                            \{ from, to, label } ->
+                                cell ( from, to ) <|
+                                    El.html <|
+                                        S.svg
+                                            [ SA.width "16"
+                                            , SA.height "10"
+                                            ]
+                                            [ S.circle
+                                                [ SA.r "5"
+                                                , SA.cx "8"
+                                                , SA.cy "5"
+                                                , SA.fill (Colors.toString label.color)
+                                                ]
+                                                []
+                                            ]
+                      }
+                    , { header = columnHeader " "
+                      , width = El.px 8
+                      , view =
+                            \{ from, to, label } ->
+                                cell ( from, to ) <|
+                                    El.el
+                                        [ El.width El.fill
+                                        , El.height El.fill
+                                        , Background.color <|
+                                            if Set.member ( from, to ) m.highlightedEdges then
+                                                Colors.highlightPink
+
+                                            else
+                                                Colors.menuBackground
+                                        ]
+                                        El.none
+                      }
+                    , { header = columnHeader " "
+                      , width = El.px 8
+                      , view =
+                            \{ from, to, label } ->
+                                cell ( from, to ) <|
+                                    El.el
+                                        [ El.width El.fill
+                                        , El.height El.fill
+                                        , Background.color <|
+                                            if Set.member ( from, to ) m.selectedEdges then
+                                                Colors.selectBlue
+
+                                            else
+                                                Colors.menuBackground
+                                        ]
+                                        El.none
+                      }
                     ]
                 }
     in

@@ -90,14 +90,14 @@ type alias EdgeId =
 
 
 type alias VertexProperties =
-    { position : Point2d
+    { label : Maybe String
+    , position : Point2d
     , velocity : Vector2d
     , strength : Float
     , fixed : Bool
     , color : Color
     , radius : Float
     , inBags : Set BagId
-    , label : Maybe String
     , labelIsVisible : Bool
     }
 
@@ -106,8 +106,8 @@ type alias EdgeProperties =
     { label : Maybe String
     , distance : Float
     , strength : Float
-    , color : Color
     , thickness : Float
+    , color : Color
     }
 
 
