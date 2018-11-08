@@ -113,6 +113,8 @@ type alias Model =
 
     --
     , selectedTool : Tool
+
+    --
     , selectedSelector : Selector
 
     --
@@ -223,6 +225,8 @@ initialModel user =
 
     --
     , selectedTool = Draw DrawIdle
+
+    --
     , selectedSelector = RectSelector
 
     --
@@ -346,6 +350,8 @@ type Msg
     | InputEdgeDistance Float
     | InputEdgeStrength Float
     | InputEdgeColor Color
+      --
+    | ClickOnGenerateButton User.MyGraph
 
 
 reheatSimulation : Model -> Model
@@ -1317,6 +1323,13 @@ update msg m =
                 , selectedEdges = Set.empty
             }
 
+        ClickOnGenerateButton generatedGraph ->
+            let
+                newUser =
+                    presentUser m |> User.addGraph generatedGraph
+            in
+            m |> nwUsr newUser "Added a generated graph "
+
 
 
 -- SUBSCRIPTIONS
@@ -1785,7 +1798,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             in
             El.table
                 [ El.width El.fill
-                , El.height (El.fill |> El.maximum 250)
+                , El.height (El.fill |> El.maximum 255)
                 , El.scrollbarY
                 ]
                 { data = User.getVertices (presentUser m)
@@ -1933,7 +1946,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             in
             El.table
                 [ El.width El.fill
-                , El.height (El.fill |> El.maximum 250)
+                , El.height (El.fill |> El.maximum 255)
                 , El.scrollbarY
                 ]
                 { data = User.getEdges (presentUser m)
@@ -2092,13 +2105,57 @@ leftBarContentForGraphQueries m =
 
 leftBarContentForGraphGenerators : Model -> Element Msg
 leftBarContentForGraphGenerators m =
-    menu
-        { headerText = "Graph Generators (coming soon)"
-        , isOn = True
-        , headerButtons = []
-        , toggleMsg = NoOp
-        , contentItems = []
-        }
+    let
+        generateButton : User.MyGraph -> Element Msg
+        generateButton generatedGraph =
+            El.el
+                [ El.htmlAttribute (HA.title "Generate!")
+                , El.alignRight
+                , Border.rounded 4
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                , El.pointer
+                , Events.onClick (ClickOnGenerateButton generatedGraph)
+                ]
+                (El.html (Icons.draw14px Icons.icons.lightning))
+    in
+    El.column [ El.width El.fill ]
+        [ menu
+            { headerText = "Basic Graphs"
+            , isOn = True
+            , headerButtons = []
+            , toggleMsg = NoOp
+            , contentItems =
+                [ El.row [ El.padding 10, El.spacing 5 ]
+                    [ generateButton <|
+                        Graph.Generators.star
+                            { numberOfLeaves = 40
+                            , vertexProperties =
+                                User.getDefaultVertexProperties (presentUser m)
+                            , edgeProperties =
+                                User.getDefaultEdgeProperties (presentUser m)
+                            }
+                    , El.el
+                        [ Font.bold ]
+                        (El.text "Star Graph")
+                    ]
+                , textInput
+                    { labelText = "Number of Leaves"
+                    , labelWidth = 100
+                    , inputWidth = 40
+                    , text = "100"
+                    , onChange = always NoOp
+                    }
+                ]
+            }
+        , menu
+            { headerText = "Random Graphs (coming soon)"
+            , isOn = False
+            , headerButtons = []
+            , toggleMsg = NoOp
+            , contentItems = []
+            }
+        ]
 
 
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
@@ -3505,7 +3562,7 @@ viewEdges user =
                             else
                                 emptySvgElement
                     in
-                    ( String.fromInt from ++ "-" ++ String.fromInt to
+                    ( edgeIdToString ( from, to )
                     , S.g
                         [ SE.onMouseDown (MouseDownOnEdge ( from, to ))
                         , SE.onMouseUp (MouseUpOnEdge ( from, to ))

@@ -1,6 +1,7 @@
 module Graph.Extra exposing
     ( contractEdge
     , degree
+    , disjointUnion
     , duplicateSubgraph
     , getCommonEdgeProperty
     , getCommonNodeProperty
@@ -120,7 +121,14 @@ updateNodeBy id data =
     updateNodesBy [ ( id, data ) ]
 
 
-disjointUnion : Graph n e -> Graph n e -> { union : Graph n e, verticesOfTheFirstGraphShifted : List NodeId, edgesOfTheFirstGraphShifted : List ( NodeId, NodeId ) }
+disjointUnion :
+    Graph n e
+    -> Graph n e
+    ->
+        { union : Graph n e
+        , verticesOfTheFirstGraphShifted : List NodeId
+        , edgesOfTheFirstGraphShifted : List ( NodeId, NodeId )
+        }
 disjointUnion g h =
     let
         ( maxH, minG ) =

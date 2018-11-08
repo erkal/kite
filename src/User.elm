@@ -10,6 +10,7 @@ module User exposing
     , VertexProperties
     , addBag
     , addEdge
+    , addGraph
     , addVertex
     , contractEdge
     , default
@@ -553,6 +554,14 @@ divideEdge coordinates ( s, t ) user =
 setVertexPositions : List ( VertexId, Point2d ) -> User -> User
 setVertexPositions l =
     mapGraph (Graph.Extra.updateNodesBy l (\pos vP -> { vP | position = pos }))
+
+
+addGraph : MyGraph -> User -> User
+addGraph graphToAdd =
+    mapGraph
+        (\oldGraph ->
+            Graph.Extra.disjointUnion graphToAdd oldGraph |> .union
+        )
 
 
 duplicateSubgraph : Set VertexId -> Set ( VertexId, VertexId ) -> User -> ( User, Set VertexId, Set ( VertexId, VertexId ) )
