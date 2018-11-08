@@ -91,6 +91,7 @@ type alias EdgeId =
 
 type alias VertexProperties =
     { label : Maybe String
+    , labelIsVisible : Bool
     , position : Point2d
     , velocity : Vector2d
     , strength : Float
@@ -98,12 +99,12 @@ type alias VertexProperties =
     , color : Color
     , radius : Float
     , inBags : Set BagId
-    , labelIsVisible : Bool
     }
 
 
 type alias EdgeProperties =
     { label : Maybe String
+    , labelIsVisible : Bool
     , distance : Float
     , strength : Float
     , thickness : Float
@@ -145,18 +146,19 @@ default =
             , Force.Link
             ]
         , defaultVertexProperties =
-            { position = Point2d.origin
+            { label = Nothing
+            , labelIsVisible = True
+            , position = Point2d.origin
             , velocity = Vector2d.zero
             , strength = -60
             , color = Colors.lightGray
             , radius = 5
             , inBags = Set.empty
             , fixed = False
-            , label = Nothing
-            , labelIsVisible = True
             }
         , defaultEdgeProperties =
             { label = Nothing
+            , labelIsVisible = True
             , color = Colors.lightGray
             , thickness = 3
             , distance = 40
@@ -352,14 +354,14 @@ removeBag bagId user =
 --
 
 
-getDefaultEdgeProperties : User -> EdgeProperties
-getDefaultEdgeProperties (User { defaultEdgeProperties }) =
-    defaultEdgeProperties
-
-
 getDefaultVertexProperties : User -> VertexProperties
 getDefaultVertexProperties (User { defaultVertexProperties }) =
     defaultVertexProperties
+
+
+getDefaultEdgeProperties : User -> EdgeProperties
+getDefaultEdgeProperties (User { defaultEdgeProperties }) =
+    defaultEdgeProperties
 
 
 getCommonVertexProperty : Set VertexId -> (VertexProperties -> a) -> User -> Maybe a

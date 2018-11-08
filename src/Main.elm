@@ -329,15 +329,17 @@ type Msg
       --
     | InputBagConvexHull BagId Bool
       --
+    | InputVertexLabel String
+    | InputVertexLabelVisibility Bool
     | InputVertexX String
     | InputVertexY String
     | InputVertexRadius Float
     | InputVertexStrength Float
     | InputVertexFixed Bool
-    | InputVertexLabelVisibility Bool
-    | InputVertexLabel String
     | InputVertexColor Color
       --
+    | InputEdgeLabel String
+    | InputEdgeLabelVisibility Bool
     | InputEdgeThickness Float
     | InputEdgeDistance Float
     | InputEdgeStrength Float
@@ -1021,6 +1023,57 @@ update msg m =
                     ("Made the labels of the vertices "
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
                         ++ descriptionEnd
+                    )
+
+        InputEdgeLabelVisibility b ->
+            let
+                updateLabelVisibility v =
+                    { v | labelIsVisible = b }
+
+                newUser =
+                    if Set.isEmpty m.selectedEdges then
+                        presentUser m
+                            |> User.updateDefaultEdgeProperties updateLabelVisibility
+
+                    else
+                        presentUser m
+                            |> User.updateEdges m.selectedEdges updateLabelVisibility
+
+                descriptionEnd =
+                    if b then
+                        " visible"
+
+                    else
+                        " invisible"
+            in
+            m
+                |> nwUsr newUser
+                    ("Made the labels of the edges "
+                        ++ edgeIdsToString (Set.toList m.selectedEdges)
+                        ++ descriptionEnd
+                    )
+
+        InputEdgeLabel str ->
+            let
+                updateLabel v =
+                    { v | label = Just str }
+
+                newUser =
+                    if Set.isEmpty m.selectedEdges then
+                        presentUser m
+                            |> User.updateDefaultEdgeProperties updateLabel
+
+                    else
+                        presentUser m
+                            |> User.updateEdges m.selectedEdges updateLabel
+            in
+            m
+                |> nwUsr newUser
+                    ("Changed the label of the edges "
+                        ++ edgeIdsToString (Set.toList m.selectedEdges)
+                        ++ " to '"
+                        ++ str
+                        ++ "'"
                     )
 
         InputEdgeColor newColor ->
@@ -2984,7 +3037,46 @@ edgePreferences m =
         , headerButtons = []
         , toggleMsg = ToggleEdgePreferences
         , contentItems =
-            [ sliderInput
+            [ El.row []
+                [ textInput
+                    { labelText = "Label"
+                    , labelWidth = 80
+                    , inputWidth = 60
+                    , text =
+                        if Set.isEmpty m.selectedEdges then
+                            presentUser m
+                                |> User.getDefaultEdgeProperties
+                                |> .label
+                                |> Maybe.withDefault ""
+
+                        else
+                            case presentUser m |> User.getCommonEdgeProperty m.selectedEdges .label of
+                                Just (Just l) ->
+                                    l
+
+                                _ ->
+                                    ""
+                    , onChange = InputEdgeLabel
+                    }
+                , checkbox
+                    { labelText = "Show Label"
+                    , labelWidth = 70
+                    , state =
+                        if Set.isEmpty m.selectedEdges then
+                            Just
+                                (presentUser m
+                                    |> User.getDefaultEdgeProperties
+                                    |> .labelIsVisible
+                                )
+
+                        else
+                            presentUser m
+                                |> User.getCommonEdgeProperty m.selectedEdges .labelIsVisible
+                    , onChange =
+                        InputEdgeLabelVisibility
+                    }
+                ]
+            , sliderInput
                 { labelText = "Thickness"
                 , labelWidth = 80
                 , value =
