@@ -2136,7 +2136,7 @@ leftBarContentForGraphGenerators m =
                 [ El.row [ El.padding 10, El.spacing 5 ]
                     [ generateButton <|
                         Graph.Generators.star
-                            { numberOfLeaves = 40
+                            { numberOfLeaves = 300
                             , vertexProperties =
                                 User.getDefaultVertexProperties (presentUser m)
                             , edgeProperties =

@@ -4,6 +4,7 @@ import Graph exposing (Graph, NodeId)
 import IntDict
 import Point2d exposing (Point2d)
 import Set exposing (Set)
+import Vector2d exposing (Vector2d)
 
 
 star :
@@ -45,6 +46,8 @@ star { numberOfLeaves, vertexProperties, edgeProperties } =
                             ( 100
                             , toFloat i * degrees 360 / toFloat numberOfLeaves
                             )
+                            |> Point2d.translateBy
+                                (Vector2d.fromComponents ( 200, 200 ))
                         )
                     )
     in
