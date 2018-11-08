@@ -1473,7 +1473,6 @@ debugView m =
         [ El.width El.fill
         , El.padding 10
         , Font.size 10
-        , Background.color Colors.mainSvgBackground
         ]
     <|
         [ El.el [ El.width (El.px 20) ] <| El.text (String.fromInt (round fps))
@@ -1704,6 +1703,16 @@ columnHeader headerText =
         (El.text headerText)
 
 
+commonCellProperties =
+    [ El.padding 2
+    , El.width El.fill
+    , El.height El.fill
+    , Font.center
+    , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
+    , Border.color Colors.menuBorder
+    ]
+
+
 leftBarContentForListsOfBagsVerticesAndEdges : Model -> Element Msg
 leftBarContentForListsOfBagsVerticesAndEdges m =
     let
@@ -1711,16 +1720,12 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             let
                 cell id content =
                     El.el
-                        [ El.padding 2
-                        , El.width El.fill
-                        , El.height El.fill
-                        , Font.center
-                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
-                        , Border.color Colors.menuBorder
-                        , Events.onMouseEnter (MouseOverVertexItem id)
-                        , Events.onMouseLeave (MouseOutVertexItem id)
-                        , Events.onClick (ClickOnVertexItem id)
-                        ]
+                        (commonCellProperties
+                            ++ [ Events.onMouseEnter (MouseOverVertexItem id)
+                               , Events.onMouseLeave (MouseOutVertexItem id)
+                               , Events.onClick (ClickOnVertexItem id)
+                               ]
+                        )
                         content
             in
             El.table
@@ -1859,43 +1864,149 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 }
 
         --
-        listOfEdges =
-            Element.Keyed.column [ El.width El.fill ]
-                (presentUser m
-                    |> User.getEdges
-                    |> List.map edgeItemWithKey
-                    |> List.reverse
-                )
-
-        edgeItemWithKey { from, to } =
-            ( String.fromInt from ++ "-" ++ String.fromInt to
-            , El.row
+        tableOfEdges =
+            let
+                cell edgeId content =
+                    El.el
+                        (commonCellProperties
+                            ++ [ Events.onMouseEnter (MouseOverEdgeItem edgeId)
+                               , Events.onMouseLeave (MouseOutEdgeItem edgeId)
+                               , Events.onClick (ClickOnEdgeItem edgeId)
+                               ]
+                        )
+                        content
+            in
+            El.table
                 [ El.width El.fill
-                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-                , Border.color Colors.menuBorder
-                , Events.onMouseEnter (MouseOverEdgeItem ( from, to ))
-                , Events.onMouseLeave (MouseOutEdgeItem ( from, to ))
-                , Events.onClick (ClickOnEdgeItem ( from, to ))
+                , El.height (El.fill |> El.maximum 500)
+                , El.scrollbarY
                 ]
-                [ El.el [ El.paddingXY 10 6 ]
-                    (El.text (edgeIdToString ( from, to )))
-                , El.el
-                    [ El.width (El.px 6)
-                    , El.height El.fill
-                    , El.alignRight
-                    , Background.color <|
-                        if Set.member ( from, to ) m.highlightedEdges then
-                            Colors.highlightPink
+                { data = User.getEdges (presentUser m)
+                , columns =
+                    [ { header = columnHeader "edge id"
+                      , width = El.px 50
+                      , view =
+                            \{ from, to } ->
+                                cell ( from, to ) <|
+                                    El.text (edgeIdToString ( from, to ))
+                      }
 
-                        else if Set.member ( from, to ) m.selectedEdges then
-                            Colors.selectBlue
-
-                        else
-                            Colors.menuBackground
+                    --, { header = columnHeader "Label"
+                    --  , width = El.fill
+                    --  , view =
+                    --        \{ id, label } ->
+                    --            cell id <|
+                    --                case label.label of
+                    --                    Just l ->
+                    --                        El.text l
+                    --                    Nothing ->
+                    --                        El.el
+                    --                            [ El.alpha 0.2
+                    --                            , El.width El.fill
+                    --                            ]
+                    --                            (El.text "no label")
+                    --  }
+                    --, { header = columnHeader "Fix"
+                    --  , width = El.px 20
+                    --  , view =
+                    --        \{ id, label } ->
+                    --            cell id <|
+                    --                El.el [ El.centerX ] <|
+                    --                    if label.fixed then
+                    --                        El.html
+                    --                            (Icons.draw10px Icons.icons.checkMark)
+                    --                    else
+                    --                        El.none
+                    --  }
+                    --, { header = columnHeader "X"
+                    --  , width = El.px 26
+                    --  , view =
+                    --        \{ id, label } ->
+                    --            label.position
+                    --                |> Point2d.xCoordinate
+                    --                |> round
+                    --                |> String.fromInt
+                    --                |> El.text
+                    --                |> cell id
+                    --  }
+                    --, { header = columnHeader "Y"
+                    --  , width = El.px 26
+                    --  , view =
+                    --        \{ id, label } ->
+                    --            label.position
+                    --                |> Point2d.yCoordinate
+                    --                |> round
+                    --                |> String.fromInt
+                    --                |> El.text
+                    --                |> cell id
+                    --  }
+                    --, { header = columnHeader "Str"
+                    --  , width = El.px 30
+                    --  , view =
+                    --        \{ id, label } ->
+                    --            cell id <|
+                    --                El.text (String.fromFloat label.strength)
+                    --  }
+                    --, { header = columnHeader "Col"
+                    --  , width = El.px 20
+                    --  , view =
+                    --        \{ id, label } ->
+                    --            cell id <|
+                    --                El.html <|
+                    --                    S.svg
+                    --                        [ SA.width "16"
+                    --                        , SA.height "10"
+                    --                        ]
+                    --                        [ S.circle
+                    --                            [ SA.r "5"
+                    --                            , SA.cx "8"
+                    --                            , SA.cy "5"
+                    --                            , SA.fill (Colors.toString label.color)
+                    --                            ]
+                    --                            []
+                    --                        ]
+                    --  }
+                    --, { header = columnHeader "Rad"
+                    --  , width = El.px 24
+                    --  , view =
+                    --        \{ id, label } ->
+                    --            cell id <|
+                    --                El.text (String.fromFloat label.radius)
+                    --  }
+                    --, { header = columnHeader " "
+                    --  , width = El.px 8
+                    --  , view =
+                    --        \{ id } ->
+                    --            cell id <|
+                    --                El.el
+                    --                    [ El.width El.fill
+                    --                    , El.height El.fill
+                    --                    , Background.color <|
+                    --                        if Set.member id m.highlightedVertices then
+                    --                            Colors.highlightPink
+                    --                        else
+                    --                            Colors.menuBackground
+                    --                    ]
+                    --                    El.none
+                    --  }
+                    --, { header = columnHeader " "
+                    --  , width = El.px 8
+                    --  , view =
+                    --        \{ id } ->
+                    --            cell id <|
+                    --                El.el
+                    --                    [ El.width El.fill
+                    --                    , El.height El.fill
+                    --                    , Background.color <|
+                    --                        if Set.member id m.selectedVertices then
+                    --                            Colors.selectBlue
+                    --                        else
+                    --                            Colors.menuBackground
+                    --                    ]
+                    --                    El.none
+                    --  }
                     ]
-                    El.none
-                ]
-            )
+                }
     in
     El.column [ El.width El.fill ]
         [ menu
@@ -1922,7 +2033,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     }
                 ]
             , toggleMsg = ToggleTableOfEdges
-            , contentItems = [ listOfEdges ]
+            , contentItems = [ tableOfEdges ]
             }
         ]
 
@@ -2488,23 +2599,19 @@ bags m =
             let
                 cell bagId content =
                     El.el
-                        [ El.padding 2
-                        , El.width El.fill
-                        , El.height El.fill
-                        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
-                        , Border.color Colors.menuBorder
-                        , Background.color <|
-                            if Just bagId == m.maybeSelectedBag then
-                                Colors.selectedItem
+                        (commonCellProperties
+                            ++ [ Events.onMouseEnter (MouseOverBagItem bagId)
+                               , Events.onMouseLeave (MouseOutBagItem bagId)
+                               , Events.onClick (ClickOnBagItem bagId)
+                               , El.scrollbarX
+                               , Background.color <|
+                                    if Just bagId == m.maybeSelectedBag then
+                                        Colors.selectedItem
 
-                            else
-                                Colors.menuBackground
-                        , Events.onMouseEnter (MouseOverBagItem bagId)
-                        , Events.onMouseLeave (MouseOutBagItem bagId)
-                        , Events.onClick (ClickOnBagItem bagId)
-                        , El.scrollbarX
-                        , Font.center
-                        ]
+                                    else
+                                        Colors.menuBackground
+                               ]
+                        )
                         content
             in
             El.table
