@@ -551,16 +551,31 @@ divideEdge coordinates ( s, t ) user =
     )
 
 
+setVertexPositionsForGraph : List ( VertexId, Point2d ) -> MyGraph -> MyGraph
+setVertexPositionsForGraph l =
+    -- This is internal.
+    Graph.Extra.updateNodesBy l (\pos vP -> { vP | position = pos })
+
+
 setVertexPositions : List ( VertexId, Point2d ) -> User -> User
 setVertexPositions l =
-    mapGraph (Graph.Extra.updateNodesBy l (\pos vP -> { vP | position = pos }))
+    mapGraph (setVertexPositionsForGraph l)
 
 
-addGraph : MyGraph -> User -> User
-addGraph graphToAdd =
+addGraph :
+    { graph : MyGraph
+    , suggestedLayout : List ( VertexId, Point2d )
+    }
+    -> User
+    -> User
+addGraph { graph, suggestedLayout } =
+    let
+        graphWithSuggestedLayout =
+            graph |> setVertexPositionsForGraph suggestedLayout
+    in
     mapGraph
         (\oldGraph ->
-            Graph.Extra.disjointUnion graphToAdd oldGraph |> .union
+            Graph.Extra.disjointUnion graphWithSuggestedLayout oldGraph |> .union
         )
 
 

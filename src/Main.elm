@@ -351,7 +351,10 @@ type Msg
     | InputEdgeStrength Float
     | InputEdgeColor Color
       --
-    | ClickOnGenerateButton User.MyGraph
+    | ClickOnGenerateButton
+        { graph : User.MyGraph
+        , suggestedLayout : List ( VertexId, Point2d )
+        }
 
 
 reheatSimulation : Model -> Model
@@ -1323,10 +1326,10 @@ update msg m =
                 , selectedEdges = Set.empty
             }
 
-        ClickOnGenerateButton generatedGraph ->
+        ClickOnGenerateButton p ->
             let
                 newUser =
-                    presentUser m |> User.addGraph generatedGraph
+                    presentUser m |> User.addGraph p
             in
             m |> nwUsr newUser "Added a generated graph "
 
@@ -2106,8 +2109,12 @@ leftBarContentForGraphQueries m =
 leftBarContentForGraphGenerators : Model -> Element Msg
 leftBarContentForGraphGenerators m =
     let
-        generateButton : User.MyGraph -> Element Msg
-        generateButton generatedGraph =
+        generateButton :
+            { graph : User.MyGraph
+            , suggestedLayout : List ( VertexId, Point2d )
+            }
+            -> Element Msg
+        generateButton p =
             El.el
                 [ El.htmlAttribute (HA.title "Generate!")
                 , El.alignRight
@@ -2115,7 +2122,7 @@ leftBarContentForGraphGenerators m =
                 , El.mouseDown [ Background.color Colors.selectedItem ]
                 , El.mouseOver [ Background.color Colors.mouseOveredItem ]
                 , El.pointer
-                , Events.onClick (ClickOnGenerateButton generatedGraph)
+                , Events.onClick (ClickOnGenerateButton p)
                 ]
                 (El.html (Icons.draw14px Icons.icons.lightning))
     in
@@ -2143,7 +2150,7 @@ leftBarContentForGraphGenerators m =
                     { labelText = "Number of Leaves"
                     , labelWidth = 100
                     , inputWidth = 40
-                    , text = "100"
+                    , text = "TODO"
                     , onChange = always NoOp
                     }
                 ]
