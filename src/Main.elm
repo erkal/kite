@@ -199,7 +199,7 @@ initialModel user =
     , shiftIsDown = False
 
     --
-    , pan = Point2d.origin
+    , pan = initialPan
     , zoom = 1
 
     --
@@ -240,6 +240,13 @@ initialModel user =
     , selectedVertices = Set.empty
     , selectedEdges = Set.empty
     }
+
+
+initialPan =
+    Point2d.fromCoordinates
+        ( -layoutParams.leftStripeWidth - layoutParams.leftBarWidth - 50
+        , -layoutParams.topBarHeight - 50
+        )
 
 
 
@@ -468,7 +475,7 @@ update msg m =
 
         ClickOnResetZoomAndPanButton ->
             { m
-                | pan = Point2d.origin
+                | pan = initialPan
                 , zoom = 1
             }
 
