@@ -199,7 +199,7 @@ initialModel user =
     , shiftIsDown = False
 
     --
-    , pan = initialPan
+    , pan = Point2d.origin
     , zoom = 1
 
     --
@@ -240,10 +240,6 @@ initialModel user =
     , selectedVertices = Set.empty
     , selectedEdges = Set.empty
     }
-
-
-initialPan =
-    Point2d.fromCoordinates ( -50, -50 )
 
 
 
@@ -472,7 +468,7 @@ update msg m =
 
         ClickOnResetZoomAndPanButton ->
             { m
-                | pan = initialPan
+                | pan = Point2d.origin
                 , zoom = 1
             }
 
@@ -584,8 +580,10 @@ update msg m =
 
                 newSvgMousePosition =
                     Point2d.fromCoordinates
-                        ( toFloat newMousePosition.x - layoutParams.leftStripeWidth - layoutParams.leftBarWidth
-                        , toFloat newMousePosition.y - layoutParams.topBarHeight
+                        ( toFloat newMousePosition.x
+                          --- layoutParams.leftStripeWidth - layoutParams.leftBarWidth
+                        , toFloat newMousePosition.y
+                          --- layoutParams.topBarHeight
                         )
                         |> Point2d.scaleAbout Point2d.origin (1 / m.zoom)
                         |> Point2d.translateBy panAsVector
@@ -1419,11 +1417,10 @@ toKey string =
 
 
 layoutParams =
-    { minimumTotalWidth = 1000
-    , leftStripeWidth = 40
+    { leftStripeWidth = 40
     , leftBarWidth = 260
-    , topBarHeight = 54
     , rightBarWidth = 300
+    , topBarHeight = 54
     }
 
 
@@ -1498,19 +1495,27 @@ view m =
         ]
     <|
         El.row
-            [ El.width (El.fill |> El.minimum layoutParams.minimumTotalWidth)
-            , El.height El.fill
+            [ El.width (El.px m.windowSize.width)
+            , El.height (El.px m.windowSize.height)
             ]
-            [ leftStripe m
+            [ El.html (mainSvg m)
+            , leftStripe m
             , leftBar m
-            , El.column [ El.width El.fill, El.height El.fill ] <|
+            , El.column
+                [ El.alignTop
+                , El.width
+                    (El.px
+                        (m.windowSize.width
+                            - layoutParams.leftStripeWidth
+                            - layoutParams.leftBarWidth
+                            - layoutParams.rightBarWidth
+                        )
+                    )
+                , El.htmlAttribute (HA.style "pointer-events" "none")
+                ]
+              <|
                 [ topBar m
-                , El.column
-                    []
-                    [ El.el [ El.width El.fill, El.height El.fill ] <|
-                        El.html (mainSvg m)
-                    , debugView m
-                    ]
+                , debugView m
                 ]
             , rightBar m
             ]
@@ -1565,6 +1570,8 @@ debugView m =
                         ]
                         []
                     ]
+        , El.text (Debug.toString m.mousePosition)
+        , El.text (Debug.toString m.svgMousePosition)
         ]
 
 
@@ -1801,7 +1808,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             in
             El.table
                 [ El.width El.fill
-                , El.height (El.fill |> El.maximum 255)
+                , El.height El.fill
                 , El.scrollbarY
                 ]
                 { data = User.getVertices (presentUser m)
@@ -1949,7 +1956,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             in
             El.table
                 [ El.width El.fill
-                , El.height (El.fill |> El.maximum 255)
+                , El.height El.fill
                 , El.scrollbarY
                 ]
                 { data = User.getEdges (presentUser m)
@@ -2273,6 +2280,7 @@ topBar m =
         [ Background.color Colors.menuBackground
         , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
         , Border.color Colors.menuBorder
+        , El.htmlAttribute (HA.style "pointer-events" "auto")
         , El.width El.fill
         , El.height (El.px layoutParams.topBarHeight)
         ]
@@ -2363,6 +2371,7 @@ rightBar m =
         , Border.color Colors.menuBorder
         , El.width (El.px layoutParams.rightBarWidth)
         , El.height El.fill
+        , El.scrollbarY
         ]
         [ history m
         , selector m
@@ -3468,15 +3477,12 @@ mainSvg m =
                     "default"
 
         mainSvgWidth =
-            max m.windowSize.width layoutParams.minimumTotalWidth
-                - layoutParams.leftStripeWidth
-                - layoutParams.leftBarWidth
-                - layoutParams.rightBarWidth
+            m.windowSize.width
 
         mainSvgHeight =
-            m.windowSize.height - layoutParams.topBarHeight
+            m.windowSize.height
 
-        fromPanAndZoom pan zoom =
+        svgViewBoxFromPanAndZoom pan zoom =
             [ Point2d.xCoordinate m.pan
             , Point2d.yCoordinate m.pan
             , toFloat mainSvgWidth / zoom
@@ -3492,7 +3498,7 @@ mainSvg m =
         , HA.style "position" "absolute"
         , SA.width (String.fromInt mainSvgWidth)
         , SA.height (String.fromInt mainSvgHeight)
-        , SA.viewBox (fromPanAndZoom m.pan m.zoom)
+        , SA.viewBox (svgViewBoxFromPanAndZoom m.pan m.zoom)
         , SE.onMouseDown MouseDownOnMainSvg
         , HE.on "wheel" (Decode.map WheelDeltaY wheelDeltaY)
         ]
