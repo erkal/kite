@@ -13,6 +13,7 @@ module Force exposing
 import Dict exposing (Dict)
 import Force.Link as Link
 import Force.ManyBody as ManyBody
+import Force.Pull as Pull
 import Graph exposing (Edge, Graph, Node, NodeId)
 import Graph.Extra
 import Point2d exposing (Point2d)
@@ -33,6 +34,7 @@ type State
 type Force
     = Link
     | ManyBody Float
+    | Pull
 
 
 type alias ForceVertex n =
@@ -139,6 +141,26 @@ applyForce alpha force forceGraph =
                         |> List.map toManyBodyVertex
                         |> ManyBody.run alpha theta
                         |> List.map (\{ key, velocity } -> ( key, velocity ))
+            in
+            forceGraph |> updateVelocities newVelocities
+
+        Pull ->
+            let
+                toPullVertex : Node (ForceVertex n) -> Pull.Vertex
+                toPullVertex { id, label } =
+                    { id = id
+                    , position = label.position
+                    , velocity = label.velocity
+                    , pullCenter = Point2d.fromCoordinates ( 300, 300 )
+                    , pullStrength = 0.1
+                    }
+
+                newVelocities : List ( NodeId, Velocity )
+                newVelocities =
+                    forceGraph
+                        |> Graph.nodes
+                        |> List.map toPullVertex
+                        |> Pull.run alpha
             in
             forceGraph |> updateVelocities newVelocities
 

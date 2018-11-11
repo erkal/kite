@@ -21,8 +21,12 @@ run alpha =
             let
                 diff =
                     Vector2d.from
-                        (source.position |> Point2d.translateBy source.velocity)
-                        (target.position |> Point2d.translateBy target.velocity)
+                        (source.position
+                            |> Point2d.translateBy source.velocity
+                        )
+                        (target.position
+                            |> Point2d.translateBy target.velocity
+                        )
 
                 d =
                     Vector2d.length diff

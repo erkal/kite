@@ -143,8 +143,9 @@ default =
         { graph = Graph.empty
         , bags = Dict.empty
         , forces =
-            [ Force.ManyBody 0.9
-            , Force.Link
+            [ Force.Link
+            , Force.ManyBody 0.9
+            , Force.Pull
             ]
         , defaultVertexProperties =
             { label = Nothing
