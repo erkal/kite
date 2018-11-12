@@ -1503,6 +1503,8 @@ view m =
     <|
         El.row
             [ El.width (El.px m.windowSize.width)
+
+            --[ El.width (El.px m.windowSize.width)
             , El.height (El.px m.windowSize.height)
             ]
             [ El.html (mainSvg m)
@@ -1639,6 +1641,7 @@ leftStripe m =
         , El.width (El.px layoutParams.leftStripeWidth)
         , El.height El.fill
         , El.paddingXY 0 2
+        , El.scrollbarY
         ]
         [ radioButtonsForMode
         , githubButton
@@ -1659,7 +1662,7 @@ leftBar m =
         , Border.color Colors.menuBorder
         , El.width (El.px layoutParams.leftBarWidth)
         , El.height El.fill
-        , {- TODO: Scrollbar doesn't work. -} El.scrollbarY
+        , El.scrollbarY
         ]
     <|
         case m.selectedMode of
@@ -1816,7 +1819,6 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             El.table
                 [ El.width El.fill
                 , El.height El.fill
-                , El.scrollbarY
                 ]
                 { data = User.getVertices (presentUser m)
                 , columns =
@@ -1964,7 +1966,6 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             El.table
                 [ El.width El.fill
                 , El.height El.fill
-                , El.scrollbarY
                 ]
                 { data = User.getEdges (presentUser m)
                 , columns =
@@ -2726,7 +2727,7 @@ bags m =
             in
             El.table
                 [ El.width El.fill
-                , El.height (El.fill |> El.maximum 105)
+                , El.height (El.px 105)
                 , El.scrollbarY
                 ]
                 { data = User.getBags (presentUser m)

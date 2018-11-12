@@ -152,7 +152,7 @@ applyForce alpha force forceGraph =
                     , position = label.position
                     , velocity = label.velocity
                     , pullCenter = Point2d.fromCoordinates ( 300, 300 )
-                    , pullStrength = 0.1
+                    , pullStrength = 0.05
                     }
 
                 newVelocities : List ( NodeId, Velocity )
