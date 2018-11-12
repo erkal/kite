@@ -78,6 +78,8 @@ type alias Model =
 
     --
     , timeList : List Time.Posix
+
+    --
     , windowSize : { width : Int, height : Int }
     , mousePosition : MousePosition
     , svgMousePosition : Point2d
@@ -1557,14 +1559,20 @@ debugView m =
     El.row
         [ El.width El.fill
         , El.padding 10
+        , El.spacing 4
         , Font.size 10
         ]
     <|
-        [ El.el [ El.width (El.px 20) ] <| El.text (String.fromInt (round fps))
-        , El.el [ El.width (El.px 40) ] <| El.text "fps"
-        , El.el [] <|
+        [ El.el [ El.alignRight, Font.alignRight ] <|
+            El.text (String.fromInt (round fps))
+        , El.el [ El.alignRight ] <|
+            El.text "fps"
+        , El.el [ El.alignRight ] <|
             El.html <|
-                S.svg [ SA.height "10px" ]
+                S.svg
+                    [ SA.height "10"
+                    , SA.width (String.fromFloat (scale * 70))
+                    ]
                     [ S.rect
                         [ SA.height "10"
                         , SA.width (String.fromFloat (scale * fps))
@@ -1579,8 +1587,6 @@ debugView m =
                         ]
                         []
                     ]
-        , El.text (Debug.toString m.mousePosition)
-        , El.text (Debug.toString m.svgMousePosition)
         ]
 
 
@@ -2616,6 +2622,7 @@ history m =
             m.userUL
                 |> UL.toList
                 |> List.indexedMap item
+                |> List.reverse
 
         content =
             El.column
