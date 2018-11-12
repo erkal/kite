@@ -74,6 +74,9 @@ type alias Model =
     { userUL : UndoList ( String, User )
 
     --
+    , distractionFree : Bool
+
+    --
     , simulationState : Force.State
 
     --
@@ -188,6 +191,9 @@ initialModel user =
     { userUL = UL.fresh ( "Started with empty graph", user )
 
     --
+    , distractionFree = False
+
+    --
     , simulationState = user |> User.simulation
 
     --
@@ -270,6 +276,9 @@ type Msg
     | KeyUpShift
       --
     | PageVisibility Browser.Events.Visibility
+      --
+    | ClickOnDistractionFreeOffButton
+    | ClickOnDistractionFreeOnButton
       --
     | ClickOnLeftMostBarRadioButton Mode
       --
@@ -459,6 +468,12 @@ update msg m =
 
                 Visible ->
                     m
+
+        ClickOnDistractionFreeOffButton ->
+            { m | distractionFree = False }
+
+        ClickOnDistractionFreeOnButton ->
+            { m | distractionFree = True }
 
         ClickOnLeftMostBarRadioButton selectedMode ->
             { m | selectedMode = selectedMode }
@@ -1474,6 +1489,13 @@ edgeIdsToString es =
 
 view : Model -> Html Msg
 view m =
+    let
+        topBarWidth =
+            m.windowSize.width
+                - layoutParams.leftStripeWidth
+                - layoutParams.leftBarWidth
+                - layoutParams.rightBarWidth
+    in
     El.layoutWith
         { options =
             [ El.focusStyle
@@ -1503,33 +1525,56 @@ view m =
         , El.htmlAttribute (HA.style "user-select" "none")
         ]
     <|
-        El.row
-            [ El.width (El.px m.windowSize.width)
+        if m.distractionFree then
+            El.row
+                [ El.width (El.px m.windowSize.width)
+                , El.height (El.px m.windowSize.height)
+                ]
+                [ El.html (mainSvg m)
+                , El.el
+                    [ El.alignTop
+                    , El.width El.fill
+                    ]
+                  <|
+                    El.row [ El.width El.fill ]
+                        [ El.el
+                            [ El.width (El.px layoutParams.leftStripeWidth)
+                            , El.padding 7
+                            , Events.onClick ClickOnDistractionFreeOffButton
+                            , El.pointer
+                            ]
+                          <|
+                            El.html
+                                (Icons.draw40pxWithColor Colors.white
+                                    Icons.icons.yinAndYang
+                                )
+                        , El.el [ El.width (El.px layoutParams.leftBarWidth) ] El.none
+                        , El.el
+                            [ El.width (El.px topBarWidth)
+                            ]
+                            (topBar m)
+                        ]
+                ]
 
-            --[ El.width (El.px m.windowSize.width)
-            , El.height (El.px m.windowSize.height)
-            ]
-            [ El.html (mainSvg m)
-            , leftStripe m
-            , leftBar m
-            , El.column
-                [ El.alignTop
-                , El.width
-                    (El.px
-                        (m.windowSize.width
-                            - layoutParams.leftStripeWidth
-                            - layoutParams.leftBarWidth
-                            - layoutParams.rightBarWidth
-                        )
-                    )
-                , El.htmlAttribute (HA.style "pointer-events" "none")
+        else
+            El.row
+                [ El.width (El.px m.windowSize.width)
+                , El.height (El.px m.windowSize.height)
                 ]
-              <|
-                [ topBar m
-                , debugView m
+                [ El.html (mainSvg m)
+                , leftStripe m
+                , leftBar m
+                , El.column
+                    [ El.alignTop
+                    , El.width (El.px topBarWidth)
+                    , El.htmlAttribute (HA.style "pointer-events" "none")
+                    ]
+                  <|
+                    [ topBar m
+                    , debugView m
+                    ]
+                , rightBar m
                 ]
-            , rightBar m
-            ]
 
 
 debugView : Model -> Element Msg
@@ -1593,6 +1638,19 @@ debugView m =
 leftStripe : Model -> Element Msg
 leftStripe m =
     let
+        distractionFreeButton =
+            El.el
+                [ El.width (El.px layoutParams.leftStripeWidth)
+                , El.padding 7
+                , Events.onClick ClickOnDistractionFreeOnButton
+                , El.pointer
+                ]
+            <|
+                El.html
+                    (Icons.draw40pxWithColor Colors.leftStripeIconSelected
+                        Icons.icons.yinAndYang
+                    )
+
         modeButton title selectedMode iconPath =
             let
                 color =
@@ -1606,15 +1664,13 @@ leftStripe m =
                 [ El.htmlAttribute (HA.title title)
                 , Events.onClick (ClickOnLeftMostBarRadioButton selectedMode)
                 , El.pointer
+                , El.padding 7
                 ]
                 (El.html (Icons.draw40pxWithColor color iconPath))
 
         radioButtonsForMode =
             El.column
                 [ El.alignTop
-
-                --, El.paddingXY 7 0
-                , El.spacing 14
                 ]
                 [ modeButton "Preferences" Preferences Icons.icons.preferencesGear
                 , modeButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
@@ -1630,6 +1686,7 @@ leftStripe m =
                 [ El.htmlAttribute (HA.title "Source Code")
                 , El.alignBottom
                 , El.pointer
+                , El.padding 7
                 ]
                 { url = "https://github.com/erkal/kite"
                 , label = El.html (Icons.draw40pxWithColor Colors.yellow Icons.icons.githubCat)
@@ -1648,11 +1705,10 @@ leftStripe m =
         [ Background.color Colors.black
         , El.width (El.px layoutParams.leftStripeWidth)
         , El.height El.fill
-        , El.padding 7
-        , El.spacing 7
         , El.scrollbarY
         ]
-        [ radioButtonsForMode
+        [ distractionFreeButton
+        , radioButtonsForMode
         , githubButton
 
         --, donateButton
