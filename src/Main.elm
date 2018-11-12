@@ -1426,7 +1426,7 @@ toKey string =
 
 
 layoutParams =
-    { leftStripeWidth = 40
+    { leftStripeWidth = 54
     , leftBarWidth = 260
     , rightBarWidth = 300
     , topBarHeight = 54
@@ -1612,7 +1612,9 @@ leftStripe m =
         radioButtonsForMode =
             El.column
                 [ El.alignTop
-                , El.spacing 2
+
+                --, El.paddingXY 7 0
+                , El.spacing 14
                 ]
                 [ modeButton "Preferences" Preferences Icons.icons.preferencesGear
                 , modeButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
@@ -1646,7 +1648,8 @@ leftStripe m =
         [ Background.color Colors.black
         , El.width (El.px layoutParams.leftStripeWidth)
         , El.height El.fill
-        , El.paddingXY 0 2
+        , El.padding 7
+        , El.spacing 7
         , El.scrollbarY
         ]
         [ radioButtonsForMode
