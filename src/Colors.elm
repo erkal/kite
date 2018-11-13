@@ -15,6 +15,7 @@ module Colors exposing
     , menuBorder
     , menuBorderOnMouseOver
     , mouseOveredItem
+    , orange
     , rectAroundSelectedVertices
     , rightBarHeader
     , selectBlue
@@ -54,6 +55,10 @@ svgLine =
 
 yellow =
     El.rgb255 255 255 2
+
+
+orange =
+    El.rgb255 242 142 1
 
 
 mainSvgBackground =

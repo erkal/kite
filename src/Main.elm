@@ -100,6 +100,7 @@ type alias Model =
     --
     , vertexColorPickerIsExpanded : Bool
     , edgeColorPickerIsExpanded : Bool
+    , bagColorPickerIsExpanded : Bool
 
     --
     , selectedMode : Mode
@@ -215,6 +216,7 @@ initialModel user =
     --
     , vertexColorPickerIsExpanded = False
     , edgeColorPickerIsExpanded = False
+    , bagColorPickerIsExpanded = False
 
     --
     , selectedMode = ListsOfBagsVerticesAndEdges
@@ -295,8 +297,10 @@ type Msg
       --
     | ClickOnVertexColorPicker
     | ClickOnEdgeColorPicker
+    | ClickOnBagColorPicker
     | MouseLeaveVertexColorPicker
     | MouseLeaveEdgeColorPicker
+    | MouseLeaveBagColorPicker
       --
     | ClickOnRectSelector
     | ClickOnLineSelector
@@ -346,7 +350,9 @@ type Msg
     | MouseOutEdgeItem EdgeId
     | ClickOnEdgeItem EdgeId
       --
+    | InputBagLabel BagId String
     | InputBagConvexHull BagId Bool
+    | InputBagColor BagId Color
       --
     | InputVertexLabel String
     | InputVertexLabelVisibility Bool
@@ -511,11 +517,17 @@ update msg m =
         ClickOnEdgeColorPicker ->
             { m | edgeColorPickerIsExpanded = not m.edgeColorPickerIsExpanded }
 
+        ClickOnBagColorPicker ->
+            { m | bagColorPickerIsExpanded = not m.bagColorPickerIsExpanded }
+
         MouseLeaveVertexColorPicker ->
             { m | vertexColorPickerIsExpanded = False }
 
         MouseLeaveEdgeColorPicker ->
             { m | edgeColorPickerIsExpanded = False }
+
+        MouseLeaveBagColorPicker ->
+            { m | bagColorPickerIsExpanded = False }
 
         ClickOnRectSelector ->
             { m
@@ -870,6 +882,25 @@ update msg m =
                 _ ->
                     m
 
+        InputBagLabel bagId str ->
+            let
+                updateLabel bag =
+                    { bag
+                        | label =
+                            if str == "" then
+                                Nothing
+
+                            else
+                                Just str
+                    }
+
+                newUser =
+                    presentUser m |> User.updateBag bagId updateLabel
+            in
+            m
+                |> nwUsr newUser
+                    ("Changed the label of the bag " ++ bagIdToString bagId)
+
         InputBagConvexHull bagId b ->
             let
                 updateCH bag =
@@ -881,6 +912,18 @@ update msg m =
             m
                 |> nwUsr newUser
                     ("Toggled convex hull of the bag " ++ bagIdToString bagId)
+
+        InputBagColor bagId color ->
+            let
+                updateColor bag =
+                    { bag | color = color }
+
+                newUser =
+                    presentUser m |> User.updateBag bagId updateColor
+            in
+            m
+                |> nwUsr newUser
+                    ("Changed color of " ++ bagIdToString bagId)
 
         InputVertexX str ->
             let
@@ -978,7 +1021,14 @@ update msg m =
         InputVertexLabel str ->
             let
                 updateLabel v =
-                    { v | label = Just str }
+                    { v
+                        | label =
+                            if str == "" then
+                                Nothing
+
+                            else
+                                Just str
+                    }
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
@@ -1085,7 +1135,14 @@ update msg m =
         InputEdgeLabel str ->
             let
                 updateLabel v =
-                    { v | label = Just str }
+                    { v
+                        | label =
+                            if str == "" then
+                                Nothing
+
+                            else
+                                Just str
+                    }
 
                 newUser =
                     if Set.isEmpty m.selectedEdges then
@@ -2875,43 +2932,34 @@ bags m =
                     []
 
                 Just idOfTheSelectedBag ->
-                    [ --    El.row []
-                      --    [ textInput
-                      --        { labelText = "Label"
-                      --        , labelWidth = 80
-                      --        , inputWidth = 60
-                      --        , text = {- TODO -} ""
-                      --        , onChange = {- TODO -} InputVertexLabel
-                      --        }
-                      --    , checkbox
-                      --        { labelText = "Show Label"
-                      --        , labelWidth = 70
-                      --        , state = {- TODO -} Nothing
-                      --        , onChange = {- TODO -} InputVertexLabelVisibility
-                      --        }
-                      --    ]
-                      --,
-                      El.row []
-                        [ --colorPicker
-                          --        { labelText = "Color"
-                          --        , labelWidth = 80
-                          --        , isExpanded = m.vertexColorPickerIsExpanded
-                          --        , selectedColor =
-                          --            if Set.isEmpty m.selectedVertices then
-                          --                Just
-                          --                    (presentUser m
-                          --                        |> User.getDefaultVertexProperties
-                          --                        |> .color
-                          --                    )
-                          --            else
-                          --                presentUser m
-                          --                    |> User.getCommonVertexProperty m.selectedVertices .color
-                          --        , msgOnColorClick = InputVertexColor
-                          --        , msgOnExpanderClick = ClickOnVertexColorPicker
-                          --        , msgOnLeave = MouseLeaveVertexColorPicker
-                          --        }
-                          --,
-                          checkbox
+                    [ El.row []
+                        [ textInput
+                            { labelText = "Label"
+                            , labelWidth = 80
+                            , inputWidth = 60
+                            , text =
+                                presentUser m
+                                    |> User.getBagProperties idOfTheSelectedBag
+                                    |> Maybe.map .label
+                                    |> Maybe.withDefault Nothing
+                                    |> Maybe.withDefault ""
+                            , onChange = InputBagLabel idOfTheSelectedBag
+                            }
+                        ]
+                    , El.row [ El.height (El.px 40) ]
+                        [ colorPicker
+                            { labelText = "Color"
+                            , labelWidth = 80
+                            , isExpanded = m.bagColorPickerIsExpanded
+                            , selectedColor =
+                                presentUser m
+                                    |> User.getBagProperties idOfTheSelectedBag
+                                    |> Maybe.map .color
+                            , msgOnColorClick = InputBagColor idOfTheSelectedBag
+                            , msgOnExpanderClick = ClickOnBagColorPicker
+                            , msgOnLeave = MouseLeaveBagColorPicker
+                            }
+                        , checkbox
                             { labelText = "Convex Hull"
                             , labelWidth = 80
                             , state =
@@ -2921,47 +2969,6 @@ bags m =
                             , onChange = InputBagConvexHull idOfTheSelectedBag
                             }
                         ]
-
-                    --, El.row []
-                    --    [ checkbox
-                    --        { labelText = "Pull Center"
-                    --        , labelWidth = 80
-                    --        , state = {- TODO -} Nothing
-                    --        , onChange = {- TODO -} InputVertexLabelVisibility
-                    --        }
-                    --    , El.el [ El.paddingXY 20 0 ] <|
-                    --        El.text <|
-                    --            case
-                    --                presentUser m
-                    --                    |> User.getBagProperties idOfTheSelectedBag
-                    --                    |> Maybe.map .pullCenter
-                    --            of
-                    --                Just pC ->
-                    --                    pC |> pointToString
-                    --                Nothing ->
-                    --                    ""
-                    --    ]
-                    --, sliderInput
-                    --    { labelText = "Pull Strength"
-                    --    , labelWidth = 80
-                    --    , value =
-                    --        let
-                    --            defaultVertexStrength =
-                    --                presentUser m
-                    --                    |> User.getDefaultVertexProperties
-                    --                    |> .strength
-                    --        in
-                    --        if Set.isEmpty m.selectedVertices then
-                    --            defaultVertexStrength
-                    --        else
-                    --            presentUser m
-                    --                |> User.getCommonVertexProperty m.selectedVertices .strength
-                    --                |> Maybe.withDefault defaultVertexStrength
-                    --    , min = -2000
-                    --    , max = 0
-                    --    , step = 40
-                    --    , onChange = InputVertexStrength
-                    --    }
                     ]
     in
     menu
@@ -2980,7 +2987,10 @@ bags m =
                 }
             ]
         , toggleMsg = ToggleBags
-        , contentItems = tableOfBags :: maybeBagPreferences
+        , contentItems =
+            [ tableOfBags
+            , El.column [ El.height (El.px 54) ] maybeBagPreferences
+            ]
         }
 
 
@@ -3727,12 +3737,12 @@ viewVertices user =
 viewHulls : User -> Html Msg
 viewHulls user =
     let
-        hull : List Point2d -> Html a
-        hull positions =
+        hull : Color -> List Point2d -> Html a
+        hull color positions =
             Geometry.Svg.polygon2d
-                [ SA.fill "lightGray"
+                [ SA.fill (Colors.toString color)
                 , SA.opacity "0.3"
-                , SA.stroke "lightGray"
+                , SA.stroke (Colors.toString color)
                 , SA.strokeWidth "50"
                 , SA.strokeLinejoin "round"
                 ]
@@ -3741,8 +3751,12 @@ viewHulls user =
         hulls =
             user
                 |> User.getBagsWithVertices
-                |> Dict.filter (\_ ( bP, _ ) -> bP.hasConvexHull)
                 |> Dict.values
-                |> List.map (\( _, l ) -> hull (l |> List.map (Tuple.second >> .position)))
+                |> List.filter (\( bP, _ ) -> bP.hasConvexHull)
+                |> List.map
+                    (\( bP, l ) ->
+                        hull bP.color
+                            (l |> List.map (Tuple.second >> .position))
+                    )
     in
     S.g [] hulls
