@@ -191,7 +191,7 @@ initialModel user =
     { userUL = UL.fresh ( "Started with empty graph", user )
 
     --
-    , distractionFree = False
+    , distractionFree = True
 
     --
     , simulationState = user |> User.simulation
@@ -1443,7 +1443,7 @@ toKey string =
 layoutParams =
     { leftStripeWidth = 54
     , leftBarWidth = 260
-    , rightBarWidth = 300
+    , rightBarWidth = 260
     , topBarHeight = 54
     }
 
@@ -1495,6 +1495,12 @@ view m =
                 - layoutParams.leftStripeWidth
                 - layoutParams.leftBarWidth
                 - layoutParams.rightBarWidth
+
+        yinAndYangIConSvg =
+            El.html
+                (Icons.draw40pxWithColor Colors.white
+                    Icons.icons.yinAndYang
+                )
     in
     El.layoutWith
         { options =
@@ -1534,6 +1540,7 @@ view m =
                 , El.el
                     [ El.alignTop
                     , El.width El.fill
+                    , El.htmlAttribute (HA.style "pointer-events" "none")
                     ]
                   <|
                     El.row [ El.width El.fill ]
@@ -1542,15 +1549,18 @@ view m =
                             , El.padding 7
                             , Events.onClick ClickOnDistractionFreeOffButton
                             , El.pointer
+                            , El.htmlAttribute (HA.style "pointer-events" "auto")
                             ]
-                          <|
-                            El.html
-                                (Icons.draw40pxWithColor Colors.white
-                                    Icons.icons.yinAndYang
-                                )
-                        , El.el [ El.width (El.px layoutParams.leftBarWidth) ] El.none
+                            yinAndYangIConSvg
                         , El.el
-                            [ El.width (El.px topBarWidth)
+                            [ El.centerX
+                            , Border.roundEach
+                                { topLeft = 0
+                                , topRight = 0
+                                , bottomLeft = 20
+                                , bottomRight = 20
+                                }
+                            , El.clip
                             ]
                             (topBar m)
                         ]
@@ -1569,7 +1579,6 @@ view m =
                     , El.width (El.px topBarWidth)
                     , El.htmlAttribute (HA.style "pointer-events" "none")
                     ]
-                  <|
                     [ topBar m
                     , debugView m
                     ]
@@ -2350,15 +2359,21 @@ radioButton { title, iconPath, onClickMsg, isSelected } =
 topBar : Model -> Element Msg
 topBar m =
     El.el
-        [ Background.color Colors.menuBackground
-        , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+        [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+        , Background.color Colors.menuBackground
+        , El.clip
         , Border.color Colors.menuBorder
         , El.htmlAttribute (HA.style "pointer-events" "auto")
         , El.width El.fill
         , El.height (El.px layoutParams.topBarHeight)
         ]
     <|
-        El.row [ El.centerY, El.paddingXY 16 0, El.spacing 16 ]
+        El.row
+            [ El.centerX
+            , El.centerY
+            , El.paddingXY 16 0
+            , El.spacing 16
+            ]
             [ oneClickButtonGroup
                 [ oneClickButton
                     { title = "Undo"
