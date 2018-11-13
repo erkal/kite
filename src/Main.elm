@@ -17,7 +17,6 @@ import Element.Input as Input
 import Element.Keyed
 import Force exposing (Force)
 import Geometry.Svg
-import Graph.Generators
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
 import Html.Events as HE
@@ -365,10 +364,7 @@ type Msg
     | InputEdgeStrength Float
     | InputEdgeColor Color
       --
-    | ClickOnGenerateButton
-        { graph : User.MyGraph
-        , suggestedLayout : List ( VertexId, Point2d )
-        }
+    | ClickOnGenerateStarGraphButton
 
 
 reheatSimulation : Model -> Model
@@ -1348,10 +1344,10 @@ update msg m =
                 , selectedEdges = Set.empty
             }
 
-        ClickOnGenerateButton p ->
+        ClickOnGenerateStarGraphButton ->
             let
                 newUser =
-                    presentUser m |> User.addGraph p
+                    presentUser m |> User.addStarGraph { numberOfLeaves = 20 }
             in
             m |> nwUsr newUser "Added a generated graph "
 
@@ -1652,6 +1648,8 @@ leftStripe m =
                 [ El.width (El.px layoutParams.leftStripeWidth)
                 , El.padding 7
                 , Events.onClick ClickOnDistractionFreeOnButton
+                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Border.color Colors.menuBorder
                 , El.pointer
                 ]
             <|
@@ -2198,12 +2196,8 @@ leftBarContentForGraphQueries m =
 leftBarContentForGraphGenerators : Model -> Element Msg
 leftBarContentForGraphGenerators m =
     let
-        generateButton :
-            { graph : User.MyGraph
-            , suggestedLayout : List ( VertexId, Point2d )
-            }
-            -> Element Msg
-        generateButton p =
+        generateButton : Msg -> Element Msg
+        generateButton msg =
             El.el
                 [ El.htmlAttribute (HA.title "Generate!")
                 , El.alignRight
@@ -2211,7 +2205,7 @@ leftBarContentForGraphGenerators m =
                 , El.mouseDown [ Background.color Colors.selectedItem ]
                 , El.mouseOver [ Background.color Colors.mouseOveredItem ]
                 , El.pointer
-                , Events.onClick (ClickOnGenerateButton p)
+                , Events.onClick msg
                 ]
                 (El.html (Icons.draw14px Icons.icons.lightning))
     in
@@ -2223,14 +2217,7 @@ leftBarContentForGraphGenerators m =
             , toggleMsg = NoOp
             , contentItems =
                 [ El.row [ El.padding 10, El.spacing 5 ]
-                    [ generateButton <|
-                        Graph.Generators.star
-                            { numberOfLeaves = 300
-                            , vertexProperties =
-                                User.getDefaultVertexProperties (presentUser m)
-                            , edgeProperties =
-                                User.getDefaultEdgeProperties (presentUser m)
-                            }
+                    [ generateButton ClickOnGenerateStarGraphButton
                     , El.el
                         [ Font.bold ]
                         (El.text "Star Graph")

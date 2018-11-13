@@ -11,6 +11,7 @@ module User exposing
     , addBag
     , addEdge
     , addGraph
+    , addStarGraph
     , addVertex
     , contractEdge
     , default
@@ -57,6 +58,7 @@ import Element exposing (Color)
 import Force exposing (Force, ForceGraph)
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Graph.Extra
+import Graph.Generators
 import IntDict exposing (IntDict)
 import LineSegment2d exposing (LineSegment2d)
 import Point2d exposing (Point2d)
@@ -578,6 +580,19 @@ addGraph { graph, suggestedLayout } =
         (\oldGraph ->
             Graph.Extra.disjointUnion graphWithSuggestedLayout oldGraph |> .union
         )
+
+
+addStarGraph : { numberOfLeaves : Int } -> User -> User
+addStarGraph { numberOfLeaves } user =
+    let
+        starGraphWithLayout =
+            Graph.Generators.star
+                { numberOfLeaves = numberOfLeaves
+                , vertexProperties = getDefaultVertexProperties user
+                , edgeProperties = getDefaultEdgeProperties user
+                }
+    in
+    addGraph starGraphWithLayout user
 
 
 duplicateSubgraph : Set VertexId -> Set ( VertexId, VertexId ) -> User -> ( User, Set VertexId, Set ( VertexId, VertexId ) )
