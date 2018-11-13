@@ -954,17 +954,17 @@ update msg m =
 
         InputVertexStrength num ->
             let
-                updateStrength v =
-                    { v | strength = num }
+                updateManyBodyStrength v =
+                    { v | manyBodyStrength = num }
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
-                            |> User.updateDefaultVertexProperties updateStrength
+                            |> User.updateDefaultVertexProperties updateManyBodyStrength
 
                     else
                         presentUser m
-                            |> User.updateVertices m.selectedVertices updateStrength
+                            |> User.updateVertices m.selectedVertices updateManyBodyStrength
             in
             m
                 |> reheatSimulation
@@ -1957,7 +1957,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ id, label } ->
                                 cell id <|
-                                    El.text (String.fromFloat label.strength)
+                                    El.text (String.fromFloat label.manyBodyStrength)
                       }
                     , { header = columnHeader "Col"
                       , width = El.px 20
@@ -3110,14 +3110,14 @@ vertexPreferences m =
                         defaultVertexStrength =
                             presentUser m
                                 |> User.getDefaultVertexProperties
-                                |> .strength
+                                |> .manyBodyStrength
                     in
                     if Set.isEmpty m.selectedVertices then
                         defaultVertexStrength
 
                     else
                         presentUser m
-                            |> User.getCommonVertexProperty m.selectedVertices .strength
+                            |> User.getCommonVertexProperty m.selectedVertices .manyBodyStrength
                             |> Maybe.withDefault defaultVertexStrength
                 , min = -2000
                 , max = 0

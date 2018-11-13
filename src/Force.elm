@@ -41,7 +41,9 @@ type alias ForceVertex n =
     { n
         | position : Point2d
         , velocity : Velocity
-        , strength : Float
+        , manyBodyStrength : Float
+        , pullCenter : Point2d
+        , pullStrength : Float
         , fixed : Bool
     }
 
@@ -131,7 +133,7 @@ applyForce alpha force forceGraph =
                     { key = id
                     , position = label.position
                     , velocity = label.velocity
-                    , strength = label.strength
+                    , strength = label.manyBodyStrength
                     }
 
                 newVelocities : List ( NodeId, Velocity )
@@ -151,8 +153,8 @@ applyForce alpha force forceGraph =
                     { id = id
                     , position = label.position
                     , velocity = label.velocity
-                    , pullCenter = Point2d.fromCoordinates ( 300, 300 )
-                    , pullStrength = 0.05
+                    , pullCenter = label.pullCenter
+                    , pullStrength = label.pullStrength
                     }
 
                 newVelocities : List ( NodeId, Velocity )

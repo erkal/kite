@@ -97,7 +97,9 @@ type alias VertexProperties =
     , labelIsVisible : Bool
     , position : Point2d
     , velocity : Vector2d
-    , strength : Float
+    , manyBodyStrength : Float
+    , pullCenter : Point2d
+    , pullStrength : Float
     , fixed : Bool
     , color : Color
     , radius : Float
@@ -154,7 +156,9 @@ default =
             , labelIsVisible = True
             , position = Point2d.origin
             , velocity = Vector2d.zero
-            , strength = -100
+            , pullCenter = Point2d.fromCoordinates ( 300, 300 )
+            , pullStrength = 0.05
+            , manyBodyStrength = -100
             , color = Colors.lightGray
             , radius = 5
             , inBags = Set.empty
