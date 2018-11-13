@@ -10,6 +10,7 @@ See the [road map](https://github.com/erkal/kite/projects/1).
 [Here is a short video](https://youtu.be/LeTDfFwZv3s) showing the basic usage.
 
 [A **demo** can be found here](https://erkal.github.io/kite/).
+It works best in Chrome.
 
 Kite is entirely written in [Elm](http://elm-lang.org/).
 
