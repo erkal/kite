@@ -2847,14 +2847,6 @@ bags m =
                                         else
                                             El.none
                       }
-                    , { header = columnHeader "Pull Center"
-                      , width = El.fill
-                      , view =
-                            \{ bagId, bagProperties } ->
-                                cell bagId <|
-                                    El.text
-                                        (pointToString bagProperties.pullCenter)
-                      }
                     , { header = columnHeader "Col"
                       , width = El.px 20
                       , view =
@@ -2873,13 +2865,6 @@ bags m =
                                                 ]
                                                 []
                                             ]
-                      }
-                    , { header = columnHeader "Str"
-                      , width = El.px 30
-                      , view =
-                            \{ bagId, bagProperties } ->
-                                cell bagId <|
-                                    El.text (String.fromFloat bagProperties.pullStrength)
                       }
                     ]
                 }

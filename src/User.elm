@@ -135,9 +135,6 @@ type alias BagProperties =
     { label : Maybe String
     , color : Color
     , hasConvexHull : Bool
-    , pullCenter : Point2d
-    , pullCenterIsActive : Bool
-    , pullStrength : Float
     }
 
 
@@ -337,10 +334,6 @@ addBag vs ((User p) as user) =
                 { label = Nothing
                 , color = Colors.white
                 , hasConvexHull = True
-                , pullStrength = 0.1
-                , pullCenter =
-                    getCentroid vs user |> Maybe.withDefault Point2d.origin
-                , pullCenterIsActive = True
                 }
             )
     , idOfTheNewBag
