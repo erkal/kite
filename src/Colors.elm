@@ -17,6 +17,7 @@ module Colors exposing
     , mouseOveredItem
     , orange
     , rectAroundSelectedVertices
+    , red
     , rightBarHeader
     , selectBlue
     , selectedItem
@@ -35,14 +36,15 @@ import Element as El exposing (Color, Element)
 toString : Color -> String
 toString color =
     let
-        { red, green, blue, alpha } =
+        o =
             El.toRgb color
     in
     "rgba("
-        ++ String.fromInt (round (red * 255))
-        ++ ("," ++ String.fromInt (round (green * 255)))
-        ++ ("," ++ String.fromInt (round (blue * 255)))
-        ++ ("," ++ String.fromFloat alpha ++ ")")
+        ++ String.fromInt (round (o.red * 255))
+        ++ ("," ++ String.fromInt (round (o.green * 255)))
+        ++ ("," ++ String.fromInt (round (o.blue * 255)))
+        ++ ("," ++ String.fromFloat o.alpha)
+        ++ ")"
 
 
 rectAroundSelectedVertices =
@@ -59,6 +61,10 @@ yellow =
 
 orange =
     El.rgb255 242 142 1
+
+
+red =
+    El.rgb255 255 2 2
 
 
 mainSvgBackground =

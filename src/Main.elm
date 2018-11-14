@@ -179,6 +179,7 @@ type alias MousePosition =
 
 type SelectState
     = SelectIdle
+    | ChoosingGravityCenter
     | BrushingForSelection { brushStart : Point2d }
     | DraggingSelection
         { brushStart : Point2d
@@ -313,6 +314,7 @@ type Msg
     | MouseUpOnTransparentInteractionRect
       --
     | MouseDownOnMainSvg
+    | MouseUpOnMainSvg
       --
     | MouseOverVertex VertexId
     | MouseOutVertex VertexId
@@ -359,9 +361,11 @@ type Msg
     | InputVertexX String
     | InputVertexY String
     | InputVertexRadius Float
-    | InputVertexStrength Float
+    | InputVertexGravityStrength Float
+    | InputVertexCharge Float
     | InputVertexFixed Bool
     | InputVertexColor Color
+    | ClickOnChooseGravityCenterButton
       --
     | InputEdgeLabel String
     | InputEdgeLabelVisibility Bool
@@ -701,20 +705,46 @@ update msg m =
                     m
 
         MouseDownOnMainSvg ->
-            { m
-                | selectedTool =
-                    case m.selectedTool of
-                        Hand HandIdle ->
+            case m.selectedTool of
+                Hand HandIdle ->
+                    { m
+                        | selectedTool =
                             Hand
                                 (Panning
                                     { mousePositionAtPanStart = m.mousePosition
                                     , panAtStart = m.pan
                                     }
                                 )
+                    }
 
-                        _ ->
-                            m.selectedTool
-            }
+                Select ChoosingGravityCenter ->
+                    let
+                        updateGravityCenter v =
+                            { v | gravityCenter = m.svgMousePosition }
+
+                        newUser =
+                            if Set.isEmpty m.selectedVertices then
+                                presentUser m
+                                    |> User.updateDefaultVertexProperties updateGravityCenter
+
+                            else
+                                presentUser m
+                                    |> User.updateVertices m.selectedVertices updateGravityCenter
+                    in
+                    m
+                        |> reheatSimulation
+                        |> nwUsr newUser "Changed gravity center of some vertices"
+
+                _ ->
+                    m
+
+        MouseUpOnMainSvg ->
+            case m.selectedTool of
+                Select ChoosingGravityCenter ->
+                    { m | selectedTool = Select SelectIdle }
+
+                _ ->
+                    m
 
         MouseOverVertex id ->
             { m | highlightedVertices = Set.singleton id }
@@ -995,10 +1025,28 @@ update msg m =
                         ++ String.fromFloat num
                     )
 
-        InputVertexStrength num ->
+        InputVertexGravityStrength num ->
+            let
+                updateGravityStrength v =
+                    { v | gravityStrength = num }
+
+                newUser =
+                    if Set.isEmpty m.selectedVertices then
+                        presentUser m
+                            |> User.updateDefaultVertexProperties updateGravityStrength
+
+                    else
+                        presentUser m
+                            |> User.updateVertices m.selectedVertices updateGravityStrength
+            in
+            m
+                |> reheatSimulation
+                |> nwUsr newUser "Changed gravity strength of some vertices"
+
+        InputVertexCharge num ->
             let
                 updateManyBodyStrength v =
-                    { v | manyBodyStrength = num }
+                    { v | manyBodyStrength = -1 * num }
 
                 newUser =
                     if Set.isEmpty m.selectedVertices then
@@ -1103,6 +1151,17 @@ update msg m =
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
                         ++ descriptionEnd
                     )
+
+        ClickOnChooseGravityCenterButton ->
+            { m
+                | selectedTool =
+                    case m.selectedTool of
+                        Select ChoosingGravityCenter ->
+                            Select SelectIdle
+
+                        _ ->
+                            Select ChoosingGravityCenter
+            }
 
         InputEdgeLabelVisibility b ->
             let
@@ -1880,7 +1939,7 @@ leftBarHeaderButton { title, onClickMsg, iconPath } =
         [ El.htmlAttribute (HA.title title)
         , Events.onClick onClickMsg
         , El.alignRight
-        , Border.rounded 4
+        , Border.rounded 2
         , El.mouseDown [ Background.color Colors.selectedItem ]
         , El.mouseOver [ Background.color Colors.mouseOveredItem ]
         , El.pointer
@@ -3098,26 +3157,28 @@ vertexPreferences m =
                     }
                 ]
             , sliderInput
-                { labelText = "Strength"
+                { labelText = "Charge"
                 , labelWidth = 80
                 , value =
-                    let
-                        defaultVertexStrength =
-                            presentUser m
-                                |> User.getDefaultVertexProperties
-                                |> .manyBodyStrength
-                    in
-                    if Set.isEmpty m.selectedVertices then
-                        defaultVertexStrength
+                    -1
+                        * (let
+                            defaultVertexManyBodyStrength =
+                                presentUser m
+                                    |> User.getDefaultVertexProperties
+                                    |> .manyBodyStrength
+                           in
+                           if Set.isEmpty m.selectedVertices then
+                            defaultVertexManyBodyStrength
 
-                    else
-                        presentUser m
-                            |> User.getCommonVertexProperty m.selectedVertices .manyBodyStrength
-                            |> Maybe.withDefault defaultVertexStrength
-                , min = -2000
-                , max = 0
-                , step = 40
-                , onChange = InputVertexStrength
+                           else
+                            presentUser m
+                                |> User.getCommonVertexProperty m.selectedVertices .manyBodyStrength
+                                |> Maybe.withDefault defaultVertexManyBodyStrength
+                          )
+                , min = 50
+                , max = 2000
+                , step = 50
+                , onChange = InputVertexCharge
                 }
             , sliderInput
                 { labelText = "Radius"
@@ -3159,6 +3220,83 @@ vertexPreferences m =
                 , msgOnExpanderClick = ClickOnVertexColorPicker
                 , msgOnLeave = MouseLeaveVertexColorPicker
                 }
+            , sliderInput
+                { labelText = "Gravity"
+                , labelWidth = 80
+                , value =
+                    if Set.isEmpty m.selectedVertices then
+                        presentUser m
+                            |> User.getDefaultVertexProperties
+                            |> .gravityStrength
+
+                    else
+                        case presentUser m |> User.getCommonVertexProperty m.selectedVertices .gravityStrength of
+                            Just gS ->
+                                gS
+
+                            Nothing ->
+                                0.1
+                , min = 0
+                , max = 1
+                , step = 0.05
+                , onChange = InputVertexGravityStrength
+                }
+            , El.row
+                [ El.spacing 8
+                ]
+                [ El.el (labelAttr 80) (El.text "Gravity Center")
+                , El.el
+                    [ El.width (El.px 18)
+                    , El.height (El.px 18)
+                    , Border.rounded 2
+                    , Background.color <|
+                        case m.selectedTool of
+                            Select ChoosingGravityCenter ->
+                                Colors.red
+
+                            _ ->
+                                Colors.inputBackground
+                    , El.pointer
+                    , El.htmlAttribute (HA.title "Choose Gravity Center")
+                    , El.mouseDown [ Background.color Colors.selectedItem ]
+                    , El.mouseOver
+                        [ Background.color <|
+                            case m.selectedTool of
+                                Select ChoosingGravityCenter ->
+                                    Colors.red
+
+                                _ ->
+                                    Colors.mouseOveredItem
+                        ]
+                    , Events.onClick ClickOnChooseGravityCenterButton
+                    ]
+                    (El.el
+                        [ El.centerX
+                        , El.centerY
+                        ]
+                     <|
+                        El.html (Icons.draw14px Icons.icons.vader)
+                    )
+                , case m.selectedTool of
+                    Select ChoosingGravityCenter ->
+                        El.el [ Font.color Colors.red ]
+                            (El.text (pointToString m.svgMousePosition))
+
+                    _ ->
+                        let
+                            gravityCenterToShow =
+                                if Set.isEmpty m.selectedVertices then
+                                    presentUser m
+                                        |> User.getDefaultVertexProperties
+                                        |> .gravityCenter
+
+                                else
+                                    presentUser m
+                                        |> User.getCommonVertexProperty m.selectedVertices .gravityCenter
+                                        |> {- this never happens -} Maybe.withDefault Point2d.origin
+                        in
+                        El.text (pointToString gravityCenterToShow)
+                ]
             ]
         }
 
@@ -3535,6 +3673,9 @@ mainSvg m =
 
         cursor =
             case m.selectedTool of
+                Select ChoosingGravityCenter ->
+                    "crosshair"
+
                 Hand HandIdle ->
                     "grab"
 
@@ -3571,9 +3712,11 @@ mainSvg m =
         , SA.height (String.fromInt mainSvgHeight)
         , SA.viewBox (svgViewBoxFromPanAndZoom m.pan m.zoom)
         , SE.onMouseDown MouseDownOnMainSvg
+        , SE.onMouseUp MouseUpOnMainSvg
         , HE.on "wheel" (Decode.map WheelDeltaY wheelDeltaY)
         ]
-        [ pageA4WithRuler
+        [ maybeViewGravityLines m
+        , pageA4WithRuler
         , viewHulls (presentUser m)
         , maybeBrushedEdge
         , transparentInteractionRect
@@ -3689,7 +3832,7 @@ viewVertices user =
             else
                 emptySvgElement
 
-        vertexWithKey { id, label } =
+        viewVertex { id, label } =
             let
                 { position, color, radius, fixed } =
                     label
@@ -3731,7 +3874,26 @@ viewVertices user =
                 ]
             )
     in
-    Svg.Keyed.node "g" [] (user |> User.getVertices |> List.map vertexWithKey)
+    Svg.Keyed.node "g" [] (user |> User.getVertices |> List.map viewVertex)
+
+
+maybeViewGravityLines : Model -> Html Msg
+maybeViewGravityLines m =
+    case m.selectedTool of
+        Select ChoosingGravityCenter ->
+            let
+                viewGravityLine { id, label } =
+                    Geometry.Svg.lineSegment2d
+                        [ SA.strokeWidth "1"
+                        , SA.stroke "red"
+                        , SA.strokeDasharray "1 2"
+                        ]
+                        (LineSegment2d.from label.position label.gravityCenter)
+            in
+            S.g [] (presentUser m |> User.getVertices |> List.map viewGravityLine)
+
+        _ ->
+            emptySvgElement
 
 
 viewHulls : User -> Html Msg
