@@ -640,7 +640,7 @@ update msg m =
                             newUserAfterApllyingGravityCenter m
                     in
                     m
-                        |> {- TODO with targetAlpha -} reheatSimulation
+                        |> reheatSimulation
                         |> mapPresentUser newUser
 
                 _ ->
@@ -792,41 +792,65 @@ update msg m =
                     { m | selectedTool = Draw (BrushingNewEdgeWithSourceId id) }
 
                 Select SelectIdle ->
-                    let
-                        ( newUser, newSelectedVertices, newSelectedEdges ) =
-                            if Set.member id m.selectedVertices then
-                                if m.altIsDown then
+                    if Set.member id m.selectedVertices then
+                        if m.altIsDown then
+                            let
+                                ( newUser, newSelectedVertices, newSelectedEdges ) =
                                     presentUser m
                                         |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
+                            in
+                            { m
+                                | selectedVertices = newSelectedVertices
+                                , selectedEdges = newSelectedEdges
+                                , selectedTool =
+                                    Select
+                                        (DraggingSelection
+                                            { brushStart = m.svgMousePosition
+                                            , vertexPositionsAtStart =
+                                                newUser
+                                                    |> User.getVertexIdsWithPositions newSelectedVertices
+                                            }
+                                        )
+                                , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                            }
+                                |> stopSimulation
+                                |> nwUsr newUser "Duplicated a subgraph"
 
-                                else
-                                    ( presentUser m
-                                    , m.selectedVertices
-                                    , m.selectedEdges
+                        else
+                            { m
+                                | selectedTool =
+                                    Select
+                                        (DraggingSelection
+                                            { brushStart = m.svgMousePosition
+                                            , vertexPositionsAtStart =
+                                                presentUser m
+                                                    |> User.getVertexIdsWithPositions m.selectedVertices
+                                            }
+                                        )
+                                , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                            }
+                                |> reheatSimulation
+
+                    else
+                        let
+                            newSelectedVertices =
+                                Set.singleton id
+                        in
+                        { m
+                            | selectedVertices = newSelectedVertices
+                            , selectedEdges = Set.empty
+                            , selectedTool =
+                                Select
+                                    (DraggingSelection
+                                        { brushStart = m.svgMousePosition
+                                        , vertexPositionsAtStart =
+                                            presentUser m
+                                                |> User.getVertexIdsWithPositions newSelectedVertices
+                                        }
                                     )
-
-                            else
-                                ( presentUser m
-                                , Set.singleton id
-                                , Set.empty
-                                )
-                    in
-                    { m
-                        | selectedVertices = newSelectedVertices
-                        , selectedEdges = newSelectedEdges
-                        , selectedTool =
-                            Select
-                                (DraggingSelection
-                                    { brushStart = m.svgMousePosition
-                                    , vertexPositionsAtStart =
-                                        newUser
-                                            |> User.getVertexIdsWithPositions newSelectedVertices
-                                    }
-                                )
-                        , simulationState = m.simulationState |> Force.alphaTarget 0.3
-                    }
-                        |> reheatSimulation
-                        |> nwUsr newUser "TODO"
+                            , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                        }
+                            |> reheatSimulation
 
                 _ ->
                     m
@@ -875,39 +899,63 @@ update msg m =
                             )
 
                 Select SelectIdle ->
-                    let
-                        ( newUser, newSelectedVertices, newSelectedEdges ) =
-                            if Set.member ( s, t ) m.selectedEdges then
-                                if m.altIsDown then
+                    if Set.member ( s, t ) m.selectedEdges then
+                        if m.altIsDown then
+                            let
+                                ( newUser, newSelectedVertices, newSelectedEdges ) =
                                     presentUser m
                                         |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
+                            in
+                            { m
+                                | selectedVertices = newSelectedVertices
+                                , selectedEdges = newSelectedEdges
+                                , selectedTool =
+                                    Select
+                                        (DraggingSelection
+                                            { brushStart = m.svgMousePosition
+                                            , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
+                                            }
+                                        )
+                                , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                            }
+                                |> stopSimulation
+                                |> nwUsr newUser "Duplicated a subgraph"
 
-                                else
-                                    ( presentUser m
-                                    , m.selectedVertices
-                                    , m.selectedEdges
+                        else
+                            { m
+                                | selectedTool =
+                                    Select
+                                        (DraggingSelection
+                                            { brushStart = m.svgMousePosition
+                                            , vertexPositionsAtStart =
+                                                presentUser m
+                                                    |> User.getVertexIdsWithPositions m.selectedVertices
+                                            }
+                                        )
+                                , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                            }
+                                |> reheatSimulation
+
+                    else
+                        let
+                            newSelectedVertices =
+                                Set.fromList [ s, t ]
+                        in
+                        { m
+                            | selectedVertices = newSelectedVertices
+                            , selectedEdges = Set.singleton ( s, t )
+                            , selectedTool =
+                                Select
+                                    (DraggingSelection
+                                        { brushStart = m.svgMousePosition
+                                        , vertexPositionsAtStart =
+                                            presentUser m
+                                                |> User.getVertexIdsWithPositions newSelectedVertices
+                                        }
                                     )
-
-                            else
-                                ( presentUser m
-                                , Set.fromList [ s, t ]
-                                , Set.singleton ( s, t )
-                                )
-                    in
-                    { m
-                        | selectedVertices = newSelectedVertices
-                        , selectedEdges = newSelectedEdges
-                        , selectedTool =
-                            Select
-                                (DraggingSelection
-                                    { brushStart = m.svgMousePosition
-                                    , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
-                                    }
-                                )
-                        , simulationState = m.simulationState |> Force.alphaTarget 0.3
-                    }
-                        |> reheatSimulation
-                        |> nwUsr newUser "TODO"
+                            , simulationState = m.simulationState |> Force.alphaTarget 0.3
+                        }
+                            |> reheatSimulation
 
                 _ ->
                     m
