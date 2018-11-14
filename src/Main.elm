@@ -154,6 +154,7 @@ type Tool
     = Hand HandState
     | Draw DrawState
     | Select SelectState
+    | GravityCenter GravityCenterState
 
 
 type alias Pan =
@@ -179,12 +180,16 @@ type alias MousePosition =
 
 type SelectState
     = SelectIdle
-    | ChoosingGravityCenter
     | BrushingForSelection { brushStart : Point2d }
     | DraggingSelection
         { brushStart : Point2d
         , vertexPositionsAtStart : IntDict Point2d
         }
+
+
+type GravityCenterState
+    = GravityCenterIdle
+    | GravityCenterDragging
 
 
 initialModel : User -> Model
@@ -314,7 +319,6 @@ type Msg
     | MouseUpOnTransparentInteractionRect
       --
     | MouseDownOnMainSvg
-    | MouseUpOnMainSvg
       --
     | MouseOverVertex VertexId
     | MouseOutVertex VertexId
@@ -401,6 +405,29 @@ nwUsr newUser description m =
     { m | userUL = m.userUL |> UL.new ( description, newUser ) }
 
 
+mapPresentUser : User -> Model -> Model
+mapPresentUser newUser m =
+    { m
+        | userUL =
+            m.userUL |> UL.mapPresent (Tuple.mapSecond (always newUser))
+    }
+
+
+newUserAfterApllyingGravityCenter : Model -> User
+newUserAfterApllyingGravityCenter m =
+    let
+        updateGravityCenter v =
+            { v | gravityCenter = m.svgMousePosition }
+    in
+    if Set.isEmpty m.selectedVertices then
+        presentUser m
+            |> User.updateDefaultVertexProperties updateGravityCenter
+
+    else
+        presentUser m
+            |> User.updateVertices m.selectedVertices updateGravityCenter
+
+
 update : Msg -> Model -> Model
 update msg m =
     case msg of
@@ -430,10 +457,10 @@ update msg m =
                             newUser_
             in
             { m
-                | userUL = m.userUL |> UL.mapPresent (Tuple.mapSecond (always newUser))
-                , simulationState = newSimulationState
+                | simulationState = newSimulationState
                 , timeList = t :: m.timeList |> List.take 42
             }
+                |> mapPresentUser newUser
 
         WindowResize wS ->
             { m | windowSize = wS }
@@ -511,6 +538,9 @@ update msg m =
         ClickOnSelectTool ->
             { m | selectedTool = Select SelectIdle }
 
+        ClickOnChooseGravityCenterButton ->
+            { m | selectedTool = GravityCenter GravityCenterIdle }
+
         ClickOnVader ->
             reheatSimulation
                 { m | vaderIsOn = not m.vaderIsOn }
@@ -587,9 +617,7 @@ update msg m =
                             presentUser m
                                 |> User.setVertexPositions newVertexPositions
                     in
-                    { m
-                        | userUL = m.userUL |> UL.mapPresent (Tuple.mapSecond (always newUser))
-                    }
+                    m |> mapPresentUser newUser
 
                 Hand (Panning { mousePositionAtPanStart, panAtStart }) ->
                     { m
@@ -605,6 +633,15 @@ update msg m =
                             in
                             panAtStart |> Point2d.translateBy delta
                     }
+
+                GravityCenter GravityCenterDragging ->
+                    let
+                        newUser =
+                            newUserAfterApllyingGravityCenter m
+                    in
+                    m
+                        |> {- TODO with targetAlpha -} reheatSimulation
+                        |> mapPresentUser newUser
 
                 _ ->
                     m
@@ -656,6 +693,14 @@ update msg m =
 
                 Hand (Panning _) ->
                     { m | selectedTool = Hand HandIdle }
+
+                GravityCenter GravityCenterDragging ->
+                    let
+                        newUser =
+                            newUserAfterApllyingGravityCenter m
+                    in
+                    { m | selectedTool = GravityCenter GravityCenterIdle }
+                        |> nwUsr newUser "Changed gravity center of some vertices"
 
                 _ ->
                     m
@@ -717,31 +762,14 @@ update msg m =
                                 )
                     }
 
-                Select ChoosingGravityCenter ->
+                GravityCenter GravityCenterIdle ->
                     let
-                        updateGravityCenter v =
-                            { v | gravityCenter = m.svgMousePosition }
-
                         newUser =
-                            if Set.isEmpty m.selectedVertices then
-                                presentUser m
-                                    |> User.updateDefaultVertexProperties updateGravityCenter
-
-                            else
-                                presentUser m
-                                    |> User.updateVertices m.selectedVertices updateGravityCenter
+                            newUserAfterApllyingGravityCenter m
                     in
-                    m
+                    { m | selectedTool = GravityCenter GravityCenterDragging }
                         |> reheatSimulation
                         |> nwUsr newUser "Changed gravity center of some vertices"
-
-                _ ->
-                    m
-
-        MouseUpOnMainSvg ->
-            case m.selectedTool of
-                Select ChoosingGravityCenter ->
-                    { m | selectedTool = Select SelectIdle }
 
                 _ ->
                     m
@@ -1151,17 +1179,6 @@ update msg m =
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
                         ++ descriptionEnd
                     )
-
-        ClickOnChooseGravityCenterButton ->
-            { m
-                | selectedTool =
-                    case m.selectedTool of
-                        Select ChoosingGravityCenter ->
-                            Select SelectIdle
-
-                        _ ->
-                            Select ChoosingGravityCenter
-            }
 
         InputEdgeLabelVisibility b ->
             let
@@ -2438,25 +2455,34 @@ radioButton :
     { title : String
     , iconPath : String
     , onClickMsg : Msg
-    , isSelected : Bool
+    , state : {- Nothing for disabled -} Maybe Bool
     }
     -> Element Msg
-radioButton { title, iconPath, onClickMsg, isSelected } =
-    El.el
-        [ Background.color <|
-            if isSelected then
-                Colors.selectedItem
+radioButton { title, iconPath, onClickMsg, state } =
+    let
+        attributes =
+            case state of
+                Nothing ->
+                    [ Border.rounded 20
+                    , El.alpha 0.1
+                    ]
 
-            else
-                Colors.menuBackground
-        , El.mouseDown [ Background.color Colors.selectedItem ]
-        , El.mouseOver [ Background.color Colors.mouseOveredItem ]
-        , Border.rounded 20
-        , El.htmlAttribute (HA.title title)
-        , Events.onClick onClickMsg
-        , El.pointer
-        ]
-        (El.html (Icons.draw34px iconPath))
+                Just b ->
+                    [ Border.rounded 20
+                    , El.pointer
+                    , Background.color <|
+                        if b then
+                            Colors.selectedItem
+
+                        else
+                            Colors.menuBackground
+                    , El.mouseDown [ Background.color Colors.selectedItem ]
+                    , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                    , El.htmlAttribute (HA.title title)
+                    , Events.onClick onClickMsg
+                    ]
+    in
+    El.el attributes (El.html (Icons.draw34px iconPath))
 
 
 topBar : Model -> Element Msg
@@ -2504,37 +2530,57 @@ topBar m =
                     { title = "Hand (H)"
                     , iconPath = Icons.icons.hand
                     , onClickMsg = ClickOnHandTool
-                    , isSelected =
-                        case m.selectedTool of
-                            Hand _ ->
-                                True
+                    , state =
+                        Just <|
+                            case m.selectedTool of
+                                Hand _ ->
+                                    True
 
-                            _ ->
-                                False
+                                _ ->
+                                    False
                     }
                 , radioButton
                     { title = "Selection (S)"
                     , iconPath = Icons.icons.pointer
                     , onClickMsg = ClickOnSelectTool
-                    , isSelected =
-                        case m.selectedTool of
-                            Select _ ->
-                                True
+                    , state =
+                        Just <|
+                            case m.selectedTool of
+                                Select _ ->
+                                    True
 
-                            _ ->
-                                False
+                                _ ->
+                                    False
                     }
                 , radioButton
                     { title = "Draw (D)"
                     , iconPath = Icons.icons.pen
                     , onClickMsg = ClickOnDrawTool
-                    , isSelected =
-                        case m.selectedTool of
-                            Draw _ ->
-                                True
+                    , state =
+                        Just <|
+                            case m.selectedTool of
+                                Draw _ ->
+                                    True
 
-                            _ ->
-                                False
+                                _ ->
+                                    False
+                    }
+                , radioButton
+                    { title = "Set Gravity Center"
+                    , iconPath = Icons.icons.gravityCenter
+                    , onClickMsg = ClickOnChooseGravityCenterButton
+                    , state =
+                        if Set.isEmpty m.selectedVertices then
+                            Nothing
+
+                        else
+                            Just <|
+                                case m.selectedTool of
+                                    GravityCenter _ ->
+                                        True
+
+                                    _ ->
+                                        False
                     }
                 ]
             , oneClickButtonGroup
@@ -2543,7 +2589,7 @@ topBar m =
                         { title = "Force (F)"
                         , iconPath = Icons.icons.vader
                         , onClickMsg = ClickOnVader
-                        , isSelected = m.vaderIsOn
+                        , state = Just m.vaderIsOn
                         }
                     ]
                 ]
@@ -3243,62 +3289,6 @@ vertexPreferences m =
                 , step = 0.05
                 , onChange = InputVertexGravityStrength
                 }
-            , El.row
-                [ El.spacing 8
-                ]
-                [ El.el (labelAttr 80) (El.text "Gravity Center")
-                , El.el
-                    [ El.width (El.px 18)
-                    , El.height (El.px 18)
-                    , Border.rounded 2
-                    , Background.color <|
-                        case m.selectedTool of
-                            Select ChoosingGravityCenter ->
-                                Colors.red
-
-                            _ ->
-                                Colors.inputBackground
-                    , El.pointer
-                    , El.htmlAttribute (HA.title "Choose Gravity Center")
-                    , El.mouseDown [ Background.color Colors.selectedItem ]
-                    , El.mouseOver
-                        [ Background.color <|
-                            case m.selectedTool of
-                                Select ChoosingGravityCenter ->
-                                    Colors.red
-
-                                _ ->
-                                    Colors.mouseOveredItem
-                        ]
-                    , Events.onClick ClickOnChooseGravityCenterButton
-                    ]
-                    (El.el
-                        [ El.centerX
-                        , El.centerY
-                        ]
-                     <|
-                        El.html (Icons.draw14px Icons.icons.vader)
-                    )
-                , case m.selectedTool of
-                    Select ChoosingGravityCenter ->
-                        El.el [ Font.color Colors.red ]
-                            (El.text (pointToString m.svgMousePosition))
-
-                    _ ->
-                        let
-                            gravityCenterToShow =
-                                if Set.isEmpty m.selectedVertices then
-                                    presentUser m
-                                        |> User.getDefaultVertexProperties
-                                        |> .gravityCenter
-
-                                else
-                                    presentUser m
-                                        |> User.getCommonVertexProperty m.selectedVertices .gravityCenter
-                                        |> {- this never happens -} Maybe.withDefault Point2d.origin
-                        in
-                        El.text (pointToString gravityCenterToShow)
-                ]
             ]
         }
 
@@ -3675,7 +3665,7 @@ mainSvg m =
 
         cursor =
             case m.selectedTool of
-                Select ChoosingGravityCenter ->
+                GravityCenter _ ->
                     "crosshair"
 
                 Hand HandIdle ->
@@ -3714,7 +3704,6 @@ mainSvg m =
         , SA.height (String.fromInt mainSvgHeight)
         , SA.viewBox (svgViewBoxFromPanAndZoom m.pan m.zoom)
         , SE.onMouseDown MouseDownOnMainSvg
-        , SE.onMouseUp MouseUpOnMainSvg
         , HE.on "wheel" (Decode.map WheelDeltaY wheelDeltaY)
         ]
         [ maybeViewGravityLines m
@@ -3882,13 +3871,13 @@ viewVertices user =
 maybeViewGravityLines : Model -> Html Msg
 maybeViewGravityLines m =
     case m.selectedTool of
-        Select ChoosingGravityCenter ->
+        GravityCenter _ ->
             let
                 viewGravityLine { id, label } =
                     Geometry.Svg.lineSegment2d
-                        [ SA.strokeWidth "1"
-                        , SA.stroke "red"
-                        , SA.strokeDasharray "1 2"
+                        [ SA.strokeWidth "2"
+                        , SA.stroke (Colors.toString Colors.highlightPink)
+                        , SA.strokeDasharray "2 4"
                         ]
                         (LineSegment2d.from label.position label.gravityCenter)
             in
