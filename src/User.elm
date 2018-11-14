@@ -98,8 +98,8 @@ type alias VertexProperties =
     , position : Point2d
     , velocity : Vector2d
     , manyBodyStrength : Float
-    , pullCenter : Point2d
-    , pullStrength : Float
+    , gravityCenter : Point2d
+    , gravityStrength : Float
     , fixed : Bool
     , color : Color
     , radius : Float
@@ -146,15 +146,15 @@ default =
         , forces =
             [ Force.Link
             , Force.ManyBody 0.9
-            , Force.Pull
+            , Force.Gravity
             ]
         , defaultVertexProperties =
             { label = Nothing
             , labelIsVisible = True
             , position = Point2d.origin
             , velocity = Vector2d.zero
-            , pullCenter = Point2d.fromCoordinates ( 300, 300 )
-            , pullStrength = 0.05
+            , gravityCenter = Point2d.fromCoordinates ( 300, 300 )
+            , gravityStrength = 0.05
             , manyBodyStrength = -100
             , color = Colors.lightGray
             , radius = 5

@@ -2989,7 +2989,7 @@ bags m =
         , toggleMsg = ToggleBags
         , contentItems =
             [ tableOfBags
-            , El.column [ El.height (El.px 54) ] maybeBagPreferences
+            , El.column [ El.height (El.px 50) ] maybeBagPreferences
             ]
         }
 

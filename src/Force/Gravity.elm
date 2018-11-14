@@ -1,4 +1,4 @@
-module Force.Pull exposing (Vertex, run)
+module Force.Gravity exposing (Vertex, run)
 
 import IntDict exposing (IntDict)
 import Point2d exposing (Point2d)
@@ -9,8 +9,8 @@ type alias Vertex =
     { id : Int
     , position : Point2d
     , velocity : Vector2d
-    , pullCenter : Point2d
-    , pullStrength : Float
+    , gravityCenter : Point2d
+    , gravityStrength : Float
     }
 
 
@@ -18,7 +18,7 @@ run : Float -> List Vertex -> List ( Int, Vector2d )
 run alpha =
     let
         handle : Vertex -> ( Int, Vector2d )
-        handle { id, position, velocity, pullCenter, pullStrength } =
+        handle { id, position, velocity, gravityCenter, gravityStrength } =
             let
                 --var k = .1 * e.alpha;
                 --// Push nodes toward their designated focus.
@@ -27,10 +27,10 @@ run alpha =
                 --  o.x += (foci[o.id].x - o.x) * k;
                 --});
                 k =
-                    pullStrength * alpha
+                    gravityStrength * alpha
 
                 velocityDelta =
-                    Vector2d.from position pullCenter
+                    Vector2d.from position gravityCenter
                         |> Vector2d.scaleBy k
             in
             ( id

@@ -11,9 +11,9 @@ module Force exposing
     )
 
 import Dict exposing (Dict)
+import Force.Gravity as Gravity
 import Force.Link as Link
 import Force.ManyBody as ManyBody
-import Force.Pull as Pull
 import Graph exposing (Edge, Graph, Node, NodeId)
 import Graph.Extra
 import Point2d exposing (Point2d)
@@ -34,7 +34,7 @@ type State
 type Force
     = Link
     | ManyBody Float
-    | Pull
+    | Gravity
 
 
 type alias ForceVertex n =
@@ -42,8 +42,8 @@ type alias ForceVertex n =
         | position : Point2d
         , velocity : Velocity
         , manyBodyStrength : Float
-        , pullCenter : Point2d
-        , pullStrength : Float
+        , gravityCenter : Point2d
+        , gravityStrength : Float
         , fixed : Bool
     }
 
@@ -146,23 +146,23 @@ applyForce alpha force forceGraph =
             in
             forceGraph |> updateVelocities newVelocities
 
-        Pull ->
+        Gravity ->
             let
-                toPullVertex : Node (ForceVertex n) -> Pull.Vertex
-                toPullVertex { id, label } =
+                toGravityVertex : Node (ForceVertex n) -> Gravity.Vertex
+                toGravityVertex { id, label } =
                     { id = id
                     , position = label.position
                     , velocity = label.velocity
-                    , pullCenter = label.pullCenter
-                    , pullStrength = label.pullStrength
+                    , gravityCenter = label.gravityCenter
+                    , gravityStrength = label.gravityStrength
                     }
 
                 newVelocities : List ( NodeId, Velocity )
                 newVelocities =
                     forceGraph
                         |> Graph.nodes
-                        |> List.map toPullVertex
-                        |> Pull.run alpha
+                        |> List.map toGravityVertex
+                        |> Gravity.run alpha
             in
             forceGraph |> updateVelocities newVelocities
 
