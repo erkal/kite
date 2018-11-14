@@ -1971,7 +1971,7 @@ columnHeader : String -> Element Msg
 columnHeader headerText =
     El.el
         [ El.paddingXY 2 6
-        , Border.widthEach { top = 0, right = 0, bottom = 2, left = 1 }
+        , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
         , Border.color Colors.menuBorder
         , Font.medium
         , Font.center
@@ -2911,8 +2911,10 @@ bags m =
             in
             El.table
                 [ El.width El.fill
-                , El.height (El.px 105)
+                , El.height (El.px 110)
                 , El.scrollbarY
+                , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+                , Border.color Colors.menuBorder
                 ]
                 { data = User.getBags (presentUser m)
                 , columns =
