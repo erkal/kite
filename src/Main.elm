@@ -46,8 +46,8 @@ main =
                 ( initialModel User.default
                 , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
                 )
-        , view = \model -> { title = "Kite", body = [ view model ] }
-        , update = \msg model -> ( update msg model, Cmd.none )
+        , view = \m -> { title = "Kite", body = [ mainSvg m, view m ] }
+        , update = \msg m -> ( update msg m, Cmd.none )
         , subscriptions = subscriptions
         }
 
@@ -1706,13 +1706,14 @@ view m =
         , El.htmlAttribute (HA.style "user-select" "none")
         , El.height El.fill
         , El.width El.fill
+        , El.htmlAttribute (HA.style "pointer-events" "none")
         ]
     <|
         El.row
             [ El.width El.fill
             , El.height El.fill
             ]
-            (El.html (mainSvg m) :: guiColumns m)
+            (guiColumns m)
 
 
 guiColumns m =
@@ -1724,7 +1725,9 @@ guiColumns m =
                 , El.padding 7
                 , Events.onClick ClickOnDistractionFreeButton
                 , El.pointer
-                , El.htmlAttribute (HA.title "Deactivate Distraction Free Mode (A)")
+                , El.htmlAttribute
+                    (HA.title "Deactivate Distraction Free Mode (A)")
+                , El.htmlAttribute (HA.style "pointer-events" "auto")
                 ]
                 (El.html
                     (Icons.draw40pxWithColor Colors.white
@@ -1736,7 +1739,6 @@ guiColumns m =
             El.column
                 [ El.height El.fill
                 , El.width El.fill
-                , El.htmlAttribute (HA.style "pointer-events" "none")
                 ]
                 [ El.el
                     [ El.width El.fill
@@ -1744,7 +1746,8 @@ guiColumns m =
                     , El.htmlAttribute (HA.style "pointer-events" "auto")
                     ]
                     (topBar m)
-                , El.el [ El.alignBottom, El.width El.fill ] (debugView m)
+                , El.el [ El.alignBottom, El.width El.fill ]
+                    (debugView m)
                 ]
     in
     if m.distractionFree then
@@ -1890,6 +1893,7 @@ leftStripe m =
         , El.width (El.px layoutParams.leftStripeWidth)
         , El.height El.fill
         , El.scrollbarY
+        , El.htmlAttribute (HA.style "pointer-events" "auto")
         ]
         [ distractionFreeButton
         , radioButtonsForMode
@@ -1912,6 +1916,7 @@ leftBar m =
         , El.width (El.px layoutParams.leftBarWidth)
         , El.height El.fill
         , El.scrollbarY
+        , El.htmlAttribute (HA.style "pointer-events" "auto")
         ]
     <|
         case m.selectedMode of
@@ -2650,6 +2655,7 @@ rightBar m =
         , El.width (El.px layoutParams.rightBarWidth)
         , El.height El.fill
         , El.scrollbarY
+        , El.htmlAttribute (HA.style "pointer-events" "auto")
         ]
         [ history m
         , selector m
