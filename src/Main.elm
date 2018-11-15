@@ -197,7 +197,7 @@ initialModel user =
     { userUL = UL.fresh ( "Started with empty graph", user )
 
     --
-    , distractionFree = False
+    , distractionFree = True
 
     --
     , simulationState = user |> User.simulation
@@ -328,6 +328,9 @@ type Msg
     | MouseOutEdge EdgeId
     | MouseDownOnEdge EdgeId
     | MouseUpOnEdge EdgeId
+      --
+    | MouseDownOnGravityCenter (List VertexId)
+    | MouseDownOnDefaultGravityCenter
       --
     | ToggleTableOfVertices
     | ToggleTableOfEdges
@@ -983,6 +986,12 @@ update msg m =
 
                 _ ->
                     m
+
+        MouseDownOnGravityCenter idList ->
+            { m | selectedVertices = Set.fromList idList }
+
+        MouseDownOnDefaultGravityCenter ->
+            { m | selectedVertices = Set.empty }
 
         InputBagLabel bagId str ->
             let
@@ -3750,6 +3759,7 @@ mainSvg m =
         , viewVertices (presentUser m)
         , maybeBrushedSelector
         , maybeRectAroundSelectedVertices
+        , viewGravityCenters (presentUser m)
         ]
 
 
@@ -3933,8 +3943,7 @@ viewHulls user =
                 (Polygon2d.convexHull positions)
 
         hulls =
-            user
-                |> User.getBagsWithVertices
+            User.getBagsWithVertices user
                 |> Dict.values
                 |> List.filter (\( bP, _ ) -> bP.hasConvexHull)
                 |> List.map
@@ -3944,3 +3953,26 @@ viewHulls user =
                     )
     in
     S.g [] hulls
+
+
+viewGravityCenters : User -> Html Msg
+viewGravityCenters user =
+    let
+        viewGC ( coordinates, idList ) =
+            Geometry.Svg.circle2d
+                [ SA.fill (Colors.toString Colors.highlightPink)
+                , SE.onMouseDown (MouseDownOnGravityCenter idList)
+                ]
+                (Point2d.fromCoordinates coordinates |> Circle2d.withRadius 10)
+
+        viewDefaultGC =
+            Geometry.Svg.circle2d
+                [ SA.fill (Colors.toString Colors.highlightPink)
+                , SA.opacity "0.2"
+                , SE.onMouseDown MouseDownOnDefaultGravityCenter
+                ]
+                (.gravityCenter (User.getDefaultVertexProperties user) |> Circle2d.withRadius 10)
+    in
+    S.g [] <|
+        viewDefaultGC
+            :: (User.pullCentersWithVertices user |> Dict.toList |> List.map viewGC)
