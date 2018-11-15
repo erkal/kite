@@ -3759,7 +3759,7 @@ mainSvg m =
         , viewVertices (presentUser m)
         , maybeBrushedSelector
         , maybeRectAroundSelectedVertices
-        , viewGravityCenters (presentUser m)
+        , maybeViewGravityCenters m
         ]
 
 
@@ -3955,9 +3955,12 @@ viewHulls user =
     S.g [] hulls
 
 
-viewGravityCenters : User -> Html Msg
-viewGravityCenters user =
+maybeViewGravityCenters : Model -> Html Msg
+maybeViewGravityCenters m =
     let
+        user =
+            presentUser m
+
         viewGC ( coordinates, idList ) =
             Geometry.Svg.circle2d
                 [ SA.fill (Colors.toString Colors.highlightPink)
@@ -3973,6 +3976,11 @@ viewGravityCenters user =
                 ]
                 (.gravityCenter (User.getDefaultVertexProperties user) |> Circle2d.withRadius 10)
     in
-    S.g [] <|
-        viewDefaultGC
-            :: (User.pullCentersWithVertices user |> Dict.toList |> List.map viewGC)
+    case m.selectedTool of
+        Gravity _ ->
+            S.g [] <|
+                viewDefaultGC
+                    :: (User.pullCentersWithVertices user |> Dict.toList |> List.map viewGC)
+
+        _ ->
+            emptySvgElement
