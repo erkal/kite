@@ -1666,13 +1666,6 @@ edgeIdsToString es =
 
 view : Model -> Html Msg
 view m =
-    let
-        yinAndYangIConSvg =
-            El.html
-                (Icons.draw40pxWithColor Colors.white
-                    Icons.icons.yinAndYang
-                )
-    in
     El.layoutWith
         { options =
             [ El.focusStyle
@@ -1704,59 +1697,55 @@ view m =
         , El.width El.fill
         ]
     <|
-        if m.distractionFree then
-            El.row
-                [ El.width El.fill
-                , El.height El.fill
-                ]
-                [ El.html (mainSvg m)
-                , El.el
-                    [ El.alignTop
-                    , El.width El.fill
-                    , El.htmlAttribute (HA.style "pointer-events" "none")
-                    ]
-                  <|
-                    El.row [ El.width El.fill ]
-                        [ El.el
-                            [ El.width (El.px layoutParams.leftStripeWidth)
-                            , El.padding 7
-                            , Events.onClick ClickOnDistractionFreeOffButton
-                            , El.pointer
-                            , El.htmlAttribute (HA.style "pointer-events" "auto")
-                            ]
-                            yinAndYangIConSvg
-                        , El.el
-                            [ El.centerX
-                            , Border.roundEach
-                                { topLeft = 0
-                                , topRight = 0
-                                , bottomLeft = 20
-                                , bottomRight = 20
-                                }
-                            , El.clip
-                            ]
-                            (topBar m)
-                        ]
-                ]
+        El.row
+            [ El.width El.fill
+            , El.height El.fill
+            ]
+            (El.html (mainSvg m) :: guiColumns m)
 
-        else
-            El.row
-                [ El.width El.fill
-                , El.height El.fill
+
+guiColumns m =
+    let
+        onlyYinYangInsteadOfLeftStripe =
+            El.el
+                [ El.width (El.px layoutParams.leftStripeWidth)
+                , El.alignTop
+                , El.padding 7
+                , Events.onClick ClickOnDistractionFreeOffButton
+                , El.pointer
                 ]
-                [ El.html (mainSvg m)
-                , leftStripe m
-                , leftBar m
-                , El.column
-                    [ El.alignTop
-                    , El.width El.fill
-                    , El.htmlAttribute (HA.style "pointer-events" "none")
-                    ]
-                    [ topBar m
-                    , debugView m
-                    ]
-                , rightBar m
+                (El.html
+                    (Icons.draw40pxWithColor Colors.white
+                        Icons.icons.yinAndYang
+                    )
+                )
+
+        midCol =
+            El.column
+                [ El.height El.fill
+                , El.width El.fill
+                , El.htmlAttribute (HA.style "pointer-events" "none")
                 ]
+                [ El.el
+                    [ El.width El.fill
+                    , El.alignTop
+                    , El.htmlAttribute (HA.style "pointer-events" "auto")
+                    ]
+                    (topBar m)
+                , El.el [ El.alignBottom, El.width El.fill ] (debugView m)
+                ]
+    in
+    if m.distractionFree then
+        [ onlyYinYangInsteadOfLeftStripe
+        , midCol
+        ]
+
+    else
+        [ leftStripe m
+        , leftBar m
+        , midCol
+        , rightBar m
+        ]
 
 
 debugView : Model -> Element Msg
@@ -1784,36 +1773,34 @@ debugView m =
             2
     in
     El.row
-        [ El.width El.fill
-        , El.padding 10
+        [ El.padding 10
         , El.spacing 4
         , Font.size 10
+        , El.centerX
         ]
     <|
-        [ El.el [ El.alignRight, Font.alignRight ] <|
+        [ El.el [ El.width (El.px 40), Font.alignRight ] <|
             El.text (String.fromInt (round fps))
-        , El.el [ El.alignRight ] <|
-            El.text "fps"
-        , El.el [ El.alignRight ] <|
-            El.html <|
-                S.svg
+        , El.text "fps "
+        , El.html <|
+            S.svg
+                [ SA.height "10"
+                , SA.width (String.fromFloat (scale * 70))
+                ]
+                [ S.rect
                     [ SA.height "10"
-                    , SA.width (String.fromFloat (scale * 70))
+                    , SA.width (String.fromFloat (scale * fps))
+                    , SA.fill (Colors.toString Colors.icon)
                     ]
-                    [ S.rect
-                        [ SA.height "10"
-                        , SA.width (String.fromFloat (scale * fps))
-                        , SA.fill (Colors.toString Colors.icon)
-                        ]
-                        []
-                    , S.rect
-                        [ SA.height "10"
-                        , SA.width (String.fromFloat (scale * 60))
-                        , SA.fill "none"
-                        , SA.stroke (Colors.toString Colors.white)
-                        ]
-                        []
+                    []
+                , S.rect
+                    [ SA.height "10"
+                    , SA.width (String.fromFloat (scale * 60))
+                    , SA.fill "none"
+                    , SA.stroke (Colors.toString Colors.white)
                     ]
+                    []
+                ]
         ]
 
 
@@ -1822,7 +1809,7 @@ leftStripe m =
     let
         distractionFreeButton =
             El.el
-                [ El.width (El.px layoutParams.leftStripeWidth)
+                [ El.width (El.px layoutParams.leftStripeWidth |> El.minimum layoutParams.leftStripeWidth)
                 , El.padding 7
                 , Events.onClick ClickOnDistractionFreeOnButton
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
@@ -1950,6 +1937,7 @@ menu { headerText, isOn, headerButtons, toggleMsg, contentItems } =
         onOffButton =
             El.el
                 [ El.paddingXY 6 0
+                , El.pointer
                 , Events.onClick toggleMsg
                 ]
             <|
@@ -2539,7 +2527,6 @@ topBar m =
     El.el
         [ El.clip
         , Border.color Colors.menuBorder
-        , El.htmlAttribute (HA.style "pointer-events" "auto")
         , El.centerX
         , El.height (El.px layoutParams.topBarHeight)
         ]
