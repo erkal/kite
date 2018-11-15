@@ -2449,11 +2449,6 @@ oneClickButtonGroup buttonList =
     El.row
         [ El.spacing 4
         , El.padding 4
-
-        --, Border.width 1
-        --, Border.color Colors.menuBorder
-        --, Border.rounded 2
-        --, Background.color Colors.menuBackground
         ]
         buttonList
 
@@ -2469,6 +2464,8 @@ oneClickButton { title, iconPath, onClickMsg, disabled } =
     let
         commonAttributes =
             [ Background.color Colors.menuBackground
+            , Border.width 1
+            , Border.color Colors.menuBackground
             ]
 
         occasionalAttributes =
@@ -2482,6 +2479,7 @@ oneClickButton { title, iconPath, onClickMsg, disabled } =
                 , El.htmlAttribute (HA.title title)
                 , El.pointer
                 , El.mouseDown [ Background.color Colors.black ]
+                , El.mouseOver [ Border.color Colors.menuBorderOnMouseOver ]
                 , Events.onClick onClickMsg
                 ]
     in
@@ -2498,9 +2496,7 @@ radioButtonGroup buttonList =
         , Background.color Colors.menuBackground
         , El.padding 4
         , El.spacing 4
-        , El.mouseOver
-            [ Border.color Colors.menuBorderOnMouseOver
-            ]
+        , El.mouseOver [ Border.color Colors.menuBorderOnMouseOver ]
         ]
         buttonList
 
