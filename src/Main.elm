@@ -154,7 +154,7 @@ type Tool
     = Hand HandState
     | Draw DrawState
     | Select SelectState
-    | GravityCenter GravityCenterState
+    | Gravity GravityState
 
 
 type alias Pan =
@@ -187,9 +187,9 @@ type SelectState
         }
 
 
-type GravityCenterState
-    = GravityCenterIdle
-    | GravityCenterDragging
+type GravityState
+    = GravityIdle
+    | GravityDragging
 
 
 initialModel : User -> Model
@@ -369,7 +369,7 @@ type Msg
     | InputVertexCharge Float
     | InputVertexFixed Bool
     | InputVertexColor Color
-    | ClickOnChooseGravityCenterButton
+    | ClickOnGravityTool
       --
     | InputEdgeLabel String
     | InputEdgeLabelVisibility Bool
@@ -413,19 +413,19 @@ mapPresentUser newUser m =
     }
 
 
-newUserAfterApllyingGravityCenter : Model -> User
-newUserAfterApllyingGravityCenter m =
+newUserAfterApllyingGravity : Model -> User
+newUserAfterApllyingGravity m =
     let
-        updateGravityCenter v =
+        updateGravity v =
             { v | gravityCenter = m.svgMousePosition }
     in
     if Set.isEmpty m.selectedVertices then
         presentUser m
-            |> User.updateDefaultVertexProperties updateGravityCenter
+            |> User.updateDefaultVertexProperties updateGravity
 
     else
         presentUser m
-            |> User.updateVertices m.selectedVertices updateGravityCenter
+            |> User.updateVertices m.selectedVertices updateGravity
 
 
 update : Msg -> Model -> Model
@@ -538,8 +538,8 @@ update msg m =
         ClickOnSelectTool ->
             { m | selectedTool = Select SelectIdle }
 
-        ClickOnChooseGravityCenterButton ->
-            { m | selectedTool = GravityCenter GravityCenterIdle }
+        ClickOnGravityTool ->
+            { m | selectedTool = Gravity GravityIdle }
 
         ClickOnVader ->
             reheatSimulation
@@ -634,10 +634,10 @@ update msg m =
                             panAtStart |> Point2d.translateBy delta
                     }
 
-                GravityCenter GravityCenterDragging ->
+                Gravity GravityDragging ->
                     let
                         newUser =
-                            newUserAfterApllyingGravityCenter m
+                            newUserAfterApllyingGravity m
                     in
                     m
                         |> reheatSimulation
@@ -694,12 +694,12 @@ update msg m =
                 Hand (Panning _) ->
                     { m | selectedTool = Hand HandIdle }
 
-                GravityCenter GravityCenterDragging ->
+                Gravity GravityDragging ->
                     let
                         newUser =
-                            newUserAfterApllyingGravityCenter m
+                            newUserAfterApllyingGravity m
                     in
-                    { m | selectedTool = GravityCenter GravityCenterIdle }
+                    { m | selectedTool = Gravity GravityIdle }
                         |> nwUsr newUser "Changed gravity center of some vertices"
 
                 _ ->
@@ -762,12 +762,12 @@ update msg m =
                                 )
                     }
 
-                GravityCenter GravityCenterIdle ->
+                Gravity GravityIdle ->
                     let
                         newUser =
-                            newUserAfterApllyingGravityCenter m
+                            newUserAfterApllyingGravity m
                     in
-                    { m | selectedTool = GravityCenter GravityCenterDragging }
+                    { m | selectedTool = Gravity GravityDragging }
                         |> reheatSimulation
                         |> nwUsr newUser "Changed gravity center of some vertices"
 
@@ -1570,6 +1570,9 @@ toKeyDownMsg key =
         Character 'f' ->
             ClickOnVader
 
+        Character 'g' ->
+            ClickOnGravityTool
+
         Control "Alt" ->
             KeyDownAlt
 
@@ -1713,6 +1716,7 @@ guiColumns m =
                 , El.padding 7
                 , Events.onClick ClickOnDistractionFreeOffButton
                 , El.pointer
+                , El.htmlAttribute (HA.title "Deactivate Distraction Free Mode")
                 ]
                 (El.html
                     (Icons.draw40pxWithColor Colors.white
@@ -1815,6 +1819,7 @@ leftStripe m =
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
                 , El.pointer
+                , El.htmlAttribute (HA.title "Activate Distraction Free Mode")
                 ]
             <|
                 El.html
@@ -2600,21 +2605,17 @@ topBar m =
                                     False
                     }
                 , radioButton
-                    { title = "Set Gravity Center"
+                    { title = "Gravity (G)"
                     , iconPath = Icons.icons.gravityCenter
-                    , onClickMsg = ClickOnChooseGravityCenterButton
+                    , onClickMsg = ClickOnGravityTool
                     , state =
-                        if Set.isEmpty m.selectedVertices then
-                            Nothing
+                        Just <|
+                            case m.selectedTool of
+                                Gravity _ ->
+                                    True
 
-                        else
-                            Just <|
-                                case m.selectedTool of
-                                    GravityCenter _ ->
-                                        True
-
-                                    _ ->
-                                        False
+                                _ ->
+                                    False
                     }
                 ]
             , radioButtonGroup
@@ -2909,11 +2910,10 @@ selector m =
 
                         _ ->
                             Colors.menuBackground
+                , Events.onClick ClickOnRectSelector
                 , El.pointer
                 , Border.rounded 12
-                , Events.onClick ClickOnRectSelector
-                , El.mouseDown [ Background.color Colors.selectedItem ]
-                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                , El.mouseDown [ Background.color Colors.black ]
                 ]
                 (El.html (Icons.draw24px Icons.icons.selectionRect))
 
@@ -2927,11 +2927,10 @@ selector m =
 
                         _ ->
                             Colors.menuBackground
+                , Events.onClick ClickOnLineSelector
                 , El.pointer
                 , Border.rounded 12
-                , Events.onClick ClickOnLineSelector
-                , El.mouseDown [ Background.color Colors.selectedItem ]
-                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                , El.mouseDown [ Background.color Colors.black ]
                 ]
                 (El.html (Icons.draw24px Icons.icons.selectionLine))
 
@@ -2949,7 +2948,8 @@ selector m =
                     , Border.rounded 16
                     , Border.width 1
                     , Border.color Colors.menuBorder
-                    , El.mouseOver [ Border.color Colors.menuBorderOnMouseOver ]
+                    , El.mouseOver
+                        [ Border.color Colors.menuBorderOnMouseOver ]
                     ]
                     [ rectSelector
                     , lineSelector
@@ -3697,7 +3697,7 @@ mainSvg m =
 
         cursor =
             case m.selectedTool of
-                GravityCenter _ ->
+                Gravity _ ->
                     "crosshair"
 
                 Hand HandIdle ->
@@ -3903,7 +3903,7 @@ viewVertices user =
 maybeViewGravityLines : Model -> Html Msg
 maybeViewGravityLines m =
     case m.selectedTool of
-        GravityCenter _ ->
+        Gravity _ ->
             let
                 viewGravityLine { id, label } =
                     Geometry.Svg.lineSegment2d
