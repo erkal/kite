@@ -34,6 +34,7 @@ module User exposing
     , getVerticesInBag
     , inducedEdges
     , inducedVertices
+    , pullCentersWithVertices
     , removeBag
     , removeEdges
     , removeVertices
@@ -54,6 +55,7 @@ import BoundingBox2d exposing (BoundingBox2d)
 import Circle2d exposing (Circle2d)
 import Colors
 import Dict exposing (Dict)
+import Dict.Extra
 import Element exposing (Color)
 import Force exposing (Force, ForceGraph)
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
@@ -198,12 +200,12 @@ mapBags f (User p) =
 
 getVertices : User -> List (Node VertexProperties)
 getVertices (User { graph }) =
-    graph |> Graph.nodes
+    Graph.nodes graph
 
 
 getEdges : User -> List (Edge EdgeProperties)
 getEdges (User { graph }) =
-    graph |> Graph.edges
+    Graph.edges graph
 
 
 getBags : User -> List Bag
@@ -602,3 +604,10 @@ duplicateSubgraph vs es ((User p) as user) =
     , Set.fromList nvs
     , Set.fromList nes
     )
+
+
+pullCentersWithVertices : User -> Dict ( Float, Float ) (List VertexId)
+pullCentersWithVertices (User { graph }) =
+    Graph.nodes graph
+        |> Dict.Extra.groupBy (.label >> .gravityCenter >> Point2d.coordinates)
+        |> Dict.map (\_ nodeList -> List.map .id nodeList)
