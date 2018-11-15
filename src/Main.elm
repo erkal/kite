@@ -284,8 +284,7 @@ type Msg
       --
     | PageVisibility Browser.Events.Visibility
       --
-    | ClickOnDistractionFreeOffButton
-    | ClickOnDistractionFreeOnButton
+    | ClickOnDistractionFreeButton
       --
     | ClickOnLeftMostBarRadioButton Mode
       --
@@ -502,11 +501,8 @@ update msg m =
                 Visible ->
                     m
 
-        ClickOnDistractionFreeOffButton ->
-            { m | distractionFree = False }
-
-        ClickOnDistractionFreeOnButton ->
-            { m | distractionFree = True }
+        ClickOnDistractionFreeButton ->
+            { m | distractionFree = not m.distractionFree }
 
         ClickOnLeftMostBarRadioButton selectedMode ->
             { m | selectedMode = selectedMode }
@@ -1558,6 +1554,9 @@ subscriptions m =
 toKeyDownMsg : Key -> Msg
 toKeyDownMsg key =
     case key of
+        Character 'a' ->
+            ClickOnDistractionFreeButton
+
         Character 'h' ->
             ClickOnHandTool
 
@@ -1714,9 +1713,9 @@ guiColumns m =
                 [ El.width (El.px layoutParams.leftStripeWidth)
                 , El.alignTop
                 , El.padding 7
-                , Events.onClick ClickOnDistractionFreeOffButton
+                , Events.onClick ClickOnDistractionFreeButton
                 , El.pointer
-                , El.htmlAttribute (HA.title "Deactivate Distraction Free Mode")
+                , El.htmlAttribute (HA.title "Deactivate Distraction Free Mode (A)")
                 ]
                 (El.html
                     (Icons.draw40pxWithColor Colors.white
@@ -1815,11 +1814,11 @@ leftStripe m =
             El.el
                 [ El.width (El.px layoutParams.leftStripeWidth |> El.minimum layoutParams.leftStripeWidth)
                 , El.padding 7
-                , Events.onClick ClickOnDistractionFreeOnButton
+                , Events.onClick ClickOnDistractionFreeButton
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
                 , El.pointer
-                , El.htmlAttribute (HA.title "Activate Distraction Free Mode")
+                , El.htmlAttribute (HA.title "Activate Distraction Free Mode (A)")
                 ]
             <|
                 El.html
