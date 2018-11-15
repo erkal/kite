@@ -197,7 +197,7 @@ initialModel user =
     { userUL = UL.fresh ( "Started with empty graph", user )
 
     --
-    , distractionFree = True
+    , distractionFree = False
 
     --
     , simulationState = user |> User.simulation
@@ -1667,12 +1667,6 @@ edgeIdsToString es =
 view : Model -> Html Msg
 view m =
     let
-        topBarWidth =
-            m.windowSize.width
-                - layoutParams.leftStripeWidth
-                - layoutParams.leftBarWidth
-                - layoutParams.rightBarWidth
-
         yinAndYangIConSvg =
             El.html
                 (Icons.draw40pxWithColor Colors.white
@@ -1706,12 +1700,14 @@ view m =
             ]
         , El.htmlAttribute (HA.style "-webkit-font-smoothing" "antialiased")
         , El.htmlAttribute (HA.style "user-select" "none")
+        , El.height El.fill
+        , El.width El.fill
         ]
     <|
         if m.distractionFree then
             El.row
-                [ El.width (El.px m.windowSize.width)
-                , El.height (El.px m.windowSize.height)
+                [ El.width El.fill
+                , El.height El.fill
                 ]
                 [ El.html (mainSvg m)
                 , El.el
@@ -1745,15 +1741,15 @@ view m =
 
         else
             El.row
-                [ El.width (El.px m.windowSize.width)
-                , El.height (El.px m.windowSize.height)
+                [ El.width El.fill
+                , El.height El.fill
                 ]
                 [ El.html (mainSvg m)
                 , leftStripe m
                 , leftBar m
                 , El.column
                     [ El.alignTop
-                    , El.width (El.px topBarWidth)
+                    , El.width El.fill
                     , El.htmlAttribute (HA.style "pointer-events" "none")
                     ]
                     [ topBar m
@@ -2450,7 +2446,16 @@ leftBarContentForGamesOnGraphs m =
 
 oneClickButtonGroup : List (Element Msg) -> Element Msg
 oneClickButtonGroup buttonList =
-    El.row [ El.spacing 4 ] buttonList
+    El.row
+        [ El.spacing 4
+        , El.padding 4
+
+        --, Border.width 1
+        --, Border.color Colors.menuBorder
+        --, Border.rounded 2
+        --, Background.color Colors.menuBackground
+        ]
+        buttonList
 
 
 oneClickButton :
@@ -2462,34 +2467,35 @@ oneClickButton :
     -> Element Msg
 oneClickButton { title, iconPath, onClickMsg, disabled } =
     let
-        attributes =
+        commonAttributes =
+            [ Background.color Colors.menuBackground
+            ]
+
+        occasionalAttributes =
             if disabled then
-                [ Border.width 1
-                , Border.rounded 4
-                , Border.color Colors.menuBorder
-                , El.alpha 0.1
+                [ El.alpha 0.1
+                , El.htmlAttribute (HA.title (title ++ " (disabled)"))
                 ]
 
             else
-                [ Border.width 1
-                , Border.rounded 4
-                , Border.color Colors.menuBorder
-                , El.pointer
-                , El.mouseDown [ Background.color Colors.selectedItem ]
-                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
-                , Events.onClick onClickMsg
+                [ Border.rounded 2
                 , El.htmlAttribute (HA.title title)
+                , El.pointer
+                , El.mouseDown [ Background.color Colors.black ]
+                , Events.onClick onClickMsg
                 ]
     in
-    El.el attributes (El.html (Icons.draw34px iconPath))
+    El.el (commonAttributes ++ occasionalAttributes)
+        (El.html (Icons.draw34px iconPath))
 
 
 radioButtonGroup : List (Element Msg) -> Element Msg
 radioButtonGroup buttonList =
     El.row
         [ Border.width 1
-        , Border.color Colors.menuBorder
-        , Border.rounded 26
+        , Border.color Colors.menuBackground
+        , Border.rounded 21
+        , Background.color Colors.menuBackground
         , El.padding 4
         , El.spacing 4
         , El.mouseOver
@@ -2524,8 +2530,7 @@ radioButton { title, iconPath, onClickMsg, state } =
 
                         else
                             Colors.menuBackground
-                    , El.mouseDown [ Background.color Colors.selectedItem ]
-                    , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                    , El.mouseDown [ Background.color Colors.black ]
                     , El.htmlAttribute (HA.title title)
                     , Events.onClick onClickMsg
                     ]
@@ -2536,12 +2541,10 @@ radioButton { title, iconPath, onClickMsg, state } =
 topBar : Model -> Element Msg
 topBar m =
     El.el
-        [ Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
-        , Background.color Colors.menuBackground
-        , El.clip
+        [ El.clip
         , Border.color Colors.menuBorder
         , El.htmlAttribute (HA.style "pointer-events" "auto")
-        , El.width El.fill
+        , El.centerX
         , El.height (El.px layoutParams.topBarHeight)
         ]
     <|
@@ -2631,15 +2634,13 @@ topBar m =
                                         False
                     }
                 ]
-            , oneClickButtonGroup
-                [ radioButtonGroup
-                    [ radioButton
-                        { title = "Force (F)"
-                        , iconPath = Icons.icons.vader
-                        , onClickMsg = ClickOnVader
-                        , state = Just m.vaderIsOn
-                        }
-                    ]
+            , radioButtonGroup
+                [ radioButton
+                    { title = "Force (F)"
+                    , iconPath = Icons.icons.vader
+                    , onClickMsg = ClickOnVader
+                    , state = Just m.vaderIsOn
+                    }
                 ]
             ]
 

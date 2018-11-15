@@ -124,7 +124,7 @@ menuBorder =
 
 
 menuBorderOnMouseOver =
-    El.rgba255 255 255 255 0.25
+    El.rgba255 255 255 255 0.6
 
 
 selectedItem =
