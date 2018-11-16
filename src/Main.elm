@@ -46,8 +46,8 @@ main =
                 ( initialModel User.default
                 , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
                 )
-        , view = \model -> { title = "Kite", body = [ view model ] }
-        , update = \msg model -> ( update msg model, Cmd.none )
+        , view = \m -> { title = "Kite", body = [ mainSvg m, view m ] }
+        , update = \msg m -> ( update msg m, Cmd.none )
         , subscriptions = subscriptions
         }
 
@@ -74,6 +74,9 @@ type alias Model =
 
     --
     , distractionFree : Bool
+
+    --
+    , focusIsOnSomeTextInput : {- needed for preventing keypresses to trigger keyboard shortcuts -} Bool
 
     --
     , simulationState : Force.State
@@ -200,6 +203,9 @@ initialModel user =
     , distractionFree = True
 
     --
+    , focusIsOnSomeTextInput = False
+
+    --
     , simulationState = user |> User.simulation
 
     --
@@ -274,6 +280,9 @@ type Msg
     | Tick Time.Posix
       --
     | WindowResize { width : Int, height : Int }
+      --
+    | FocusedATextInput
+    | FocusLostFromTextInput
       --
     | WheelDeltaY Int
       --
@@ -466,6 +475,12 @@ update msg m =
 
         WindowResize wS ->
             { m | windowSize = wS }
+
+        FocusedATextInput ->
+            { m | focusIsOnSomeTextInput = True }
+
+        FocusLostFromTextInput ->
+            { m | focusIsOnSomeTextInput = False }
 
         WheelDeltaY deltaY ->
             let
@@ -1549,9 +1564,13 @@ subscriptions m =
         , Browser.Events.onMouseMove (Decode.map MouseMove mousePosition)
         , Browser.Events.onMouseMove (Decode.map MouseMoveForUpdatingSvgPos mousePosition)
         , Browser.Events.onMouseUp (Decode.map MouseUp mousePosition)
-        , Browser.Events.onKeyDown (Decode.map toKeyDownMsg keyDecoder)
         , Browser.Events.onKeyUp (Decode.map toKeyUpMsg keyDecoder)
         , Browser.Events.onVisibilityChange PageVisibility
+        , if m.focusIsOnSomeTextInput then
+            Sub.none
+
+          else
+            Browser.Events.onKeyDown (Decode.map toKeyDownMsg keyDecoder)
         , if Force.isCompleted m.simulationState || not m.vaderIsOn then
             Sub.none
 
@@ -1689,30 +1708,17 @@ view m =
         [ Font.color Colors.lightText
         , Font.size 10
         , Font.regular
-        , Font.family
-            [ Font.typeface "-apple-system"
-            , Font.typeface "BlinkMacSystemFont"
-            , Font.typeface "Segoe UI"
-            , Font.typeface "Roboto"
-            , Font.typeface "Oxygen"
-            , Font.typeface "Ubuntu"
-            , Font.typeface "Cantarell"
-            , Font.typeface "Fira Sans"
-            , Font.typeface "Droid Sans"
-            , Font.typeface "Helvetica Neue"
-            , Font.sansSerif
-            ]
         , El.htmlAttribute (HA.style "-webkit-font-smoothing" "antialiased")
-        , El.htmlAttribute (HA.style "user-select" "none")
         , El.height El.fill
         , El.width El.fill
+        , El.htmlAttribute (HA.style "pointer-events" "none")
         ]
     <|
         El.row
             [ El.width El.fill
             , El.height El.fill
             ]
-            (El.html (mainSvg m) :: guiColumns m)
+            (guiColumns m)
 
 
 guiColumns m =
@@ -1724,7 +1730,9 @@ guiColumns m =
                 , El.padding 7
                 , Events.onClick ClickOnDistractionFreeButton
                 , El.pointer
-                , El.htmlAttribute (HA.title "Deactivate Distraction Free Mode (A)")
+                , El.htmlAttribute
+                    (HA.title "Deactivate Distraction Free Mode (A)")
+                , El.htmlAttribute (HA.style "pointer-events" "auto")
                 ]
                 (El.html
                     (Icons.draw40pxWithColor Colors.white
@@ -1736,7 +1744,6 @@ guiColumns m =
             El.column
                 [ El.height El.fill
                 , El.width El.fill
-                , El.htmlAttribute (HA.style "pointer-events" "none")
                 ]
                 [ El.el
                     [ El.width El.fill
@@ -1744,7 +1751,8 @@ guiColumns m =
                     , El.htmlAttribute (HA.style "pointer-events" "auto")
                     ]
                     (topBar m)
-                , El.el [ El.alignBottom, El.width El.fill ] (debugView m)
+                , El.el [ El.alignBottom, El.width El.fill ]
+                    (debugView m)
                 ]
     in
     if m.distractionFree then
@@ -1787,7 +1795,6 @@ debugView m =
     El.row
         [ El.padding 10
         , El.spacing 4
-        , Font.size 10
         , El.centerX
         ]
     <|
@@ -1890,6 +1897,7 @@ leftStripe m =
         , El.width (El.px layoutParams.leftStripeWidth)
         , El.height El.fill
         , El.scrollbarY
+        , El.htmlAttribute (HA.style "pointer-events" "auto")
         ]
         [ distractionFreeButton
         , radioButtonsForMode
@@ -1912,6 +1920,7 @@ leftBar m =
         , El.width (El.px layoutParams.leftBarWidth)
         , El.height El.fill
         , El.scrollbarY
+        , El.htmlAttribute (HA.style "pointer-events" "auto")
         ]
     <|
         case m.selectedMode of
@@ -2650,6 +2659,7 @@ rightBar m =
         , El.width (El.px layoutParams.rightBarWidth)
         , El.height El.fill
         , El.scrollbarY
+        , El.htmlAttribute (HA.style "pointer-events" "auto")
         ]
         [ history m
         , selector m
@@ -2681,13 +2691,14 @@ textInput { labelText, labelWidth, inputWidth, text, onChange } =
         , Background.color Colors.inputBackground
         , El.paddingXY 6 10
         , El.spacing 8
-        , Font.size 10
         , Border.width 0
         , Border.rounded 2
         , El.focused
             [ Font.color Colors.darkText
             , Background.color Colors.white
             ]
+        , Events.onFocus FocusedATextInput
+        , Events.onLoseFocus FocusLostFromTextInput
         ]
         { onChange = onChange
         , text = text
