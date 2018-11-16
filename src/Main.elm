@@ -704,7 +704,7 @@ update msg m =
                         , selectedTool = Select SelectIdle
                     }
                         |> nwUsr (presentUser m)
-                            "Moved vertices"
+                            "Moved some vertices"
 
                 Hand (Panning _) ->
                     { m | selectedTool = Hand HandIdle }
@@ -715,7 +715,8 @@ update msg m =
                             newUserAfterApllyingGravity m
                     in
                     { m | selectedTool = Gravity GravityIdle }
-                        |> nwUsr newUser "Changed gravity center of some vertices"
+                        |> nwUsr newUser
+                            "Changed gravity center of some vertices"
 
                 _ ->
                     m
@@ -784,7 +785,8 @@ update msg m =
                     in
                     { m | selectedTool = Gravity GravityDragging }
                         |> reheatSimulation
-                        |> nwUsr newUser "Changed gravity center of some vertices"
+                        |> nwUsr newUser
+                            "Changed gravity center of some vertices"
 
                 _ ->
                     m
@@ -1026,7 +1028,7 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Changed the label of the bag " ++ bagIdToString bagId)
+                    "Changed the label of the bag"
 
         InputBagConvexHull bagId b ->
             let
@@ -1038,7 +1040,7 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Toggled convex hull of the bag " ++ bagIdToString bagId)
+                    "Toggled convex hull of a bag"
 
         InputBagColor bagId color ->
             let
@@ -1050,7 +1052,7 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Changed color of " ++ bagIdToString bagId)
+                    "Changed color of a bag"
 
         InputVertexX str ->
             let
@@ -1061,9 +1063,7 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Changed the X coordinate of vertices "
-                        ++ vertexIdsToString (Set.toList m.selectedVertices)
-                    )
+                    "Changed the X coordinate of vertices"
 
         InputVertexY str ->
             let
@@ -1074,31 +1074,28 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Changed the Y coordinate of vertices "
-                        ++ vertexIdsToString (Set.toList m.selectedVertices)
-                    )
+                    "Changed the Y coordinate of some vertices"
 
         InputVertexColor newColor ->
             let
                 updateColor v =
                     { v | color = newColor }
 
-                newUser =
+                ( newUser, description ) =
                     if Set.isEmpty m.selectedVertices then
-                        presentUser m
+                        ( presentUser m
                             |> User.updateDefaultVertexProperties updateColor
+                        , "Changed the color of some vertices"
+                        )
 
                     else
-                        presentUser m
+                        ( presentUser m
                             |> User.updateVertices m.selectedVertices updateColor
+                        , "Changed the default vertex color"
+                        )
             in
             m
-                |> nwUsr newUser
-                    ("Changed the color of the vertices "
-                        ++ vertexIdsToString (Set.toList m.selectedVertices)
-                        ++ " to "
-                        ++ Colors.toString newColor
-                    )
+                |> nwUsr newUser description
 
         InputVertexRadius num ->
             let
@@ -1116,11 +1113,7 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Changed the radius of the vertices "
-                        ++ vertexIdsToString (Set.toList m.selectedVertices)
-                        ++ " to "
-                        ++ String.fromFloat num
-                    )
+                    "Changed the radius of some vertices"
 
         InputVertexGravityStrength num ->
             let
@@ -1138,7 +1131,8 @@ update msg m =
             in
             m
                 |> reheatSimulation
-                |> nwUsr newUser "Changed gravity strength of some vertices"
+                |> nwUsr newUser
+                    "Changed gravity strength of some vertices"
 
         InputVertexCharge num ->
             let
@@ -1157,11 +1151,7 @@ update msg m =
             m
                 |> reheatSimulation
                 |> nwUsr newUser
-                    ("Changed the strength of the vertices "
-                        ++ vertexIdsToString (Set.toList m.selectedVertices)
-                        ++ " to "
-                        ++ String.fromFloat num
-                    )
+                    "Changed the strength of some vertices"
 
         InputVertexLabel str ->
             let
@@ -1186,12 +1176,7 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Changed the label of the vertices "
-                        ++ vertexIdsToString (Set.toList m.selectedVertices)
-                        ++ " to '"
-                        ++ str
-                        ++ "'"
-                    )
+                    "Changed the label of some vertices"
 
         InputVertexFixed b ->
             let
@@ -1234,20 +1219,10 @@ update msg m =
                     else
                         presentUser m
                             |> User.updateVertices m.selectedVertices updateLabelVisibility
-
-                descriptionEnd =
-                    if b then
-                        " visible"
-
-                    else
-                        " invisible"
             in
             m
                 |> nwUsr newUser
-                    ("Made the labels of the vertices "
-                        ++ vertexIdsToString (Set.toList m.selectedVertices)
-                        ++ descriptionEnd
-                    )
+                    "Toggled the labels of some edges"
 
         InputEdgeLabelVisibility b ->
             let
@@ -1262,20 +1237,10 @@ update msg m =
                     else
                         presentUser m
                             |> User.updateEdges m.selectedEdges updateLabelVisibility
-
-                descriptionEnd =
-                    if b then
-                        " visible"
-
-                    else
-                        " invisible"
             in
             m
                 |> nwUsr newUser
-                    ("Made the labels of the edges "
-                        ++ edgeIdsToString (Set.toList m.selectedEdges)
-                        ++ descriptionEnd
-                    )
+                    "Toggled the labels of some edges"
 
         InputEdgeLabel str ->
             let
@@ -1300,12 +1265,7 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Changed the label of the edges "
-                        ++ edgeIdsToString (Set.toList m.selectedEdges)
-                        ++ " to '"
-                        ++ str
-                        ++ "'"
-                    )
+                    "Changed the label of some edges"
 
         InputEdgeColor newColor ->
             let
@@ -1323,11 +1283,7 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Changed the color of the vertices "
-                        ++ edgeIdsToString (Set.toList m.selectedEdges)
-                        ++ " to "
-                        ++ Colors.toString newColor
-                    )
+                    "Changed the color of some vertices"
 
         InputEdgeThickness num ->
             let
@@ -1345,11 +1301,7 @@ update msg m =
             in
             m
                 |> nwUsr newUser
-                    ("Changed the thickness of the edges "
-                        ++ edgeIdsToString (Set.toList m.selectedEdges)
-                        ++ " to "
-                        ++ String.fromFloat num
-                    )
+                    "Changed the thickness of some edges"
 
         InputEdgeDistance num ->
             let
@@ -1368,11 +1320,7 @@ update msg m =
             m
                 |> reheatSimulation
                 |> nwUsr newUser
-                    ("Changed the distance of the edges "
-                        ++ edgeIdsToString (Set.toList m.selectedEdges)
-                        ++ " to "
-                        ++ String.fromFloat num
-                    )
+                    "Changed the distance of some edges"
 
         InputEdgeStrength num ->
             let
@@ -1391,11 +1339,7 @@ update msg m =
             m
                 |> reheatSimulation
                 |> nwUsr newUser
-                    ("Changed the strength of the edges "
-                        ++ edgeIdsToString (Set.toList m.selectedEdges)
-                        ++ " to "
-                        ++ String.fromFloat num
-                    )
+                    "Changed the strength of some edges "
 
         ToggleTableOfVertices ->
             { m | tableOfVerticesIsOn = not m.tableOfVerticesIsOn }
@@ -1549,9 +1493,12 @@ update msg m =
         ClickOnGenerateStarGraphButton ->
             let
                 newUser =
-                    presentUser m |> User.addStarGraph { numberOfLeaves = 20 }
+                    presentUser m
+                        |> User.addStarGraph { numberOfLeaves = 20 }
             in
-            m |> nwUsr newUser "Added a generated graph "
+            m
+                |> nwUsr newUser
+                    "Added a generated graph "
 
 
 
