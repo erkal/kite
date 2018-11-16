@@ -1709,8 +1709,6 @@ view m =
         , Font.size 10
         , Font.regular
         , El.htmlAttribute (HA.style "-webkit-font-smoothing" "antialiased")
-
-        --, El.htmlAttribute (HA.style "user-select" "none")
         , El.height El.fill
         , El.width El.fill
         , El.htmlAttribute (HA.style "pointer-events" "none")
