@@ -1,10 +1,10 @@
-module Force.ManyBody exposing (Vertex, run)
+module Graph.Force.ManyBody exposing (Vertex, run)
 
 -- THIS FILE IS ORIGINALLY COPIED FROM THE SOURCE OF THE PACKAGE gampleman/elm-visualization
 
 import BoundingBox2d exposing (BoundingBox2d)
 import Dict exposing (Dict)
-import Force.QuadTree as QuadTree exposing (QuadTree)
+import Graph.Force.QuadTree as QuadTree exposing (QuadTree)
 import Point2d exposing (Point2d)
 import Vector2d exposing (Vector2d)
 

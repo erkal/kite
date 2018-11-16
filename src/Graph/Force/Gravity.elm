@@ -1,4 +1,4 @@
-module Force.Gravity exposing (Vertex, run)
+module Graph.Force.Gravity exposing (Vertex, run)
 
 import IntDict exposing (IntDict)
 import Point2d exposing (Point2d)

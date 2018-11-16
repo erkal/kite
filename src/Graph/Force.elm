@@ -1,4 +1,4 @@
-module Force exposing
+module Graph.Force exposing
     ( Force(..)
     , ForceGraph
     , State
@@ -11,11 +11,11 @@ module Force exposing
     )
 
 import Dict exposing (Dict)
-import Force.Gravity as Gravity
-import Force.Link as Link
-import Force.ManyBody as ManyBody
 import Graph exposing (Edge, Graph, Node, NodeId)
 import Graph.Extra
+import Graph.Force.Gravity as Gravity
+import Graph.Force.Link as Link
+import Graph.Force.ManyBody as ManyBody
 import Point2d exposing (Point2d)
 import Vector2d exposing (Vector2d)
 

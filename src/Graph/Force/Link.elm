@@ -1,4 +1,4 @@
-module Force.Link exposing (Param, run)
+module Graph.Force.Link exposing (Param, run)
 
 import IntDict exposing (IntDict)
 import Point2d exposing (Point2d)

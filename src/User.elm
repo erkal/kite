@@ -57,9 +57,9 @@ import Colors
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Color)
-import Force exposing (Force, ForceGraph)
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Graph.Extra
+import Graph.Force as Force exposing (Force, ForceGraph)
 import Graph.Generators
 import IntDict exposing (IntDict)
 import LineSegment2d exposing (LineSegment2d)

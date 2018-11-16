@@ -1,5 +1,8 @@
 module Main exposing (main)
 
+-- TODO: Remove Graph.Force
+-- TODO: Remove UndoList
+
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser
 import Browser.Dom as Dom
@@ -15,8 +18,8 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Element.Keyed
-import Force exposing (Force)
 import Geometry.Svg
+import Graph.Force as Force exposing (Force)
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
 import Html.Events as HE

@@ -1,9 +1,9 @@
-module Force.QuadTree exposing (Config, QuadTree(..), Quadrant(..), empty, fromList, getAggregate, insertBy, performAggregate, quadrant, singleton, size, toList)
+module Graph.Force.QuadTree exposing (Config, QuadTree(..), Quadrant(..), empty, fromList, getAggregate, insertBy, performAggregate, quadrant, singleton, size, toList)
 
 {-| A quadtree that can store an aggregate in the nodes.
 Intended for use in n-body simulation, specifically Barnes-Hut
 
-[https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut\_simulation#Calculating\_the\_force\_acting\_on\_a\_body](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)
+[[https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut\_simulation#Calculating\_the\_force\_acting\_on\_a\_body](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)](https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation#Calculating_the_force_acting_on_a_body)
 
 -}
 
