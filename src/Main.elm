@@ -76,6 +76,9 @@ type alias Model =
     , distractionFree : Bool
 
     --
+    , focusIsOnSomeTextInput : {- needed for preventing keypresses to trigger keyboard shortcuts -} Bool
+
+    --
     , simulationState : Force.State
 
     --
@@ -200,6 +203,9 @@ initialModel user =
     , distractionFree = True
 
     --
+    , focusIsOnSomeTextInput = False
+
+    --
     , simulationState = user |> User.simulation
 
     --
@@ -274,6 +280,9 @@ type Msg
     | Tick Time.Posix
       --
     | WindowResize { width : Int, height : Int }
+      --
+    | FocusedATextInput
+    | FocusLostFromTextInput
       --
     | WheelDeltaY Int
       --
@@ -466,6 +475,12 @@ update msg m =
 
         WindowResize wS ->
             { m | windowSize = wS }
+
+        FocusedATextInput ->
+            { m | focusIsOnSomeTextInput = True }
+
+        FocusLostFromTextInput ->
+            { m | focusIsOnSomeTextInput = False }
 
         WheelDeltaY deltaY ->
             let
@@ -1549,9 +1564,13 @@ subscriptions m =
         , Browser.Events.onMouseMove (Decode.map MouseMove mousePosition)
         , Browser.Events.onMouseMove (Decode.map MouseMoveForUpdatingSvgPos mousePosition)
         , Browser.Events.onMouseUp (Decode.map MouseUp mousePosition)
-        , Browser.Events.onKeyDown (Decode.map toKeyDownMsg keyDecoder)
         , Browser.Events.onKeyUp (Decode.map toKeyUpMsg keyDecoder)
         , Browser.Events.onVisibilityChange PageVisibility
+        , if m.focusIsOnSomeTextInput then
+            Sub.none
+
+          else
+            Browser.Events.onKeyDown (Decode.map toKeyDownMsg keyDecoder)
         , if Force.isCompleted m.simulationState || not m.vaderIsOn then
             Sub.none
 
@@ -1689,21 +1708,9 @@ view m =
         [ Font.color Colors.lightText
         , Font.size 10
         , Font.regular
-        , Font.family
-            [ Font.typeface "-apple-system"
-            , Font.typeface "BlinkMacSystemFont"
-            , Font.typeface "Segoe UI"
-            , Font.typeface "Roboto"
-            , Font.typeface "Oxygen"
-            , Font.typeface "Ubuntu"
-            , Font.typeface "Cantarell"
-            , Font.typeface "Fira Sans"
-            , Font.typeface "Droid Sans"
-            , Font.typeface "Helvetica Neue"
-            , Font.sansSerif
-            ]
         , El.htmlAttribute (HA.style "-webkit-font-smoothing" "antialiased")
-        , El.htmlAttribute (HA.style "user-select" "none")
+
+        --, El.htmlAttribute (HA.style "user-select" "none")
         , El.height El.fill
         , El.width El.fill
         , El.htmlAttribute (HA.style "pointer-events" "none")
@@ -1790,7 +1797,6 @@ debugView m =
     El.row
         [ El.padding 10
         , El.spacing 4
-        , Font.size 10
         , El.centerX
         ]
     <|
@@ -2687,13 +2693,14 @@ textInput { labelText, labelWidth, inputWidth, text, onChange } =
         , Background.color Colors.inputBackground
         , El.paddingXY 6 10
         , El.spacing 8
-        , Font.size 10
         , Border.width 0
         , Border.rounded 2
         , El.focused
             [ Font.color Colors.darkText
             , Background.color Colors.white
             ]
+        , Events.onFocus FocusedATextInput
+        , Events.onLoseFocus FocusLostFromTextInput
         ]
         { onChange = onChange
         , text = text
