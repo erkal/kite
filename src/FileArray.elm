@@ -1,4 +1,4 @@
-module FileArray exposing (FileArray)
+module Files exposing (Files)
 
 {- Two files are allowed to have the same name.
    Here, the order of the files are going to distinguish them
@@ -8,9 +8,9 @@ import Array exposing (Array)
 import UndoList as UL exposing (UndoList)
 
 
-type FileArray f
-    = FileArray
-        { activeIndex : Maybe FileIndex
+type Files f
+    = Files
+        { activeIndex : FileIndex
         , fileArray : Array (File f)
         }
 
@@ -21,32 +21,43 @@ type alias FileIndex =
 
 type alias File f =
     { name : String
-    , isOpen : Bool
-    , file : UndoList f
+    , fileWithHistory : UndoList f
     }
 
 
+getActiveIndex : Files f -> FileIndex
+getActiveIndex (Files { activeIndex }) =
+    activeIndex
 
--- QUERIES
+
+hasChanged : File f -> Bool
+hasChanged { fileWithHistory } =
+    UL.hasPast fileWithHistory
 
 
-empty : FileArray f
+empty : Files f
 empty =
-    FileArray
-        { activeIndex = Nothing
+    Files
+        { activeIndex = 0
         , fileArray = Array.empty
         }
 
 
-{-| Saves to active index. We assume that only the item in the active index can is shown to the user, hence, saving will overwrite the existing one
--}
-save : String -> f -> FileArray f -> FileArray f
-save name file fL =
+newFile : String -> f -> Files f -> Files f
+newFile name fileWithHistory fL =
     -- TODO
     fL
 
 
-insertAt : File f -> Int -> FileArray f -> FileArray f
-insertAt file i fL =
+{-| Saves to active index. We assume that only the item in the active index can is shown to the user, hence, saving will overwrite the existing one
+-}
+save : String -> f -> Files f -> Files f
+save name fileWithHistory fL =
+    -- TODO
+    fL
+
+
+insertAt : File f -> Int -> Files f -> Files f
+insertAt fileWithHistory i fL =
     -- TODO
     fL
