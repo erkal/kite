@@ -139,13 +139,14 @@ type alias Model =
 
 
 type Mode
-    = Preferences
+    = Folders
     | ListsOfBagsVerticesAndEdges
     | GraphOperations
     | GraphQueries
     | GraphGenerators
     | AlgorithmVisualizations
     | GamesOnGraphs
+    | Preferences
 
 
 type Selector
@@ -1863,13 +1864,16 @@ leftStripe m =
             El.column
                 [ El.alignTop
                 ]
-                [ modeButton "Preferences" Preferences Icons.icons.preferencesGear
+                [ modeButton "Folders" Folders Icons.icons.trash
                 , modeButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
                 , modeButton "Graph Operations" GraphOperations Icons.icons.magicStick
                 , modeButton "Graph Queries" GraphQueries Icons.icons.qForQuery
                 , modeButton "Graph Generators" GraphGenerators Icons.icons.lightning
                 , modeButton "Algorithm Visualizations" AlgorithmVisualizations Icons.icons.algoVizPlay
-                , modeButton "Games on Graphs" GamesOnGraphs Icons.icons.chessHorse
+                , modeButton "Games on Graphs"
+                    GamesOnGraphs
+                    Icons.icons.chessHorse
+                , modeButton "Preferences" Preferences Icons.icons.preferencesGear
                 ]
 
         githubButton =
@@ -1924,8 +1928,8 @@ leftBar m =
         ]
     <|
         case m.selectedMode of
-            Preferences ->
-                leftBarContentForPreferences m
+            Folders ->
+                leftBarContentForFolders m
 
             ListsOfBagsVerticesAndEdges ->
                 leftBarContentForListsOfBagsVerticesAndEdges m
@@ -1944,6 +1948,9 @@ leftBar m =
 
             GamesOnGraphs ->
                 leftBarContentForGamesOnGraphs m
+
+            Preferences ->
+                leftBarContentForPreferences m
 
 
 menu :
@@ -2058,6 +2065,17 @@ commonCellProperties =
     , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
     , Border.color Colors.menuBorder
     ]
+
+
+leftBarContentForFolders : Model -> Element Msg
+leftBarContentForFolders m =
+    menu
+        { headerText = "Folders (coming soon)"
+        , isOn = True
+        , headerButtons = []
+        , toggleMsg = NoOp
+        , contentItems = []
+        }
 
 
 leftBarContentForListsOfBagsVerticesAndEdges : Model -> Element Msg

@@ -17,10 +17,12 @@
             "elm-community/intdict": "3.0.0",
             "ianmackenzie/elm-geometry": "1.2.1",
             "ianmackenzie/elm-geometry-svg": "1.0.2",
-            "mdgriffith/elm-ui": "1.1.0"
+            "mdgriffith/elm-ui": "1.1.0",
+            "mgold/elm-nonempty-list": "4.0.0"
         },
         "indirect": {
             "avh4/elm-fifo": "1.0.4",
+            "elm/random": "1.0.0",
             "elm/url": "1.0.0",
             "elm/virtual-dom": "1.0.2",
             "ianmackenzie/elm-float-extra": "1.0.1",
