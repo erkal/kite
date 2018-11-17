@@ -2,22 +2,27 @@ module Files exposing
     ( Files
     , empty
     , new, delete
-    , open, close
+    , focus, close, reallyClose, closeAll
     , update, updateWithoutRecording
-    , hasChanged
-    , save, saveAs
+    , save, saveAs, saveAll
     , undo, redo
-    , get
+    , getPresent, hasChanged
     )
 
-{-| A data structure for a flat list of files (without folders!), which can be opened, closed, saved, etc.. Each file keeps its own history and hence allows undo redo operations. An example usage can be seen in the source of [this app](https://erkal.github.io/kite/).
+{-| Represent an ordered list of files, allowing undo-redo operations on each file. The files can be closed, saved, etc.. An example usage can be seen in the source of [this app](https://erkal.github.io/kite/).
 
-The main data structure, called `Files`, keeps an order of the files. The API allows the user to move files via `move` function.
+The main data structure, called `Files`, keeps an **ordered** list of files and the API allows the user to move files via `move` function.
 Apart from this, it behaves similar to most editors, namely:
 
-  - If a new file is added (via `new`), it gets immediately opened.
-  - If a file is closed, the past and the future of the file gets lost, in the sense that undo and redo will not work directly after the file is reopened.
+  - If a new file is added (via `new`), it immediately becomes active.
+  - If a file is closed, the past and the future of the file gets lost, in the sense that undo and redo will not work directly after the file is refocused.
   - `close`, and `reallyClose` gives you the oportunity to ask the user if she really wants to close the file, in the case that there are unsaved changes.
+
+**Main restrictions:**
+
+  - There is no folder structure.
+  - There is no concept of "opening a file". Instead, use `hasChanged`.
+  - There is no way of getting data of a file if the file is not focused.
 
 
 # Definition
@@ -35,19 +40,14 @@ Apart from this, it behaves similar to most editors, namely:
 @docs new, delete
 
 
-# Opening and closing Files
+# Focusing and Closing Files
 
-@docs open, close, closeAll
+@docs focus, close, reallyClose, closeAll
 
 
-# Updating the opened file
+# Updating Focused File
 
 @docs update, updateWithoutRecording
-
-
-# Queries, to use in the view
-
-@docs getPresent, hasChanged
 
 
 # Saving
@@ -55,9 +55,14 @@ Apart from this, it behaves similar to most editors, namely:
 @docs save, saveAs, saveAll
 
 
-# Undo-redo on the opened file
+# Undo-Redo on Focused File
 
 @docs undo, redo
+
+
+# Queries (only to use in **view**)
+
+@docs getPresent, hasChanged
 
 -}
 
@@ -98,7 +103,7 @@ empty =
 --
 
 
-get =
+getPresent =
     42
 
 
@@ -128,11 +133,11 @@ delete (Files files) =
 --
 
 
-{-| `open i` opens the file with the index **i** given that **i** is smaller than the number of files. If **i** is out of bounds, than it closes the opened file. This serves as a warning because, usually, the GUI should not allow this case to happen.
+{-| `focus i` focuses the file with index **i** given that **i** is smaller than the number of files. If **i** is out of bounds, than it makes the focus get lost. This serves as a warning because, usually, the GUI should not allow such a high value for `i`.
 The indexing of files starts with 0.
 -}
-open : FileIndex -> Files data -> Files data
-open i (Files files) =
+focus : FileIndex -> Files data -> Files data
+focus i (Files files) =
     Files
         { files
             | maybeOpenedFile =
@@ -145,6 +150,10 @@ open i (Files files) =
 
 
 close =
+    42
+
+
+closeAll =
     42
 
 
@@ -188,3 +197,7 @@ saveAs : String -> Files data -> Files data
 saveAs name fL =
     -- TODO
     fL
+
+
+saveAll =
+    42
