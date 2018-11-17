@@ -14,7 +14,7 @@ module Files exposing
 The main data structure, called `Files`, keeps an **ordered** list of files and the API allows the user to move files via `move` function.
 Apart from this, it behaves similar to most editors, namely:
 
-  - If a new file is added (via `new`), it immediately becomes active.
+  - If a new file is added (via `new`), it immediately gets the focus.
   - If a file is closed, the past and the future of the file gets lost, in the sense that undo and redo will not work directly after the file is refocused.
   - `close`, and `reallyClose` gives you the oportunity to ask the user if she really wants to close the file, in the case that there are unsaved changes.
 
@@ -67,13 +67,14 @@ Apart from this, it behaves similar to most editors, namely:
 -}
 
 import Array exposing (Array)
-import UndoList as UL exposing (UndoList)
+import UndoListWithSave as UL exposing (UndoList)
 
 
-{-| -}
+{-| Main data structure. It keeps an array of files
+-}
 type Files data
     = Files
-        { maybeOpenedFile : Maybe FileIndex
+        { maybeFocus : Maybe FileIndex
         , arr : Array (File data)
         }
 
@@ -94,7 +95,7 @@ type alias FileIndex =
 empty : Files data
 empty =
     Files
-        { maybeOpenedFile = Nothing
+        { maybeFocus = Nothing
         , arr = Array.empty
         }
 
@@ -103,10 +104,21 @@ empty =
 --
 
 
-getPresent =
-    42
+{-| Gets the present data of the focused File. Returns Nothing if no file is focused.
+-}
+getPresent : Files data -> Maybe data
+getPresent (Files { maybeFocus, arr }) =
+    let
+        get i =
+            Array.get i arr
+                |> Maybe.map (.uL >> .present)
+    in
+    maybeFocus
+        |> Maybe.andThen get
 
 
+{-| returns True if the history of the file in the fiven index has a past.
+-}
 hasChanged : FileIndex -> Files data -> Bool
 hasChanged fileId (Files { arr }) =
     Array.get fileId arr
@@ -140,7 +152,7 @@ focus : FileIndex -> Files data -> Files data
 focus i (Files files) =
     Files
         { files
-            | maybeOpenedFile =
+            | maybeFocus =
                 if i < Array.length files.arr then
                     Just i
 
