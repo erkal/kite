@@ -1,6 +1,5 @@
 module Main exposing (main)
 
--- TODO: Remove Graph.Force
 -- TODO: Remove UndoList
 
 import BoundingBox2d exposing (BoundingBox2d)
@@ -541,6 +540,7 @@ update msg m =
             let
                 goTo : Int -> UndoList state -> UndoList state
                 goTo index undoList =
+                    -- TODO: Remove this from here, and put into UndoListWithSave.elm
                     let
                         l =
                             undoList |> UL.toList
