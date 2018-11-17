@@ -538,8 +538,25 @@ update msg m =
                 { m | userUL = m.userUL |> UL.redo }
 
         ClickOnHistoryItem i ->
+            let
+                goTo : Int -> UndoList state -> UndoList state
+                goTo index undoList =
+                    let
+                        l =
+                            undoList |> UL.toList
+
+                        past =
+                            l |> List.take index |> List.reverse
+                    in
+                    case l |> List.drop index of
+                        present :: future ->
+                            UndoList past present future
+
+                        _ ->
+                            undoList
+            in
             reheatSimulation
-                { m | userUL = m.userUL |> UL.goTo i }
+                { m | userUL = m.userUL |> goTo i }
 
         ClickOnResetZoomAndPanButton ->
             { m

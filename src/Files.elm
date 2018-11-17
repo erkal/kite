@@ -67,7 +67,7 @@ Apart from this, it behaves similar to most editors, namely:
 -}
 
 import Array exposing (Array)
-import UndoListWithSave as UL exposing (UndoList)
+import UndoList as UL exposing (UndoList)
 
 
 {-| Main data structure. It keeps an array of files
