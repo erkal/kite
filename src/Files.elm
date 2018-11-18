@@ -9,7 +9,8 @@ module Files exposing
     , getPresent, hasChanged
     )
 
-{-| Represent an ordered list of files, allowing undo-redo operations on each file. The files can be closed, saved, etc.. An example usage can be seen in the source of [this app](https://erkal.github.io/kite/).
+{-| Represent an ordered list of files, allowing saving and undo-redo operations on each file.
+An example usage can be seen in the source of [this app](https://erkal.github.io/kite/).
 
 The main data structure, called `Files`, keeps an **ordered** list of files and the API allows the user to move files via `move` function.
 Apart from this, it behaves similar to most editors, namely:
