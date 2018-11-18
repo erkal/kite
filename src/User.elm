@@ -4,7 +4,7 @@ module User exposing
     , updateEdges, updateVertices, addBag, addEdge, addStarGraph, addVertex, contractEdge, divideEdge, duplicateSubgraph, removeBag, removeEdges, removeVertices, setCentroidX, setCentroidY, setVertexPositions, updateBag, unionWithNewGraph
     , getEdges, getVertexIdsWithPositions, getVertexProperties, getVertices, getVerticesInBag, inducedEdges, inducedVertices, getBagProperties, getBags, getBagsWithVertices, getBoundingBoxWithMargin, getCentroid, getCommonEdgeProperty, getCommonVertexProperty, edgeIdsIntersectiongLineSegment, pullCentersWithVertices, vertexIdsInBoundingBox
     , getDefaultEdgeProperties, getDefaultVertexProperties, updateDefaultEdgeProperties, updateDefaultVertexProperties
-    , simulation, tick
+    , tick
     )
 
 {-| This module separates the user data from the GUI state. All the user data as well as operations acting on user data live here.
@@ -66,7 +66,6 @@ type User
     = User
         { graph : MyGraph
         , bags : BagDict
-        , forces : List Force
         , defaultVertexProperties : VertexProperties
         , defaultEdgeProperties : EdgeProperties
         }
@@ -135,11 +134,6 @@ default =
     User
         { graph = Graph.empty
         , bags = Dict.empty
-        , forces =
-            [ Force.Link
-            , Force.ManyBody 0.9
-            , Force.Gravity
-            ]
         , defaultVertexProperties =
             { label = Nothing
             , labelIsVisible = True
@@ -162,11 +156,6 @@ default =
             , strength = 0.7
             }
         }
-
-
-simulation : User -> Force.State
-simulation (User { forces }) =
-    Force.simulation forces
 
 
 tick : Force.State -> User -> ( Force.State, User )

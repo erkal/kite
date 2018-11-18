@@ -209,7 +209,12 @@ initialModel user =
     , focusIsOnSomeTextInput = False
 
     --
-    , simulationState = user |> User.simulation
+    , simulationState =
+        Force.simulation
+            [ Force.Link
+            , Force.ManyBody 0.9
+            , Force.Gravity
+            ]
 
     --
     , timeList = []
