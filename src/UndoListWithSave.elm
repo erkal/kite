@@ -1,7 +1,7 @@
 module UndoListWithSave exposing
     ( UndoListWithSave
     , fresh
-    , undo, redo, new, mapPresent
+    , undo, redo, new, setPresent, mapPresent
     , savePresent, resetToSaved
     , presentIsTheLastSaved
     , getPresent, hasPast, hasFuture
@@ -26,7 +26,7 @@ The terminology of functions is adapted to [elm-community/undo-redo](https://pac
 
 # Basic Operations
 
-@docs undo, redo, new, mapPresent
+@docs undo, redo, new, setPresent, mapPresent
 
 
 # Saving Related Operations
@@ -154,6 +154,11 @@ new state (UndoListWithSave { savedAt, savedState, uL }) =
 mapPresent : (a -> a) -> UndoListWithSave a -> UndoListWithSave a
 mapPresent up =
     mapUL (UL.mapPresent up)
+
+
+setPresent : a -> UndoListWithSave a -> UndoListWithSave a
+setPresent newState =
+    mapPresent (always newState)
 
 
 

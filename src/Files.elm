@@ -1,9 +1,9 @@
 module Files exposing
     ( Files
     , empty
-    , new, deleteAt
+    , new, delete
     , focus, close, reallyClose, closeAll
-    , update, updateWithoutRecording
+    , set, updateWithoutRecording
     , save, saveAs, saveAll
     , undo, redo
     , getPresent, hasChanged
@@ -38,7 +38,7 @@ Apart from this, it behaves similar to most editors, namely:
 
 # Adding and Deleting Files
 
-@docs new, deleteAt
+@docs new, delete
 
 
 # Focusing and Closing Files
@@ -48,7 +48,7 @@ Apart from this, it behaves similar to most editors, namely:
 
 # Updating Focused File
 
-@docs update, updateWithoutRecording
+@docs set, updateWithoutRecording
 
 
 # Saving
@@ -73,16 +73,16 @@ import UndoListWithSave as ULWS exposing (UndoListWithSave)
 
 {-| Main data structure. It keeps an array of files
 -}
-type Files data
+type Files a
     = Files
         { maybeFocus : Maybe Int
-        , arr : Array (File data)
+        , arr : Array (File a)
         }
 
 
-type alias File data =
+type alias File a =
     { name : String
-    , uLWS : UndoListWithSave data
+    , uLWS : UndoListWithSave a
     }
 
 
@@ -90,6 +90,33 @@ type alias File data =
 ---------------
 -- Internals --
 ---------------
+
+
+mapFocused : (File a -> File a) -> Files a -> Files a
+mapFocused up (Files { maybeFocus, arr }) =
+    Files
+        { maybeFocus = maybeFocus
+        , arr =
+            case maybeFocus of
+                Just i ->
+                    case Array.get i arr of
+                        Nothing ->
+                            arr
+
+                        Just file ->
+                            Array.set i (up file) arr
+
+                Nothing ->
+                    arr
+        }
+
+
+mapULWS :
+    (UndoListWithSave state -> UndoListWithSave state)
+    -> File state
+    -> File state
+mapULWS up file =
+    { file | uLWS = up file.uLWS }
 
 
 insertAfter : Int -> a -> Array a -> Array a
@@ -113,7 +140,7 @@ removeAt i arr =
 
 {-| an empty `Files`. This is the only constructor.
 -}
-empty : Files data
+empty : Files a
 empty =
     Files
         { maybeFocus = Nothing
@@ -127,7 +154,7 @@ empty =
 -------------------------------
 
 
-new : String -> data -> Files data -> Files data
+new : String -> a -> Files a -> Files a
 new name d (Files { maybeFocus, arr }) =
     case maybeFocus of
         Just i ->
@@ -153,8 +180,8 @@ new name d (Files { maybeFocus, arr }) =
                 }
 
 
-deleteAt : Int -> Files data -> Files data
-deleteAt i (Files { arr }) =
+delete : Int -> Files a -> Files a
+delete i (Files { arr }) =
     Files
         { maybeFocus =
             if i == 0 && Array.length arr == 1 then
@@ -178,7 +205,7 @@ deleteAt i (Files { arr }) =
 {-| `focus i` focuses the file with index **i** given that **i** is smaller than the number of files. If **i** is out of bounds, than it makes the focus get lost. This serves as a warning because, usually, the GUI should not allow such a high value for `i`.
 The indexing of files starts with 0.
 -}
-focus : Int -> Files data -> Files data
+focus : Int -> Files a -> Files a
 focus i (Files files) =
     Files
         { files
@@ -191,16 +218,40 @@ focus i (Files files) =
         }
 
 
-close =
-    42
+close : Int -> Files a -> Files a
+close i =
+    -- TODO
+    identity
 
 
-reallyClose =
-    42
+reallyClose : Int -> Files a -> Files a
+reallyClose i (Files { maybeFocus, arr }) =
+    Files
+        { maybeFocus =
+            if i == 0 && Array.length arr == 1 then
+                Nothing
+
+            else if i == 0 then
+                Just 0
+
+            else
+                Just (i - 1)
+        , arr =
+            case Array.get i arr of
+                Nothing ->
+                    arr
+
+                Just file ->
+                    Array.set i
+                        { file | uLWS = ULWS.resetToSaved file.uLWS }
+                        arr
+        }
 
 
+closeAll : Files a -> Files a
 closeAll =
-    42
+    -- TODO
+    identity
 
 
 
@@ -209,14 +260,14 @@ closeAll =
 ---------------------------
 
 
-update : (data -> data) -> Files data -> Files data
-update up (Files files) =
-    Files files
+set : a -> Files a -> Files a
+set newState =
+    mapFocused (mapULWS (ULWS.new newState))
 
 
-updateWithoutRecording : (data -> data) -> Files data -> Files data
-updateWithoutRecording up (Files files) =
-    Files files
+updateWithoutRecording : a -> Files a -> Files a
+updateWithoutRecording newState =
+    mapFocused (mapULWS (ULWS.setPresent newState))
 
 
 
@@ -225,20 +276,21 @@ updateWithoutRecording up (Files files) =
 ------------
 
 
-save : Files data -> Files data
-save fL =
+save : Files a -> Files a
+save =
+    mapFocused (mapULWS ULWS.savePresent)
+
+
+saveAs : String -> Files a -> Files a
+saveAs name =
     -- TODO
-    fL
+    identity
 
 
-saveAs : String -> Files data -> Files data
-saveAs name fL =
-    -- TODO
-    fL
-
-
+saveAll : Files a -> Files a
 saveAll =
-    42
+    -- TODO
+    identity
 
 
 
@@ -247,16 +299,14 @@ saveAll =
 -------------------------------
 
 
-undo : Files data -> Files data
-undo fL =
-    -- TODO
-    fL
+undo : Files a -> Files a
+undo =
+    mapFocused (mapULWS ULWS.undo)
 
 
-redo : Files data -> Files data
-redo fL =
-    -- TODO
-    fL
+redo : Files a -> Files a
+redo =
+    mapFocused (mapULWS ULWS.redo)
 
 
 
@@ -265,9 +315,9 @@ redo fL =
 ---------------------------------------
 
 
-{-| Gets the present data of the focused File. Returns Nothing if no file is focused.
+{-| Gets the present a of the focused File. Returns Nothing if no file is focused.
 -}
-getPresent : Files data -> Maybe data
+getPresent : Files a -> Maybe a
 getPresent (Files { maybeFocus, arr }) =
     let
         get i =
@@ -280,7 +330,7 @@ getPresent (Files { maybeFocus, arr }) =
 
 {-| returns True if the history of the file in the fiven index has a past.
 -}
-hasChanged : Int -> Files data -> Bool
+hasChanged : Int -> Files a -> Bool
 hasChanged fileId (Files { arr }) =
     Array.get fileId arr
         |> Maybe.map (.uLWS >> ULWS.hasPast)
