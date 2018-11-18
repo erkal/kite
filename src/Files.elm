@@ -68,7 +68,7 @@ Apart from this, it behaves similar to most editors, namely:
 -}
 
 import Array exposing (Array)
-import UndoList as UL exposing (UndoList)
+import UndoListWithSave as ULWS exposing (UndoListWithSave)
 
 
 {-| Main data structure. It keeps an array of files
@@ -82,13 +82,31 @@ type Files data
 
 type alias File data =
     { name : String
-    , uL : UndoList data
-    , lastSave : data
+    , uLWS : UndoListWithSave data
     }
 
 
 type alias FileIndex =
     Int
+
+
+
+---------------
+-- Internals --
+---------------
+
+
+insertAfter : Int -> a -> Array a -> Array a
+insertAfter i a arr =
+    Array.slice 0 (i + 1) arr
+        |> Array.append (Array.fromList [ a ])
+        |> Array.append (Array.slice (i + 1) (Array.length arr) arr)
+
+
+
+-----------------
+-- Constructor --
+-----------------
 
 
 {-| an empty `Files`. This is the only constructor.
@@ -102,39 +120,37 @@ empty =
 
 
 
---
-
-
-{-| Gets the present data of the focused File. Returns Nothing if no file is focused.
--}
-getPresent : Files data -> Maybe data
-getPresent (Files { maybeFocus, arr }) =
-    let
-        get i =
-            Array.get i arr
-                |> Maybe.map (.uL >> .present)
-    in
-    maybeFocus
-        |> Maybe.andThen get
-
-
-{-| returns True if the history of the file in the fiven index has a past.
--}
-hasChanged : FileIndex -> Files data -> Bool
-hasChanged fileId (Files { arr }) =
-    Array.get fileId arr
-        |> Maybe.map (.uL >> UL.hasPast)
-        |> Maybe.withDefault False
-
-
-
---
+-------------------------------
+-- Adding and Deleting Files --
+-------------------------------
 
 
 new : String -> data -> Files data -> Files data
-new name d fL =
-    -- TODO
-    fL
+new name d (Files { maybeFocus, arr }) =
+    case maybeFocus of
+        Just i ->
+            Files
+                { maybeFocus = Just (i + 1)
+                , arr =
+                    arr
+                        |> insertAfter i
+                            { name = name
+                            , uLWS = ULWS.fresh d
+                            }
+                }
+
+        Nothing ->
+            Files
+                { maybeFocus = Just (Array.length arr)
+                , arr =
+                    arr
+
+                --++ Array.fromList
+                --    [ { name = name
+                --      , uLWS = ULWS.fresh d
+                --      }
+                --    ]
+                }
 
 
 delete : Files data -> Files data
@@ -143,7 +159,9 @@ delete (Files files) =
 
 
 
---
+--------------------------------
+-- Focusing and Closing Files --
+--------------------------------
 
 
 {-| `focus i` focuses the file with index **i** given that **i** is smaller than the number of files. If **i** is out of bounds, than it makes the focus get lost. This serves as a warning because, usually, the GUI should not allow such a high value for `i`.
@@ -166,16 +184,18 @@ close =
     42
 
 
-closeAll =
-    42
-
-
 reallyClose =
     42
 
 
+closeAll =
+    42
 
---
+
+
+---------------------------
+-- Updating Focused File --
+---------------------------
 
 
 update : (data -> data) -> Files data -> Files data
@@ -188,16 +208,10 @@ updateWithoutRecording up (Files files) =
     Files files
 
 
-undo : Files data -> Files data
-undo fL =
-    -- TODO
-    fL
 
-
-redo : Files data -> Files data
-redo fL =
-    -- TODO
-    fL
+------------
+-- Saving --
+------------
 
 
 save : Files data -> Files data
@@ -214,3 +228,49 @@ saveAs name fL =
 
 saveAll =
     42
+
+
+
+-------------------------------
+-- Undo-Redo on Focused File --
+-------------------------------
+
+
+undo : Files data -> Files data
+undo fL =
+    -- TODO
+    fL
+
+
+redo : Files data -> Files data
+redo fL =
+    -- TODO
+    fL
+
+
+
+---------------------------------------
+-- Queries (only to use in **view**) --
+---------------------------------------
+
+
+{-| Gets the present data of the focused File. Returns Nothing if no file is focused.
+-}
+getPresent : Files data -> Maybe data
+getPresent (Files { maybeFocus, arr }) =
+    let
+        get i =
+            Array.get i arr
+                |> Maybe.map (.uLWS >> ULWS.getPresent)
+    in
+    maybeFocus
+        |> Maybe.andThen get
+
+
+{-| returns True if the history of the file in the fiven index has a past.
+-}
+hasChanged : FileIndex -> Files data -> Bool
+hasChanged fileId (Files { arr }) =
+    Array.get fileId arr
+        |> Maybe.map (.uLWS >> ULWS.hasPast)
+        |> Maybe.withDefault False

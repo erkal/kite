@@ -4,7 +4,7 @@ module UndoListWithSave exposing
     , undo, redo, new, mapPresent
     , savePresent, resetToSaved
     , presentIsTheLastSaved
-    , hasPast, hasFuture
+    , getPresent, hasPast, hasFuture
     , goTo
     )
 
@@ -41,7 +41,7 @@ The terminology of functions is adapted to [elm-community/undo-redo](https://pac
 
 # Queries
 
-@docs hasPast, hasFuture
+@docs getPresent, hasPast, hasFuture
 
 
 # Expensive Operations
@@ -199,6 +199,11 @@ presentIsTheLastSaved (UndoListWithSave { savedAt, uL }) =
 --------------
 --  Queries --
 --------------
+
+
+getPresent : UndoListWithSave a -> a
+getPresent (UndoListWithSave { uL }) =
+    uL.present
 
 
 {-| To determine whether the undo button should be disabled.
