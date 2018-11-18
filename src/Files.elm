@@ -1,7 +1,7 @@
 module Files exposing
     ( Files
     , empty
-    , new, delete
+    , new, deleteAt
     , focus, close, reallyClose, closeAll
     , update, updateWithoutRecording
     , save, saveAs, saveAll
@@ -38,7 +38,7 @@ Apart from this, it behaves similar to most editors, namely:
 
 # Adding and Deleting Files
 
-@docs new, delete
+@docs new, deleteAt
 
 
 # Focusing and Closing Files
@@ -75,7 +75,7 @@ import UndoListWithSave as ULWS exposing (UndoListWithSave)
 -}
 type Files data
     = Files
-        { maybeFocus : Maybe FileIndex
+        { maybeFocus : Maybe Int
         , arr : Array (File data)
         }
 
@@ -84,10 +84,6 @@ type alias File data =
     { name : String
     , uLWS : UndoListWithSave data
     }
-
-
-type alias FileIndex =
-    Int
 
 
 
@@ -100,6 +96,12 @@ insertAfter : Int -> a -> Array a -> Array a
 insertAfter i a arr =
     Array.slice 0 (i + 1) arr
         |> Array.append (Array.fromList [ a ])
+        |> Array.append (Array.slice (i + 1) (Array.length arr) arr)
+
+
+removeAt : Int -> Array a -> Array a
+removeAt i arr =
+    Array.slice 0 i arr
         |> Array.append (Array.slice (i + 1) (Array.length arr) arr)
 
 
@@ -144,18 +146,27 @@ new name d (Files { maybeFocus, arr }) =
                 { maybeFocus = Just (Array.length arr)
                 , arr =
                     arr
-
-                --++ Array.fromList
-                --    [ { name = name
-                --      , uLWS = ULWS.fresh d
-                --      }
-                --    ]
+                        |> Array.push
+                            { name = name
+                            , uLWS = ULWS.fresh d
+                            }
                 }
 
 
-delete : Files data -> Files data
-delete (Files files) =
-    Files files
+deleteAt : Int -> Files data -> Files data
+deleteAt i (Files { arr }) =
+    Files
+        { maybeFocus =
+            if i == 0 && Array.length arr == 1 then
+                Nothing
+
+            else if i == 0 then
+                Just 0
+
+            else
+                Just (i - 1)
+        , arr = arr |> removeAt i
+        }
 
 
 
@@ -167,7 +178,7 @@ delete (Files files) =
 {-| `focus i` focuses the file with index **i** given that **i** is smaller than the number of files. If **i** is out of bounds, than it makes the focus get lost. This serves as a warning because, usually, the GUI should not allow such a high value for `i`.
 The indexing of files starts with 0.
 -}
-focus : FileIndex -> Files data -> Files data
+focus : Int -> Files data -> Files data
 focus i (Files files) =
     Files
         { files
@@ -269,7 +280,7 @@ getPresent (Files { maybeFocus, arr }) =
 
 {-| returns True if the history of the file in the fiven index has a past.
 -}
-hasChanged : FileIndex -> Files data -> Bool
+hasChanged : Int -> Files data -> Bool
 hasChanged fileId (Files { arr }) =
     Array.get fileId arr
         |> Maybe.map (.uLWS >> ULWS.hasPast)
