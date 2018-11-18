@@ -1,55 +1,45 @@
 module User exposing
-    ( BagDict
-    , BagId
-    , BagProperties
-    , EdgeId
-    , EdgeProperties
-    , MyGraph
-    , User
-    , VertexId
-    , VertexProperties
-    , addBag
-    , addEdge
-    , addGraph
-    , addStarGraph
-    , addVertex
-    , contractEdge
+    ( User, BagDict, BagId, BagProperties, EdgeId, EdgeProperties, MyGraph, VertexId, VertexProperties
     , default
-    , divideEdge
-    , duplicateSubgraph
-    , edgeIdsIntersectiongLineSegment
-    , getBagProperties
-    , getBags
-    , getBagsWithVertices
-    , getBoundingBoxWithMargin
-    , getCentroid
-    , getCommonEdgeProperty
-    , getCommonVertexProperty
-    , getDefaultEdgeProperties
-    , getDefaultVertexProperties
-    , getEdges
-    , getVertexIdsWithPositions
-    , getVertexProperties
-    , getVertices
-    , getVerticesInBag
-    , inducedEdges
-    , inducedVertices
-    , pullCentersWithVertices
-    , removeBag
-    , removeEdges
-    , removeVertices
-    , setCentroidX
-    , setCentroidY
-    , setVertexPositions
-    , simulation
-    , tick
-    , updateBag
-    , updateDefaultEdgeProperties
-    , updateDefaultVertexProperties
-    , updateEdges
-    , updateVertices
-    , vertexIdsInBoundingBox
+    , updateEdges, updateVertices, addBag, addEdge, addStarGraph, addVertex, contractEdge, divideEdge, duplicateSubgraph, removeBag, removeEdges, removeVertices, setCentroidX, setCentroidY, setVertexPositions, updateBag, unionWithNewGraph
+    , getEdges, getVertexIdsWithPositions, getVertexProperties, getVertices, getVerticesInBag, inducedEdges, inducedVertices, getBagProperties, getBags, getBagsWithVertices, getBoundingBoxWithMargin, getCentroid, getCommonEdgeProperty, getCommonVertexProperty, edgeIdsIntersectiongLineSegment, pullCentersWithVertices, vertexIdsInBoundingBox
+    , getDefaultEdgeProperties, getDefaultVertexProperties, updateDefaultEdgeProperties, updateDefaultVertexProperties
+    , simulation, tick
     )
+
+{-| This module separates the user data from the GUI state. All the user data as well as operations acting on user data live here.
+
+
+# Definition
+
+@docs User, BagDict, BagId, BagProperties, EdgeId, EdgeProperties, MyGraph, VertexId, VertexProperties
+
+
+# Constructor
+
+@docs default
+
+
+# Graph Operations
+
+@docs updateEdges, updateVertices, addBag, addEdge, addStarGraph, addVertex, contractEdge, divideEdge, duplicateSubgraph, removeBag, removeEdges, removeVertices, setCentroidX, setCentroidY, setVertexPositions, updateBag, unionWithNewGraph
+
+
+# Graph Queries
+
+@docs getEdges, getVertexIdsWithPositions, getVertexProperties, getVertices, getVerticesInBag, inducedEdges, inducedVertices, getBagProperties, getBags, getBagsWithVertices, getBoundingBoxWithMargin, getCentroid, getCommonEdgeProperty, getCommonVertexProperty, edgeIdsIntersectiongLineSegment, pullCentersWithVertices, vertexIdsInBoundingBox
+
+
+# Accessing Default Properties
+
+@docs getDefaultEdgeProperties, getDefaultVertexProperties, updateDefaultEdgeProperties, updateDefaultVertexProperties
+
+
+# Force related operations
+
+@docs simulation, tick
+
+-}
 
 import BoundingBox2d exposing (BoundingBox2d)
 import Circle2d exposing (Circle2d)
@@ -564,13 +554,13 @@ setVertexPositions l =
     mapGraph (setVertexPositionsForGraph l)
 
 
-addGraph :
+unionWithNewGraph :
     { graph : MyGraph
     , suggestedLayout : List ( VertexId, Point2d )
     }
     -> User
     -> User
-addGraph { graph, suggestedLayout } =
+unionWithNewGraph { graph, suggestedLayout } =
     let
         graphWithSuggestedLayout =
             graph |> setVertexPositionsForGraph suggestedLayout
@@ -591,7 +581,7 @@ addStarGraph { numberOfLeaves } user =
                 , edgeProperties = getDefaultEdgeProperties user
                 }
     in
-    addGraph starGraphWithLayout user
+    unionWithNewGraph starGraphWithLayout user
 
 
 duplicateSubgraph : Set VertexId -> Set ( VertexId, VertexId ) -> User -> ( User, Set VertexId, Set ( VertexId, VertexId ) )
