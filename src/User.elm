@@ -1,9 +1,23 @@
 module User exposing
-    ( User, BagDict, BagId, BagProperties, EdgeId, EdgeProperties, MyGraph, VertexId, VertexProperties
+    ( User
+    , MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
+    , BagDict, BagId, BagProperties
     , default
-    , updateEdges, updateVertices, addBag, addEdge, addStarGraph, addVertex, contractEdge, divideEdge, duplicateSubgraph, removeBag, removeEdges, removeVertices, setCentroidX, setCentroidY, setVertexPositions, updateBag, unionWithNewGraph
-    , getEdges, getVertexIdsWithPositions, getVertexProperties, getVertices, getVerticesInBag, inducedEdges, inducedVertices, getBagProperties, getBags, getBagsWithVertices, getBoundingBoxWithMargin, getCentroid, getCommonEdgeProperty, getCommonVertexProperty, edgeIdsIntersectiongLineSegment, pullCentersWithVertices, vertexIdsInBoundingBox
-    , getDefaultEdgeProperties, getDefaultVertexProperties, updateDefaultEdgeProperties, updateDefaultVertexProperties
+    , updateVertices, addVertex, removeVertices
+    , updateEdges, addEdge, removeEdges
+    , contractEdge, divideEdge
+    , addBag, removeBag, updateBag
+    , addStarGraph
+    , duplicateSubgraph
+    , setCentroidX, setCentroidY, setVertexPositions
+    , getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
+    , getEdges
+    , inducedEdges, inducedVertices
+    , getBagProperties, getBags, getBagsWithVertices
+    , getCommonEdgeProperty, getCommonVertexProperty
+    , getCentroid, getBoundingBoxWithMargin, vertexIdsInBoundingBox, edgeIdsIntersectiongLineSegment
+    , getDefaultEdgeProperties, getDefaultVertexProperties
+    , updateDefaultEdgeProperties, updateDefaultVertexProperties
     , tick
     )
 
@@ -12,7 +26,9 @@ module User exposing
 
 # Definition
 
-@docs User, BagDict, BagId, BagProperties, EdgeId, EdgeProperties, MyGraph, VertexId, VertexProperties
+@docs User
+@docs MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
+@docs BagDict, BagId, BagProperties
 
 
 # Constructor
@@ -22,22 +38,39 @@ module User exposing
 
 # Graph Operations
 
-@docs updateEdges, updateVertices, addBag, addEdge, addStarGraph, addVertex, contractEdge, divideEdge, duplicateSubgraph, removeBag, removeEdges, removeVertices, setCentroidX, setCentroidY, setVertexPositions, updateBag, unionWithNewGraph
+@docs updateVertices, addVertex, removeVertices
+@docs updateEdges, addEdge, removeEdges
+@docs contractEdge, divideEdge
+@docs addBag, removeBag, updateBag
+@docs addStarGraph
+@docs duplicateSubgraph
+@docs setCentroidX, setCentroidY, setVertexPositions
 
 
 # Graph Queries
 
-@docs getEdges, getVertexIdsWithPositions, getVertexProperties, getVertices, getVerticesInBag, inducedEdges, inducedVertices, getBagProperties, getBags, getBagsWithVertices, getBoundingBoxWithMargin, getCentroid, getCommonEdgeProperty, getCommonVertexProperty, edgeIdsIntersectiongLineSegment, pullCentersWithVertices, vertexIdsInBoundingBox
+@docs getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
+@docs getEdges
+@docs inducedEdges, inducedVertices
+@docs getBagProperties, getBags, getBagsWithVertices
+@docs getCommonEdgeProperty, getCommonVertexProperty
+@docs getCentroid, getBoundingBoxWithMargin, vertexIdsInBoundingBox, edgeIdsIntersectiongLineSegment
 
 
 # Accessing Default Properties
 
-@docs getDefaultEdgeProperties, getDefaultVertexProperties, updateDefaultEdgeProperties, updateDefaultVertexProperties
+@docs getDefaultEdgeProperties, getDefaultVertexProperties
+@docs updateDefaultEdgeProperties, updateDefaultVertexProperties
 
 
 # Force related operations
 
 @docs simulation, tick
+
+
+## Internals
+
+unionWithNewGraph, setVertexPositionsForGraph
 
 -}
 
@@ -550,6 +583,7 @@ unionWithNewGraph :
     -> User
     -> User
 unionWithNewGraph { graph, suggestedLayout } =
+    -- this is internal!
     let
         graphWithSuggestedLayout =
             graph |> setVertexPositionsForGraph suggestedLayout
