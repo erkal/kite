@@ -19,6 +19,7 @@ import Element.Input as Input
 import Element.Keyed
 import Geometry.Svg
 import Graph.Force as Force exposing (Force)
+import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, VertexId, VertexProperties)
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
 import Html.Events as HE
@@ -36,7 +37,6 @@ import Svg.Keyed
 import Task
 import Time
 import UndoList as UL exposing (UndoList)
-import User exposing (BagId, BagProperties, EdgeId, EdgeProperties, User, VertexId, VertexProperties)
 import Vector2d exposing (Vector2d)
 
 
@@ -45,7 +45,7 @@ main =
     Browser.document
         { init =
             always
-                ( initialModel User.default
+                ( initialModel GF.default
                 , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
                 )
         , view = \m -> { title = "Kite", body = [ mainSvg m, view m ] }
@@ -72,7 +72,7 @@ mousePosition =
 
 
 type alias Model =
-    { userUL : UndoList ( String, User )
+    { userUL : UndoList ( String, GraphFile )
 
     --
     , distractionFree : Bool
@@ -198,7 +198,7 @@ type GravityState
     | GravityDragging
 
 
-initialModel : User -> Model
+initialModel : GraphFile -> Model
 initialModel user =
     { userUL = UL.fresh ( "Started with empty graph", user )
 
@@ -414,17 +414,17 @@ stopSimulation m =
     { m | simulationState = Force.stop m.simulationState }
 
 
-presentUser : Model -> User
+presentUser : Model -> GraphFile
 presentUser m =
     Tuple.second m.userUL.present
 
 
-nwUsr : User -> String -> Model -> Model
+nwUsr : GraphFile -> String -> Model -> Model
 nwUsr newUser description m =
     { m | userUL = m.userUL |> UL.new ( description, newUser ) }
 
 
-mapPresentUser : User -> Model -> Model
+mapPresentUser : GraphFile -> Model -> Model
 mapPresentUser newUser m =
     { m
         | userUL =
@@ -432,7 +432,7 @@ mapPresentUser newUser m =
     }
 
 
-newUserAfterApllyingGravity : Model -> User
+newUserAfterApllyingGravity : Model -> GraphFile
 newUserAfterApllyingGravity m =
     let
         updateGravity v =
@@ -440,11 +440,11 @@ newUserAfterApllyingGravity m =
     in
     if Set.isEmpty m.selectedVertices then
         presentUser m
-            |> User.updateDefaultVertexProperties updateGravity
+            |> GF.updateDefaultVertexProperties updateGravity
 
     else
         presentUser m
-            |> User.updateVertices m.selectedVertices updateGravity
+            |> GF.updateVertices m.selectedVertices updateGravity
 
 
 update : Msg -> Model -> Model
@@ -456,7 +456,7 @@ update msg m =
         Tick t ->
             let
                 ( newSimulationState, newUser_ ) =
-                    presentUser m |> User.tick m.simulationState
+                    presentUser m |> GF.tick m.simulationState
 
                 newUser =
                     case m.selectedTool of
@@ -470,7 +470,7 @@ update msg m =
                                         |> IntDict.toList
                                         |> List.map (Tuple.mapSecond (Point2d.translateBy delta))
                             in
-                            newUser_ |> User.setVertexPositions newVertexPositions
+                            newUser_ |> GF.setVertexPositions newVertexPositions
 
                         _ ->
                             newUser_
@@ -622,25 +622,25 @@ update msg m =
                         RectSelector ->
                             let
                                 newSelectedVertices =
-                                    User.vertexIdsInBoundingBox
+                                    GF.vertexIdsInBoundingBox
                                         (BoundingBox2d.from brushStart m.svgMousePosition)
                                         (presentUser m)
                             in
                             { m
                                 | selectedVertices = newSelectedVertices
-                                , selectedEdges = presentUser m |> User.inducedEdges newSelectedVertices
+                                , selectedEdges = presentUser m |> GF.inducedEdges newSelectedVertices
                             }
 
                         LineSelector ->
                             let
                                 newSelectedEdges =
-                                    User.edgeIdsIntersectiongLineSegment
+                                    GF.edgeIdsIntersectiongLineSegment
                                         (LineSegment2d.from brushStart m.svgMousePosition)
                                         (presentUser m)
                             in
                             { m
                                 | selectedEdges = newSelectedEdges
-                                , selectedVertices = User.inducedVertices newSelectedEdges
+                                , selectedVertices = GF.inducedVertices newSelectedEdges
                             }
 
                 Select (DraggingSelection { brushStart, vertexPositionsAtStart }) ->
@@ -655,7 +655,7 @@ update msg m =
 
                         newUser =
                             presentUser m
-                                |> User.setVertexPositions newVertexPositions
+                                |> GF.setVertexPositions newVertexPositions
                     in
                     m |> mapPresentUser newUser
 
@@ -751,7 +751,7 @@ update msg m =
                 Draw DrawIdle ->
                     let
                         ( newUser, sourceId ) =
-                            presentUser m |> User.addVertex m.svgMousePosition
+                            presentUser m |> GF.addVertex m.svgMousePosition
                     in
                     { m
                         | selectedTool = Draw (BrushingNewEdgeWithSourceId sourceId)
@@ -772,11 +772,11 @@ update msg m =
                     let
                         ( userGraphWithAddedVertex, newId ) =
                             presentUser m
-                                |> User.addVertex m.svgMousePosition
+                                |> GF.addVertex m.svgMousePosition
 
                         newUser =
                             userGraphWithAddedVertex
-                                |> User.addEdge ( sourceId, newId )
+                                |> GF.addEdge ( sourceId, newId )
                     in
                     { m | selectedTool = Draw DrawIdle }
                         |> reheatSimulation
@@ -839,7 +839,7 @@ update msg m =
                             let
                                 ( newUser, newSelectedVertices, newSelectedEdges ) =
                                     presentUser m
-                                        |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
+                                        |> GF.duplicateSubgraph m.selectedVertices m.selectedEdges
                             in
                             { m
                                 | selectedVertices = newSelectedVertices
@@ -850,7 +850,7 @@ update msg m =
                                             { brushStart = m.svgMousePosition
                                             , vertexPositionsAtStart =
                                                 newUser
-                                                    |> User.getVertexIdsWithPositions newSelectedVertices
+                                                    |> GF.getVertexIdsWithPositions newSelectedVertices
                                             }
                                         )
                                 , simulationState = m.simulationState |> Force.alphaTarget 0.3
@@ -866,7 +866,7 @@ update msg m =
                                             { brushStart = m.svgMousePosition
                                             , vertexPositionsAtStart =
                                                 presentUser m
-                                                    |> User.getVertexIdsWithPositions m.selectedVertices
+                                                    |> GF.getVertexIdsWithPositions m.selectedVertices
                                             }
                                         )
                                 , simulationState = m.simulationState |> Force.alphaTarget 0.3
@@ -887,7 +887,7 @@ update msg m =
                                         { brushStart = m.svgMousePosition
                                         , vertexPositionsAtStart =
                                             presentUser m
-                                                |> User.getVertexIdsWithPositions newSelectedVertices
+                                                |> GF.getVertexIdsWithPositions newSelectedVertices
                                         }
                                     )
                             , simulationState = m.simulationState |> Force.alphaTarget 0.3
@@ -908,7 +908,7 @@ update msg m =
                         let
                             newUser =
                                 presentUser m
-                                    |> User.addEdge ( sourceId, targetId )
+                                    |> GF.addEdge ( sourceId, targetId )
                         in
                         { m | selectedTool = Draw DrawIdle }
                             |> reheatSimulation
@@ -926,7 +926,7 @@ update msg m =
                     let
                         ( newUser, newId ) =
                             presentUser m
-                                |> User.divideEdge m.svgMousePosition ( s, t )
+                                |> GF.divideEdge m.svgMousePosition ( s, t )
                     in
                     { m
                         | highlightedEdges = Set.empty
@@ -946,7 +946,7 @@ update msg m =
                             let
                                 ( newUser, newSelectedVertices, newSelectedEdges ) =
                                     presentUser m
-                                        |> User.duplicateSubgraph m.selectedVertices m.selectedEdges
+                                        |> GF.duplicateSubgraph m.selectedVertices m.selectedEdges
                             in
                             { m
                                 | selectedVertices = newSelectedVertices
@@ -955,7 +955,7 @@ update msg m =
                                     Select
                                         (DraggingSelection
                                             { brushStart = m.svgMousePosition
-                                            , vertexPositionsAtStart = newUser |> User.getVertexIdsWithPositions newSelectedVertices
+                                            , vertexPositionsAtStart = newUser |> GF.getVertexIdsWithPositions newSelectedVertices
                                             }
                                         )
                                 , simulationState = m.simulationState |> Force.alphaTarget 0.3
@@ -971,7 +971,7 @@ update msg m =
                                             { brushStart = m.svgMousePosition
                                             , vertexPositionsAtStart =
                                                 presentUser m
-                                                    |> User.getVertexIdsWithPositions m.selectedVertices
+                                                    |> GF.getVertexIdsWithPositions m.selectedVertices
                                             }
                                         )
                                 , simulationState = m.simulationState |> Force.alphaTarget 0.3
@@ -992,7 +992,7 @@ update msg m =
                                         { brushStart = m.svgMousePosition
                                         , vertexPositionsAtStart =
                                             presentUser m
-                                                |> User.getVertexIdsWithPositions newSelectedVertices
+                                                |> GF.getVertexIdsWithPositions newSelectedVertices
                                         }
                                     )
                             , simulationState = m.simulationState |> Force.alphaTarget 0.3
@@ -1008,10 +1008,10 @@ update msg m =
                     let
                         ( newUser_, newId ) =
                             presentUser m
-                                |> User.divideEdge m.svgMousePosition ( s, t )
+                                |> GF.divideEdge m.svgMousePosition ( s, t )
 
                         newUser =
-                            newUser_ |> User.addEdge ( sourceId, newId )
+                            newUser_ |> GF.addEdge ( sourceId, newId )
                     in
                     { m
                         | highlightedEdges = Set.empty
@@ -1049,7 +1049,7 @@ update msg m =
                     }
 
                 newUser =
-                    presentUser m |> User.updateBag bagId updateLabel
+                    presentUser m |> GF.updateBag bagId updateLabel
             in
             m
                 |> nwUsr newUser
@@ -1061,7 +1061,7 @@ update msg m =
                     { bag | hasConvexHull = b }
 
                 newUser =
-                    presentUser m |> User.updateBag bagId updateCH
+                    presentUser m |> GF.updateBag bagId updateCH
             in
             m
                 |> nwUsr newUser
@@ -1073,7 +1073,7 @@ update msg m =
                     { bag | color = color }
 
                 newUser =
-                    presentUser m |> User.updateBag bagId updateColor
+                    presentUser m |> GF.updateBag bagId updateColor
             in
             m
                 |> nwUsr newUser
@@ -1083,7 +1083,7 @@ update msg m =
             let
                 newUser =
                     presentUser m
-                        |> User.setCentroidX m.selectedVertices
+                        |> GF.setCentroidX m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
             m
@@ -1094,7 +1094,7 @@ update msg m =
             let
                 newUser =
                     presentUser m
-                        |> User.setCentroidY m.selectedVertices
+                        |> GF.setCentroidY m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
             m
@@ -1109,13 +1109,13 @@ update msg m =
                 ( newUser, description ) =
                     if Set.isEmpty m.selectedVertices then
                         ( presentUser m
-                            |> User.updateDefaultVertexProperties updateColor
+                            |> GF.updateDefaultVertexProperties updateColor
                         , "Changed the color of some vertices"
                         )
 
                     else
                         ( presentUser m
-                            |> User.updateVertices m.selectedVertices updateColor
+                            |> GF.updateVertices m.selectedVertices updateColor
                         , "Changed the default vertex color"
                         )
             in
@@ -1130,11 +1130,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
-                            |> User.updateDefaultVertexProperties updateRadius
+                            |> GF.updateDefaultVertexProperties updateRadius
 
                     else
                         presentUser m
-                            |> User.updateVertices m.selectedVertices updateRadius
+                            |> GF.updateVertices m.selectedVertices updateRadius
             in
             m
                 |> nwUsr newUser
@@ -1148,11 +1148,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
-                            |> User.updateDefaultVertexProperties updateGravityStrength
+                            |> GF.updateDefaultVertexProperties updateGravityStrength
 
                     else
                         presentUser m
-                            |> User.updateVertices m.selectedVertices updateGravityStrength
+                            |> GF.updateVertices m.selectedVertices updateGravityStrength
             in
             m
                 |> reheatSimulation
@@ -1167,11 +1167,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
-                            |> User.updateDefaultVertexProperties updateManyBodyStrength
+                            |> GF.updateDefaultVertexProperties updateManyBodyStrength
 
                     else
                         presentUser m
-                            |> User.updateVertices m.selectedVertices updateManyBodyStrength
+                            |> GF.updateVertices m.selectedVertices updateManyBodyStrength
             in
             m
                 |> reheatSimulation
@@ -1193,11 +1193,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
-                            |> User.updateDefaultVertexProperties updateLabel
+                            |> GF.updateDefaultVertexProperties updateLabel
 
                     else
                         presentUser m
-                            |> User.updateVertices m.selectedVertices updateLabel
+                            |> GF.updateVertices m.selectedVertices updateLabel
             in
             m
                 |> nwUsr newUser
@@ -1211,11 +1211,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
-                            |> User.updateDefaultVertexProperties updateFixed
+                            |> GF.updateDefaultVertexProperties updateFixed
 
                     else
                         presentUser m
-                            |> User.updateVertices m.selectedVertices updateFixed
+                            |> GF.updateVertices m.selectedVertices updateFixed
 
                 descriptionStart =
                     if b then
@@ -1239,11 +1239,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
-                            |> User.updateDefaultVertexProperties updateLabelVisibility
+                            |> GF.updateDefaultVertexProperties updateLabelVisibility
 
                     else
                         presentUser m
-                            |> User.updateVertices m.selectedVertices updateLabelVisibility
+                            |> GF.updateVertices m.selectedVertices updateLabelVisibility
             in
             m
                 |> nwUsr newUser
@@ -1257,11 +1257,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedEdges then
                         presentUser m
-                            |> User.updateDefaultEdgeProperties updateLabelVisibility
+                            |> GF.updateDefaultEdgeProperties updateLabelVisibility
 
                     else
                         presentUser m
-                            |> User.updateEdges m.selectedEdges updateLabelVisibility
+                            |> GF.updateEdges m.selectedEdges updateLabelVisibility
             in
             m
                 |> nwUsr newUser
@@ -1282,11 +1282,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedEdges then
                         presentUser m
-                            |> User.updateDefaultEdgeProperties updateLabel
+                            |> GF.updateDefaultEdgeProperties updateLabel
 
                     else
                         presentUser m
-                            |> User.updateEdges m.selectedEdges updateLabel
+                            |> GF.updateEdges m.selectedEdges updateLabel
             in
             m
                 |> nwUsr newUser
@@ -1300,11 +1300,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedEdges then
                         presentUser m
-                            |> User.updateDefaultEdgeProperties updateColor
+                            |> GF.updateDefaultEdgeProperties updateColor
 
                     else
                         presentUser m
-                            |> User.updateEdges m.selectedEdges updateColor
+                            |> GF.updateEdges m.selectedEdges updateColor
             in
             m
                 |> nwUsr newUser
@@ -1318,11 +1318,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedEdges then
                         presentUser m
-                            |> User.updateDefaultEdgeProperties updateThickness
+                            |> GF.updateDefaultEdgeProperties updateThickness
 
                     else
                         presentUser m
-                            |> User.updateEdges m.selectedEdges updateThickness
+                            |> GF.updateEdges m.selectedEdges updateThickness
             in
             m
                 |> nwUsr newUser
@@ -1336,11 +1336,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedEdges then
                         presentUser m
-                            |> User.updateDefaultEdgeProperties updateDistance
+                            |> GF.updateDefaultEdgeProperties updateDistance
 
                     else
                         presentUser m
-                            |> User.updateEdges m.selectedEdges updateDistance
+                            |> GF.updateEdges m.selectedEdges updateDistance
             in
             m
                 |> reheatSimulation
@@ -1355,11 +1355,11 @@ update msg m =
                 newUser =
                     if Set.isEmpty m.selectedEdges then
                         presentUser m
-                            |> User.updateDefaultEdgeProperties updateStrength
+                            |> GF.updateDefaultEdgeProperties updateStrength
 
                     else
                         presentUser m
-                            |> User.updateEdges m.selectedEdges updateStrength
+                            |> GF.updateEdges m.selectedEdges updateStrength
             in
             m
                 |> reheatSimulation
@@ -1390,7 +1390,7 @@ update msg m =
         ClickOnVertexTrash ->
             let
                 newUser =
-                    presentUser m |> User.removeVertices m.selectedVertices
+                    presentUser m |> GF.removeVertices m.selectedVertices
             in
             { m
                 | selectedVertices = Set.empty
@@ -1407,7 +1407,7 @@ update msg m =
         ClickOnBagPlus ->
             let
                 ( newUser, idOfTheNewBag ) =
-                    presentUser m |> User.addBag m.selectedVertices
+                    presentUser m |> GF.addBag m.selectedVertices
             in
             { m
                 | maybeSelectedBag = Just idOfTheNewBag
@@ -1421,7 +1421,7 @@ update msg m =
                 Just bagId ->
                     let
                         newUser =
-                            presentUser m |> User.removeBag bagId
+                            presentUser m |> GF.removeBag bagId
                     in
                     { m | maybeSelectedBag = Nothing }
                         |> reheatSimulation
@@ -1434,7 +1434,7 @@ update msg m =
         ClickOnEdgeTrash ->
             let
                 newUser =
-                    presentUser m |> User.removeEdges m.selectedEdges
+                    presentUser m |> GF.removeEdges m.selectedEdges
             in
             { m
                 | highlightedEdges = Set.empty
@@ -1451,7 +1451,7 @@ update msg m =
                 [ selectedEdge ] ->
                     let
                         newUser =
-                            presentUser m |> User.contractEdge selectedEdge
+                            presentUser m |> GF.contractEdge selectedEdge
                     in
                     { m
                         | highlightedEdges = Set.empty
@@ -1491,7 +1491,7 @@ update msg m =
             }
 
         MouseOverBagItem bagId ->
-            { m | highlightedVertices = presentUser m |> User.getVerticesInBag bagId }
+            { m | highlightedVertices = presentUser m |> GF.getVerticesInBag bagId }
 
         MouseOutBagItem _ ->
             { m | highlightedVertices = Set.empty }
@@ -1506,7 +1506,7 @@ update msg m =
 
                     else
                         ( Just bagId
-                        , presentUser m |> User.getVerticesInBag bagId
+                        , presentUser m |> GF.getVerticesInBag bagId
                         )
             in
             { m
@@ -1519,7 +1519,7 @@ update msg m =
             let
                 newUser =
                     presentUser m
-                        |> User.addStarGraph { numberOfLeaves = 20 }
+                        |> GF.addStarGraph { numberOfLeaves = 20 }
             in
             m
                 |> nwUsr newUser
@@ -2069,7 +2069,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 [ El.width El.fill
                 , El.height El.fill
                 ]
-                { data = User.getVertices (presentUser m)
+                { data = GF.getVertices (presentUser m)
                 , columns =
                     [ { header = columnHeader "id"
                       , width = El.px 20
@@ -2216,7 +2216,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 [ El.width El.fill
                 , El.height El.fill
                 ]
-                { data = User.getEdges (presentUser m)
+                { data = GF.getEdges (presentUser m)
                 , columns =
                     [ { header = columnHeader "edge id"
                       , width = El.px 50
@@ -3003,7 +3003,7 @@ bags m =
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
                 ]
-                { data = User.getBags (presentUser m)
+                { data = GF.getBags (presentUser m)
                 , columns =
                     [ { header = columnHeader "id"
                       , width = El.px 20
@@ -3035,7 +3035,7 @@ bags m =
                                 cell bagId <|
                                     El.text
                                         (presentUser m
-                                            |> User.getVerticesInBag bagId
+                                            |> GF.getVerticesInBag bagId
                                             |> Set.toList
                                             |> vertexIdsToString
                                         )
@@ -3087,7 +3087,7 @@ bags m =
                             , inputWidth = 60
                             , text =
                                 presentUser m
-                                    |> User.getBagProperties idOfTheSelectedBag
+                                    |> GF.getBagProperties idOfTheSelectedBag
                                     |> Maybe.map .label
                                     |> Maybe.withDefault Nothing
                                     |> Maybe.withDefault ""
@@ -3101,7 +3101,7 @@ bags m =
                             , isExpanded = m.bagColorPickerIsExpanded
                             , selectedColor =
                                 presentUser m
-                                    |> User.getBagProperties idOfTheSelectedBag
+                                    |> GF.getBagProperties idOfTheSelectedBag
                                     |> Maybe.map .color
                             , msgOnColorClick = InputBagColor idOfTheSelectedBag
                             , msgOnExpanderClick = ClickOnBagColorPicker
@@ -3112,7 +3112,7 @@ bags m =
                             , labelWidth = 80
                             , state =
                                 presentUser m
-                                    |> User.getBagProperties idOfTheSelectedBag
+                                    |> GF.getBagProperties idOfTheSelectedBag
                                     |> Maybe.map .hasConvexHull
                             , onChange = InputBagConvexHull idOfTheSelectedBag
                             }
@@ -3170,12 +3170,12 @@ vertexPreferences m =
                     , text =
                         if Set.isEmpty m.selectedVertices then
                             presentUser m
-                                |> User.getDefaultVertexProperties
+                                |> GF.getDefaultVertexProperties
                                 |> .label
                                 |> Maybe.withDefault ""
 
                         else
-                            case presentUser m |> User.getCommonVertexProperty m.selectedVertices .label of
+                            case presentUser m |> GF.getCommonVertexProperty m.selectedVertices .label of
                                 Just (Just l) ->
                                     l
 
@@ -3190,13 +3190,13 @@ vertexPreferences m =
                         if Set.isEmpty m.selectedVertices then
                             Just
                                 (presentUser m
-                                    |> User.getDefaultVertexProperties
+                                    |> GF.getDefaultVertexProperties
                                     |> .labelIsVisible
                                 )
 
                         else
                             presentUser m
-                                |> User.getCommonVertexProperty m.selectedVertices .labelIsVisible
+                                |> GF.getCommonVertexProperty m.selectedVertices .labelIsVisible
                     , onChange =
                         InputVertexLabelVisibility
                     }
@@ -3209,13 +3209,13 @@ vertexPreferences m =
                         if Set.isEmpty m.selectedVertices then
                             Just
                                 (presentUser m
-                                    |> User.getDefaultVertexProperties
+                                    |> GF.getDefaultVertexProperties
                                     |> .fixed
                                 )
 
                         else
                             presentUser m
-                                |> User.getCommonVertexProperty m.selectedVertices .fixed
+                                |> GF.getCommonVertexProperty m.selectedVertices .fixed
                     , onChange = InputVertexFixed
                     }
                 , textInput
@@ -3224,7 +3224,7 @@ vertexPreferences m =
                     , inputWidth = 40
                     , text =
                         presentUser m
-                            |> User.getCentroid m.selectedVertices
+                            |> GF.getCentroid m.selectedVertices
                             |> Maybe.map Point2d.xCoordinate
                             |> Maybe.map round
                             |> Maybe.map String.fromInt
@@ -3237,7 +3237,7 @@ vertexPreferences m =
                     , inputWidth = 40
                     , text =
                         presentUser m
-                            |> User.getCentroid m.selectedVertices
+                            |> GF.getCentroid m.selectedVertices
                             |> Maybe.map Point2d.yCoordinate
                             |> Maybe.map round
                             |> Maybe.map String.fromInt
@@ -3253,7 +3253,7 @@ vertexPreferences m =
                         * (let
                             defaultVertexManyBodyStrength =
                                 presentUser m
-                                    |> User.getDefaultVertexProperties
+                                    |> GF.getDefaultVertexProperties
                                     |> .manyBodyStrength
                            in
                            if Set.isEmpty m.selectedVertices then
@@ -3261,7 +3261,7 @@ vertexPreferences m =
 
                            else
                             presentUser m
-                                |> User.getCommonVertexProperty m.selectedVertices .manyBodyStrength
+                                |> GF.getCommonVertexProperty m.selectedVertices .manyBodyStrength
                                 |> Maybe.withDefault defaultVertexManyBodyStrength
                           )
                 , min = 50
@@ -3275,11 +3275,11 @@ vertexPreferences m =
                 , value =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
-                            |> User.getDefaultVertexProperties
+                            |> GF.getDefaultVertexProperties
                             |> .radius
 
                     else
-                        case presentUser m |> User.getCommonVertexProperty m.selectedVertices .radius of
+                        case presentUser m |> GF.getCommonVertexProperty m.selectedVertices .radius of
                             Just r ->
                                 r
 
@@ -3298,13 +3298,13 @@ vertexPreferences m =
                     if Set.isEmpty m.selectedVertices then
                         Just
                             (presentUser m
-                                |> User.getDefaultVertexProperties
+                                |> GF.getDefaultVertexProperties
                                 |> .color
                             )
 
                     else
                         presentUser m
-                            |> User.getCommonVertexProperty m.selectedVertices .color
+                            |> GF.getCommonVertexProperty m.selectedVertices .color
                 , msgOnColorClick = InputVertexColor
                 , msgOnExpanderClick = ClickOnVertexColorPicker
                 , msgOnLeave = MouseLeaveVertexColorPicker
@@ -3315,11 +3315,11 @@ vertexPreferences m =
                 , value =
                     if Set.isEmpty m.selectedVertices then
                         presentUser m
-                            |> User.getDefaultVertexProperties
+                            |> GF.getDefaultVertexProperties
                             |> .gravityStrength
 
                     else
-                        case presentUser m |> User.getCommonVertexProperty m.selectedVertices .gravityStrength of
+                        case presentUser m |> GF.getCommonVertexProperty m.selectedVertices .gravityStrength of
                             Just gS ->
                                 gS
 
@@ -3362,12 +3362,12 @@ edgePreferences m =
                     , text =
                         if Set.isEmpty m.selectedEdges then
                             presentUser m
-                                |> User.getDefaultEdgeProperties
+                                |> GF.getDefaultEdgeProperties
                                 |> .label
                                 |> Maybe.withDefault ""
 
                         else
-                            case presentUser m |> User.getCommonEdgeProperty m.selectedEdges .label of
+                            case presentUser m |> GF.getCommonEdgeProperty m.selectedEdges .label of
                                 Just (Just l) ->
                                     l
 
@@ -3382,13 +3382,13 @@ edgePreferences m =
                         if Set.isEmpty m.selectedEdges then
                             Just
                                 (presentUser m
-                                    |> User.getDefaultEdgeProperties
+                                    |> GF.getDefaultEdgeProperties
                                     |> .labelIsVisible
                                 )
 
                         else
                             presentUser m
-                                |> User.getCommonEdgeProperty m.selectedEdges .labelIsVisible
+                                |> GF.getCommonEdgeProperty m.selectedEdges .labelIsVisible
                     , onChange =
                         InputEdgeLabelVisibility
                     }
@@ -3400,13 +3400,13 @@ edgePreferences m =
                     if Set.isEmpty m.selectedEdges then
                         presentUser
                             m
-                            |> User.getDefaultEdgeProperties
+                            |> GF.getDefaultEdgeProperties
                             |> .thickness
 
                     else
                         presentUser
                             m
-                            |> User.getCommonEdgeProperty m.selectedEdges .thickness
+                            |> GF.getCommonEdgeProperty m.selectedEdges .thickness
                             |> Maybe.withDefault 3
                 , min = 1
                 , max = 20
@@ -3420,13 +3420,13 @@ edgePreferences m =
                     if Set.isEmpty m.selectedEdges then
                         presentUser
                             m
-                            |> User.getDefaultEdgeProperties
+                            |> GF.getDefaultEdgeProperties
                             |> .distance
 
                     else
                         presentUser
                             m
-                            |> User.getCommonEdgeProperty m.selectedEdges .distance
+                            |> GF.getCommonEdgeProperty m.selectedEdges .distance
                             |> Maybe.withDefault 40
                 , min = 10
                 , max = 200
@@ -3439,12 +3439,12 @@ edgePreferences m =
                 , value =
                     if Set.isEmpty m.selectedEdges then
                         presentUser m
-                            |> User.getDefaultEdgeProperties
+                            |> GF.getDefaultEdgeProperties
                             |> .strength
 
                     else
                         presentUser m
-                            |> User.getCommonEdgeProperty m.selectedEdges .strength
+                            |> GF.getCommonEdgeProperty m.selectedEdges .strength
                             |> Maybe.withDefault 0.7
                 , min = 0
                 , max = 1
@@ -3459,13 +3459,13 @@ edgePreferences m =
                     if Set.isEmpty m.selectedEdges then
                         Just
                             (presentUser m
-                                |> User.getDefaultEdgeProperties
+                                |> GF.getDefaultEdgeProperties
                                 |> .color
                             )
 
                     else
                         presentUser m
-                            |> User.getCommonEdgeProperty m.selectedEdges .color
+                            |> GF.getCommonEdgeProperty m.selectedEdges .color
                 , msgOnColorClick = InputEdgeColor
                 , msgOnExpanderClick = ClickOnEdgeColorPicker
                 , msgOnLeave = MouseLeaveEdgeColorPicker
@@ -3550,11 +3550,11 @@ mainSvg m =
         maybeBrushedEdge =
             case m.selectedTool of
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
-                    case presentUser m |> User.getVertexProperties sourceId of
+                    case presentUser m |> GF.getVertexProperties sourceId of
                         Just { position } ->
                             let
                                 dEP =
-                                    presentUser m |> User.getDefaultEdgeProperties
+                                    presentUser m |> GF.getDefaultEdgeProperties
                             in
                             Geometry.Svg.lineSegment2d
                                 [ SA.strokeWidth (String.fromFloat dEP.thickness)
@@ -3598,7 +3598,7 @@ mainSvg m =
                     let
                         maybeBoudingBox =
                             presentUser m
-                                |> User.getBoundingBoxWithMargin selectedVertices
+                                |> GF.getBoundingBoxWithMargin selectedVertices
                     in
                     case maybeBoudingBox of
                         Just bB ->
@@ -3633,7 +3633,7 @@ mainSvg m =
             in
             S.g []
                 (presentUser m
-                    |> User.getVertices
+                    |> GF.getVertices
                     |> List.filter (\{ id } -> Set.member id m.selectedVertices)
                     |> List.map (.label >> drawHL)
                 )
@@ -3647,7 +3647,7 @@ mainSvg m =
             in
             S.g []
                 (presentUser m
-                    |> User.getVertices
+                    |> GF.getVertices
                     |> List.filter (\{ id } -> Set.member id m.highlightedVertices)
                     |> List.map (.label >> drawHL)
                 )
@@ -3656,8 +3656,8 @@ mainSvg m =
             let
                 drawHL { from, to, label } =
                     case
-                        ( presentUser m |> User.getVertexProperties from
-                        , presentUser m |> User.getVertexProperties to
+                        ( presentUser m |> GF.getVertexProperties from
+                        , presentUser m |> GF.getVertexProperties to
                         )
                     of
                         ( Just v, Just w ) ->
@@ -3673,7 +3673,7 @@ mainSvg m =
             in
             S.g []
                 (presentUser m
-                    |> User.getEdges
+                    |> GF.getEdges
                     |> List.filter (\{ from, to } -> Set.member ( from, to ) m.selectedEdges)
                     |> List.map drawHL
                 )
@@ -3682,8 +3682,8 @@ mainSvg m =
             let
                 drawHL { from, to, label } =
                     case
-                        ( presentUser m |> User.getVertexProperties from
-                        , presentUser m |> User.getVertexProperties to
+                        ( presentUser m |> GF.getVertexProperties from
+                        , presentUser m |> GF.getVertexProperties to
                         )
                     of
                         ( Just v, Just w ) ->
@@ -3699,7 +3699,7 @@ mainSvg m =
             in
             S.g []
                 (presentUser m
-                    |> User.getEdges
+                    |> GF.getEdges
                     |> List.filter (\{ from, to } -> Set.member ( from, to ) m.highlightedEdges)
                     |> List.map drawHL
                 )
@@ -3768,7 +3768,7 @@ mainSvg m =
 -- GRAPH VIEW
 
 
-viewEdges : User -> Html Msg
+viewEdges : GraphFile -> Html Msg
 viewEdges user =
     let
         labelDistance =
@@ -3790,7 +3790,7 @@ viewEdges user =
                 |> Point2d.translateBy fromEdgeMidpointToLabelMidpoint
 
         edgeWithKey { from, to, label } =
-            case ( User.getVertexProperties from user, User.getVertexProperties to user ) of
+            case ( GF.getVertexProperties from user, GF.getVertexProperties to user ) of
                 ( Just v, Just w ) ->
                     let
                         edgeLine =
@@ -3848,10 +3848,10 @@ viewEdges user =
                     -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
                     ( "", emptySvgElement )
     in
-    Svg.Keyed.node "g" [] (user |> User.getEdges |> List.map edgeWithKey)
+    Svg.Keyed.node "g" [] (user |> GF.getEdges |> List.map edgeWithKey)
 
 
-viewVertices : User -> Html Msg
+viewVertices : GraphFile -> Html Msg
 viewVertices user =
     let
         pin fixed radius =
@@ -3907,7 +3907,7 @@ viewVertices user =
                 ]
             )
     in
-    Svg.Keyed.node "g" [] (user |> User.getVertices |> List.map viewVertex)
+    Svg.Keyed.node "g" [] (user |> GF.getVertices |> List.map viewVertex)
 
 
 maybeViewGravityLines : Model -> Html Msg
@@ -3923,13 +3923,13 @@ maybeViewGravityLines m =
                         ]
                         (LineSegment2d.from label.position label.gravityCenter)
             in
-            S.g [] (presentUser m |> User.getVertices |> List.map viewGravityLine)
+            S.g [] (presentUser m |> GF.getVertices |> List.map viewGravityLine)
 
         _ ->
             emptySvgElement
 
 
-viewHulls : User -> Html Msg
+viewHulls : GraphFile -> Html Msg
 viewHulls user =
     let
         hull : Color -> List Point2d -> Html a
@@ -3944,7 +3944,7 @@ viewHulls user =
                 (Polygon2d.convexHull positions)
 
         hulls =
-            User.getBagsWithVertices user
+            GF.getBagsWithVertices user
                 |> Dict.values
                 |> List.filter (\( bP, _ ) -> bP.hasConvexHull)
                 |> List.map
@@ -3975,13 +3975,13 @@ maybeViewGravityCenters m =
                 , SA.opacity "0.2"
                 , SE.onMouseDown MouseDownOnDefaultGravityCenter
                 ]
-                (.gravityCenter (User.getDefaultVertexProperties user) |> Circle2d.withRadius 10)
+                (.gravityCenter (GF.getDefaultVertexProperties user) |> Circle2d.withRadius 10)
     in
     case m.selectedTool of
         Gravity _ ->
             S.g [] <|
                 viewDefaultGC
-                    :: (User.pullCentersWithVertices user |> Dict.toList |> List.map viewGC)
+                    :: (GF.pullCentersWithVertices user |> Dict.toList |> List.map viewGC)
 
         _ ->
             emptySvgElement
