@@ -6,7 +6,7 @@ module Files exposing
     , set, mapPresent
     , save, saveAs, saveAll
     , undo, redo, goTo
-    , present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
+    , fileNames, present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
     )
 
 {-| Represent an ordered list of files, allowing saving and undo-redo operations on each file.
@@ -63,7 +63,7 @@ Apart from this, it behaves similar to most editors, namely:
 
 # Queries (only to use in **view**)
 
-@docs present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
+@docs fileNames, present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
 
 -}
 
@@ -318,6 +318,11 @@ goTo i =
 ---------------------------------------
 -- Queries (only to use in **view**) --
 ---------------------------------------
+
+
+fileNames : Files a -> List String
+fileNames (Files { arr }) =
+    arr |> Array.toList |> List.map .name
 
 
 {-| The present a of the focused File.

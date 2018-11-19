@@ -139,7 +139,7 @@ type alias Model =
 
 
 type Mode
-    = Folders
+    = Files
     | ListsOfBagsVerticesAndEdges
     | GraphOperations
     | GraphQueries
@@ -399,6 +399,8 @@ type Msg
     | InputEdgeColor Color
       --
     | ClickOnGenerateStarGraphButton
+      --
+    | ClickOnNewFile
 
 
 reheatSimulation : Model -> Model
@@ -1508,6 +1510,14 @@ update msg m =
                 |> setPresent newFile
                     "Added a generated graph "
 
+        ClickOnNewFile ->
+            { m
+                | files =
+                    Files.new "graph"
+                        ( "Started with empty graph", GF.default )
+                        m.files
+            }
+
 
 
 -- SUBSCRIPTIONS
@@ -1817,7 +1827,7 @@ leftStripe m =
             El.column
                 [ El.alignTop
                 ]
-                [ modeButton "Folders" Folders Icons.icons.trash
+                [ modeButton "Files" Files Icons.icons.trash
                 , modeButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
                 , modeButton "Graph Operations" GraphOperations Icons.icons.magicStick
                 , modeButton "Graph Queries" GraphQueries Icons.icons.qForQuery
@@ -1881,8 +1891,8 @@ leftBar m =
         ]
     <|
         case m.selectedMode of
-            Folders ->
-                leftBarContentForFolders m
+            Files ->
+                leftBarContentForFiles m
 
             ListsOfBagsVerticesAndEdges ->
                 leftBarContentForListsOfBagsVerticesAndEdges m
@@ -2020,14 +2030,25 @@ commonCellProperties =
     ]
 
 
-leftBarContentForFolders : Model -> Element Msg
-leftBarContentForFolders m =
+leftBarContentForFiles : Model -> Element Msg
+leftBarContentForFiles m =
+    let
+        content =
+            El.column [] (List.map El.text (Files.fileNames m.files))
+
+        newFileButton =
+            leftBarHeaderButton
+                { title = "Delete"
+                , onClickMsg = ClickOnNewFile
+                , iconPath = Icons.icons.plus
+                }
+    in
     menu
-        { headerText = "Folders (coming soon)"
+        { headerText = "Files (coming soon)"
         , isOn = True
-        , headerButtons = []
+        , headerButtons = [ newFileButton ]
         , toggleMsg = NoOp
-        , contentItems = []
+        , contentItems = [ content ]
         }
 
 
