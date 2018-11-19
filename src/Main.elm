@@ -1,7 +1,5 @@
 module Main exposing (main)
 
--- TODO: Remove UndoList
-
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser
 import Browser.Dom as Dom
@@ -17,6 +15,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Element.Keyed
+import Files exposing (Files)
 import Geometry.Svg
 import Graph.Force as Force exposing (Force)
 import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, VertexId, VertexProperties)
@@ -72,7 +71,7 @@ mousePosition =
 
 
 type alias Model =
-    { userUL : UndoList ( String, GraphFile )
+    { user : UndoList ( String, GraphFile )
 
     --
     , distractionFree : Bool
@@ -200,7 +199,7 @@ type GravityState
 
 initialModel : GraphFile -> Model
 initialModel user =
-    { userUL = UL.fresh ( "Started with empty graph", user )
+    { user = UL.fresh ( "Started with empty graph", user )
 
     --
     , distractionFree = True
@@ -416,19 +415,19 @@ stopSimulation m =
 
 presentUser : Model -> GraphFile
 presentUser m =
-    Tuple.second m.userUL.present
+    Tuple.second m.user.present
 
 
 nwUsr : GraphFile -> String -> Model -> Model
 nwUsr newUser description m =
-    { m | userUL = m.userUL |> UL.new ( description, newUser ) }
+    { m | user = m.user |> UL.new ( description, newUser ) }
 
 
 mapPresentUser : GraphFile -> Model -> Model
 mapPresentUser newUser m =
     { m
-        | userUL =
-            m.userUL |> UL.mapPresent (Tuple.mapSecond (always newUser))
+        | user =
+            m.user |> UL.mapPresent (Tuple.mapSecond (always newUser))
     }
 
 
@@ -535,11 +534,11 @@ update msg m =
 
         ClickOnUndoButton ->
             reheatSimulation
-                { m | userUL = m.userUL |> UL.undo }
+                { m | user = m.user |> UL.undo }
 
         ClickOnRedoButton ->
             reheatSimulation
-                { m | userUL = m.userUL |> UL.redo }
+                { m | user = m.user |> UL.redo }
 
         ClickOnHistoryItem i ->
             let
@@ -561,7 +560,7 @@ update msg m =
                             undoList
             in
             reheatSimulation
-                { m | userUL = m.userUL |> goTo i }
+                { m | user = m.user |> goTo i }
 
         ClickOnResetZoomAndPanButton ->
             { m
@@ -2554,13 +2553,13 @@ topBar m =
                     { title = "Undo"
                     , iconPath = Icons.icons.undo
                     , onClickMsg = ClickOnUndoButton
-                    , disabled = not (m.userUL |> UL.hasPast)
+                    , disabled = not (m.user |> UL.hasPast)
                     }
                 , oneClickButton
                     { title = "Redo"
                     , iconPath = Icons.icons.redo
                     , onClickMsg = ClickOnRedoButton
-                    , disabled = not (m.userUL |> UL.hasFuture)
+                    , disabled = not (m.user |> UL.hasFuture)
                     }
                 ]
             , oneClickButtonGroup
@@ -2874,7 +2873,7 @@ history m =
             ]
 
         attributes i =
-            if i <= UL.lengthPast m.userUL then
+            if i <= UL.lengthPast m.user then
                 attributes_ i
 
             else
@@ -2884,7 +2883,7 @@ history m =
             El.el (attributes i) (El.text descriptionText)
 
         itemList =
-            m.userUL
+            m.user
                 |> UL.toList
                 |> List.indexedMap item
                 |> List.reverse

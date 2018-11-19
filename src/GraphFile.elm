@@ -21,7 +21,8 @@ module GraphFile exposing
     , tick
     )
 
-{-| This module separates the user data from the GUI state. All the user data as well as operations acting on user data live here.
+{-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
+This module also contains operations acting on graphs needed bei the Main module. Note that the interaction of the Main module with `MyGraph` type happens only by these operators. The Main module does not import `Graph` or `MyGraph`.
 
 
 # Definition
@@ -65,7 +66,7 @@ module GraphFile exposing
 
 # Force related operations
 
-@docs simulation, tick
+@docs tick
 
 
 ## Internals
