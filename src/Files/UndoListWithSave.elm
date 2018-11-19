@@ -1,11 +1,12 @@
-module UndoListWithSave exposing
+module Files.UndoListWithSave exposing
     ( UndoListWithSave
     , fresh
     , undo, redo, new, setPresent, mapPresent
     , savePresent, resetToSaved
     , presentIsTheLastSaved
-    , getPresent, hasPast, hasFuture
+    , present, hasPast, lengthPast, hasFuture
     , goTo
+    , toList
     )
 
 {-| UndoList Data Structure keeping also track of the last saved state.
@@ -41,12 +42,17 @@ The terminology of functions is adapted to [elm-community/undo-redo](https://pac
 
 # Queries
 
-@docs getPresent, hasPast, hasFuture
+@docs present, hasPast, lengthPast, hasFuture
 
 
 # Expensive Operations
 
 @docs goTo
+
+
+# Conversions
+
+@docs toList
 
 -}
 
@@ -84,12 +90,12 @@ goToHelper i uL =
         l =
             uL |> UL.toList
 
-        past =
+        newPast =
             l |> List.take i |> List.reverse
     in
     case l |> List.drop i of
-        present :: future ->
-            UndoList past present future
+        newPresent :: newFuture ->
+            UndoList newPast newPresent newFuture
 
         _ ->
             uL
@@ -123,7 +129,7 @@ undo =
 
 redo : UndoListWithSave a -> UndoListWithSave a
 redo =
-    mapUL UL.undo
+    mapUL UL.redo
 
 
 {-| Saved State Index gets lost if the saved state lies in the future!
@@ -187,8 +193,7 @@ resetToSaved (UndoListWithSave { savedState }) =
 ----------------------------
 
 
-{-| Fast check whether the state has changed after the last save.
-This can be used in order to mark in the GUI, whether a file has changed after the last save.
+{-| This can be used in order to mark in the GUI, whether a file has changed after the last save.
 -}
 presentIsTheLastSaved : UndoListWithSave a -> Bool
 presentIsTheLastSaved (UndoListWithSave { savedAt, uL }) =
@@ -206,8 +211,8 @@ presentIsTheLastSaved (UndoListWithSave { savedAt, uL }) =
 --------------
 
 
-getPresent : UndoListWithSave a -> a
-getPresent (UndoListWithSave { uL }) =
+present : UndoListWithSave a -> a
+present (UndoListWithSave { uL }) =
     uL.present
 
 
@@ -216,6 +221,13 @@ getPresent (UndoListWithSave { uL }) =
 hasPast : UndoListWithSave a -> Bool
 hasPast (UndoListWithSave { uL }) =
     UL.hasPast uL
+
+
+{-| To determine whether the undo button should be disabled.
+-}
+lengthPast : UndoListWithSave a -> Int
+lengthPast (UndoListWithSave { uL }) =
+    UL.lengthPast uL
 
 
 {-| To determine whether the redo button should be disabled.
@@ -236,3 +248,14 @@ hasFuture (UndoListWithSave { uL }) =
 goTo : Int -> UndoListWithSave a -> UndoListWithSave a
 goTo i =
     mapUL (goToHelper i)
+
+
+
+-----------------
+-- Conversions --
+-----------------
+
+
+toList : UndoListWithSave a -> List a
+toList (UndoListWithSave { uL }) =
+    uL |> UL.toList

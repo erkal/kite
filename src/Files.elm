@@ -3,10 +3,10 @@ module Files exposing
     , empty
     , new, delete
     , focus, close, reallyClose, closeAll
-    , set, updateWithoutRecording
+    , set, mapPresent
     , save, saveAs, saveAll
-    , undo, redo
-    , getPresent, hasChanged
+    , undo, redo, goTo
+    , present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
     )
 
 {-| Represent an ordered list of files, allowing saving and undo-redo operations on each file.
@@ -22,7 +22,7 @@ Apart from this, it behaves similar to most editors, namely:
 **Main restrictions:**
 
   - There is no folder structure.
-  - There is no concept of "opening a file". Instead, use `hasChanged`.
+  - There is no concept of "opening a file". Instead, use `hasPast`.
   - There is no way of getting data of a file if the file is not focused.
 
 
@@ -48,7 +48,7 @@ Apart from this, it behaves similar to most editors, namely:
 
 # Updating Focused File
 
-@docs set, updateWithoutRecording
+@docs set, mapPresent
 
 
 # Saving
@@ -58,17 +58,17 @@ Apart from this, it behaves similar to most editors, namely:
 
 # Undo-Redo on Focused File
 
-@docs undo, redo
+@docs undo, redo, goTo
 
 
 # Queries (only to use in **view**)
 
-@docs getPresent, hasChanged
+@docs present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
 
 -}
 
 import Array exposing (Array)
-import UndoListWithSave as ULWS exposing (UndoListWithSave)
+import Files.UndoListWithSave as ULWS exposing (UndoListWithSave)
 
 
 {-| Main data structure. It keeps an array of files
@@ -265,9 +265,9 @@ set newState =
     mapFocused (mapULWS (ULWS.new newState))
 
 
-updateWithoutRecording : a -> Files a -> Files a
-updateWithoutRecording newState =
-    mapFocused (mapULWS (ULWS.setPresent newState))
+mapPresent : (a -> a) -> Files a -> Files a
+mapPresent up =
+    mapFocused (mapULWS (ULWS.mapPresent up))
 
 
 
@@ -309,29 +309,97 @@ redo =
     mapFocused (mapULWS ULWS.redo)
 
 
+goTo : Int -> Files a -> Files a
+goTo i =
+    mapFocused (mapULWS (ULWS.goTo i))
+
+
 
 ---------------------------------------
 -- Queries (only to use in **view**) --
 ---------------------------------------
 
 
-{-| Gets the present a of the focused File. Returns Nothing if no file is focused.
+{-| The present a of the focused File.
 -}
-getPresent : Files a -> Maybe a
-getPresent (Files { maybeFocus, arr }) =
+present : Files a -> a
+present (Files { maybeFocus, arr }) =
     let
         get i =
             Array.get i arr
-                |> Maybe.map (.uLWS >> ULWS.getPresent)
+                |> Maybe.map (.uLWS >> ULWS.present)
+    in
+    case maybeFocus |> Maybe.andThen get of
+        Just a ->
+            a
+
+        Nothing ->
+            Debug.todo ""
+
+
+{-| The length of the past of the focused File. Returns 0 if no file is focused.
+-}
+lengthPast : Files a -> Int
+lengthPast (Files { maybeFocus, arr }) =
+    let
+        get i =
+            Array.get i arr
+                |> Maybe.map (.uLWS >> ULWS.lengthPast)
     in
     maybeFocus
         |> Maybe.andThen get
+        |> Maybe.withDefault 0
 
 
-{-| returns True if the history of the file in the fiven index has a past.
+{-| returns True if the file in the given index has a past.
 -}
-hasChanged : Int -> Files a -> Bool
-hasChanged fileId (Files { arr }) =
+hasPast : Int -> Files a -> Bool
+hasPast fileId (Files { arr }) =
     Array.get fileId arr
         |> Maybe.map (.uLWS >> ULWS.hasPast)
         |> Maybe.withDefault False
+
+
+{-| returns True if the file in the given index has a future.
+-}
+hasFuture : Int -> Files a -> Bool
+hasFuture fileId (Files { arr }) =
+    Array.get fileId arr
+        |> Maybe.map (.uLWS >> ULWS.hasFuture)
+        |> Maybe.withDefault False
+
+
+focusedHasPast : Files a -> Bool
+focusedHasPast (Files { maybeFocus, arr }) =
+    let
+        get i =
+            Array.get i arr
+                |> Maybe.map (.uLWS >> ULWS.hasPast)
+    in
+    maybeFocus
+        |> Maybe.andThen get
+        |> Maybe.withDefault False
+
+
+focusedHasFuture : Files a -> Bool
+focusedHasFuture (Files { maybeFocus, arr }) =
+    let
+        get i =
+            Array.get i arr
+                |> Maybe.map (.uLWS >> ULWS.hasFuture)
+    in
+    maybeFocus
+        |> Maybe.andThen get
+        |> Maybe.withDefault False
+
+
+uLToList : Files a -> List a
+uLToList (Files { maybeFocus, arr }) =
+    let
+        get i =
+            Array.get i arr
+                |> Maybe.map (.uLWS >> ULWS.toList)
+    in
+    maybeFocus
+        |> Maybe.andThen get
+        |> Maybe.withDefault []
