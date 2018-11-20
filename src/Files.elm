@@ -1,12 +1,12 @@
 module Files exposing
     ( Files
     , empty
-    , new, delete
+    , new, delete, deleteFocused
     , focus, close, reallyClose, closeAll
     , set, mapPresent
     , save, saveAs, saveAll
     , undo, redo, goTo
-    , fileNames, present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
+    , fileNames, hasTheFocus, present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
     )
 
 {-| Represent an ordered list of files, allowing saving and undo-redo operations on each file.
@@ -38,7 +38,7 @@ Apart from this, it behaves similar to most editors, namely:
 
 # Adding and Deleting Files
 
-@docs new, delete
+@docs new, delete, deleteFocused
 
 
 # Focusing and Closing Files
@@ -63,7 +63,7 @@ Apart from this, it behaves similar to most editors, namely:
 
 # Queries (only to use in **view**)
 
-@docs fileNames, present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
+@docs fileNames, hasTheFocus, present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
 
 -}
 
@@ -119,17 +119,27 @@ mapULWS up file =
     { file | uLWS = up file.uLWS }
 
 
-insertAfter : Int -> a -> Array a -> Array a
-insertAfter i a arr =
-    Array.slice 0 (i + 1) arr
-        |> Array.append (Array.fromList [ a ])
-        |> Array.append (Array.slice (i + 1) (Array.length arr) arr)
+insertAt : Int -> a -> Array a -> Array a
+insertAt i a arr =
+    let
+        l =
+            Array.toList arr
+    in
+    List.take i l
+        ++ [ a ]
+        ++ List.drop i l
+        |> Array.fromList
 
 
 removeAt : Int -> Array a -> Array a
 removeAt i arr =
-    Array.slice 0 i arr
-        |> Array.append (Array.slice (i + 1) (Array.length arr) arr)
+    let
+        l =
+            Array.toList arr
+    in
+    List.take i l
+        ++ List.drop (i + 1) l
+        |> Array.fromList
 
 
 
@@ -162,7 +172,7 @@ new name d (Files { maybeFocus, arr }) =
                 { maybeFocus = Just (i + 1)
                 , arr =
                     arr
-                        |> insertAfter i
+                        |> insertAt (i + 1)
                             { name = name
                             , uLWS = ULWS.fresh d
                             }
@@ -180,20 +190,33 @@ new name d (Files { maybeFocus, arr }) =
                 }
 
 
+deleteFocused : Files a -> Files a
+deleteFocused ((Files { maybeFocus }) as files) =
+    case maybeFocus of
+        Just i ->
+            delete i files
+
+        Nothing ->
+            files
+
+
+{-| This doesn't do anything if it is the last item in the list.
+-}
 delete : Int -> Files a -> Files a
-delete i (Files { arr }) =
-    Files
-        { maybeFocus =
-            if i == 0 && Array.length arr == 1 then
-                Nothing
+delete i ((Files { arr }) as files) =
+    if i == 0 && Array.length arr == 1 then
+        files
 
-            else if i == 0 then
-                Just 0
+    else
+        Files
+            { maybeFocus =
+                if i == 0 then
+                    Just 0
 
-            else
-                Just (i - 1)
-        , arr = arr |> removeAt i
-        }
+                else
+                    Just (i - 1)
+            , arr = arr |> removeAt i
+            }
 
 
 
@@ -323,6 +346,11 @@ goTo i =
 fileNames : Files a -> List String
 fileNames (Files { arr }) =
     arr |> Array.toList |> List.map .name
+
+
+hasTheFocus : Int -> Files a -> Bool
+hasTheFocus i (Files { maybeFocus }) =
+    maybeFocus == Just i
 
 
 {-| The present a of the focused File.

@@ -139,7 +139,7 @@ type alias Model =
 
 
 type Mode
-    = Files
+    = GraphsFolder
     | ListsOfBagsVerticesAndEdges
     | GraphOperations
     | GraphQueries
@@ -200,8 +200,10 @@ initialModel : GraphFile -> Model
 initialModel graphFile =
     { files =
         Files.empty
-            |> Files.new "my-first-graph"
-                ( "Started with empty graph", graphFile )
+            |> Files.new "graph-1" ( "Started with empty graph", graphFile )
+            |> Files.new "graph-2" ( "Started with empty graph", graphFile )
+            |> Files.new "graph-3" ( "Started with empty graph", graphFile )
+            |> Files.new "graph-4" ( "Started with empty graph", graphFile )
 
     --
     , distractionFree = True
@@ -401,6 +403,8 @@ type Msg
     | ClickOnGenerateStarGraphButton
       --
     | ClickOnNewFile
+    | ClickOnDeleteFile
+    | ClickOnFileItem Int
 
 
 reheatSimulation : Model -> Model
@@ -1518,6 +1522,12 @@ update msg m =
                         m.files
             }
 
+        ClickOnDeleteFile ->
+            { m | files = Files.deleteFocused m.files }
+
+        ClickOnFileItem i ->
+            { m | files = Files.focus i m.files }
+
 
 
 -- SUBSCRIPTIONS
@@ -1827,7 +1837,7 @@ leftStripe m =
             El.column
                 [ El.alignTop
                 ]
-                [ modeButton "Files" Files Icons.icons.trash
+                [ modeButton "Graphs Folder" GraphsFolder Icons.icons.folder
                 , modeButton "Lists of Bags, Vertices and Edges" ListsOfBagsVerticesAndEdges Icons.icons.listOfThree
                 , modeButton "Graph Operations" GraphOperations Icons.icons.magicStick
                 , modeButton "Graph Queries" GraphQueries Icons.icons.qForQuery
@@ -1891,7 +1901,7 @@ leftBar m =
         ]
     <|
         case m.selectedMode of
-            Files ->
+            GraphsFolder ->
                 leftBarContentForFiles m
 
             ListsOfBagsVerticesAndEdges ->
@@ -1988,17 +1998,6 @@ leftBarHeaderButton { title, onClickMsg, iconPath } =
         (El.html (Icons.draw14px iconPath))
 
 
-leftBarContentForPreferences : Model -> Element Msg
-leftBarContentForPreferences m =
-    menu
-        { headerText = "Preferences (coming soon)"
-        , isOn = True
-        , headerButtons = []
-        , toggleMsg = NoOp
-        , contentItems = []
-        }
-
-
 pointToString : Point2d -> String
 pointToString p =
     "("
@@ -2033,20 +2032,49 @@ commonCellProperties =
 leftBarContentForFiles : Model -> Element Msg
 leftBarContentForFiles m =
     let
+        commonItemAttr i =
+            [ El.width El.fill
+            , El.paddingXY 8 8
+            , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
+            , Border.color Colors.menuBorder
+            , Events.onClick (ClickOnFileItem i)
+            ]
+
+        specialAttr i =
+            if Files.hasTheFocus i m.files then
+                [ Font.bold, Font.color Colors.white ]
+
+            else
+                -- TODO
+                []
+
+        item i name =
+            El.row
+                (commonItemAttr i ++ specialAttr i)
+                [ El.text name ]
+
         content =
-            El.column [] (List.map El.text (Files.fileNames m.files))
+            El.column [ El.width El.fill ]
+                (List.indexedMap item (Files.fileNames m.files))
 
         newFileButton =
             leftBarHeaderButton
-                { title = "Delete"
+                { title = "New File"
                 , onClickMsg = ClickOnNewFile
                 , iconPath = Icons.icons.plus
                 }
+
+        deleteFileButton =
+            leftBarHeaderButton
+                { title = "Delete File"
+                , onClickMsg = ClickOnDeleteFile
+                , iconPath = Icons.icons.trash
+                }
     in
     menu
-        { headerText = "Files (coming soon)"
+        { headerText = "Files"
         , isOn = True
-        , headerButtons = [ newFileButton ]
+        , headerButtons = [ newFileButton, deleteFileButton ]
         , toggleMsg = NoOp
         , contentItems = [ content ]
         }
@@ -2435,6 +2463,17 @@ leftBarContentForGamesOnGraphs : Model -> Element Msg
 leftBarContentForGamesOnGraphs m =
     menu
         { headerText = "Games on Graphs (coming soon)"
+        , isOn = True
+        , headerButtons = []
+        , toggleMsg = NoOp
+        , contentItems = []
+        }
+
+
+leftBarContentForPreferences : Model -> Element Msg
+leftBarContentForPreferences m =
+    menu
+        { headerText = "Preferences (coming soon)"
         , isOn = True
         , headerButtons = []
         , toggleMsg = NoOp
