@@ -76,7 +76,9 @@ type alias Model =
     , distractionFree : Bool
 
     --
-    , focusIsOnSomeTextInput : {- needed for preventing keypresses to trigger keyboard shortcuts -} Bool
+    , focusIsOnSomeTextInput :
+        -- This is needed for preventing keypresses to trigger keyboard shortcuts
+        Bool
 
     --
     , simulationState : Force.State
@@ -94,7 +96,9 @@ type alias Model =
     , shiftIsDown : Bool
 
     --
-    , pan : {- This is the svg coordinates of the top left corner of the browser window -} Point2d
+    , pan :
+        -- This is the svg coordinates of the top left corner of the browser window
+        Point2d
     , zoom : Float
 
     --
@@ -106,9 +110,6 @@ type alias Model =
     , bagColorPickerIsExpanded : Bool
 
     --
-    , selectedMode : Mode
-
-    --
     , tableOfVerticesIsOn : Bool
     , tableOfEdgesIsOn : Bool
 
@@ -118,6 +119,9 @@ type alias Model =
     , bagsIsOn : Bool
     , vertexPreferencesIsOn : Bool
     , edgePreferencesIsOn : Bool
+
+    --
+    , selectedMode : Mode
 
     --
     , selectedTool : Tool
@@ -416,6 +420,11 @@ reheatSimulation m =
         m
 
 
+setAlphaTarget : Float -> Model -> Model
+setAlphaTarget aT m =
+    { m | simulationState = m.simulationState |> Force.alphaTarget aT }
+
+
 stopSimulation : Model -> Model
 stopSimulation m =
     { m | simulationState = Force.stop m.simulationState }
@@ -439,8 +448,8 @@ setPresentWithoutrecording newFile m =
     }
 
 
-newFileAfterApllyingGravity : Model -> GraphFile
-newFileAfterApllyingGravity m =
+withNewGravityCenter : Model -> GraphFile
+withNewGravityCenter m =
     let
         updateGravity v =
             { v | gravityCenter = m.svgMousePosition }
@@ -664,13 +673,10 @@ update msg m =
                     }
 
                 Gravity GravityDragging ->
-                    let
-                        newFile =
-                            newFileAfterApllyingGravity m
-                    in
                     m
                         |> reheatSimulation
-                        |> setPresentWithoutrecording newFile
+                        |> setPresentWithoutrecording
+                            (withNewGravityCenter m)
 
                 _ ->
                     m
@@ -714,9 +720,9 @@ update msg m =
 
                 Select (DraggingSelection _) ->
                     { m
-                        | simulationState = m.simulationState |> Force.alphaTarget 0
-                        , selectedTool = Select SelectIdle
+                        | selectedTool = Select SelectIdle
                     }
+                        |> setAlphaTarget 0
                         |> setPresent (presentFile m)
                             "Moved some vertices"
 
@@ -724,12 +730,8 @@ update msg m =
                     { m | selectedTool = Hand HandIdle }
 
                 Gravity GravityDragging ->
-                    let
-                        newFile =
-                            newFileAfterApllyingGravity m
-                    in
                     { m | selectedTool = Gravity GravityIdle }
-                        |> setPresent newFile
+                        |> setPresent (withNewGravityCenter m)
                             "Changed gravity center of some vertices"
 
                 _ ->
@@ -793,13 +795,9 @@ update msg m =
                     }
 
                 Gravity GravityIdle ->
-                    let
-                        newFile =
-                            newFileAfterApllyingGravity m
-                    in
                     { m | selectedTool = Gravity GravityDragging }
                         |> reheatSimulation
-                        |> setPresent newFile
+                        |> setPresent (withNewGravityCenter m)
                             "Changed gravity center of some vertices"
 
                 _ ->
@@ -842,8 +840,8 @@ update msg m =
                                                     |> GF.getVertexIdsWithPositions newSelectedVertices
                                             }
                                         )
-                                , simulationState = m.simulationState |> Force.alphaTarget 0.3
                             }
+                                |> setAlphaTarget 0.3
                                 |> stopSimulation
                                 |> setPresent newFile "Duplicated a subgraph"
 
@@ -858,8 +856,8 @@ update msg m =
                                                     |> GF.getVertexIdsWithPositions m.selectedVertices
                                             }
                                         )
-                                , simulationState = m.simulationState |> Force.alphaTarget 0.3
                             }
+                                |> setAlphaTarget 0.3
                                 |> reheatSimulation
 
                     else
@@ -879,8 +877,8 @@ update msg m =
                                                 |> GF.getVertexIdsWithPositions newSelectedVertices
                                         }
                                     )
-                            , simulationState = m.simulationState |> Force.alphaTarget 0.3
                         }
+                            |> setAlphaTarget 0.3
                             |> reheatSimulation
 
                 _ ->
@@ -947,7 +945,6 @@ update msg m =
                                             , vertexPositionsAtStart = newFile |> GF.getVertexIdsWithPositions newSelectedVertices
                                             }
                                         )
-                                , simulationState = m.simulationState |> Force.alphaTarget 0.3
                             }
                                 |> stopSimulation
                                 |> setPresent newFile "Duplicated a subgraph"
@@ -963,8 +960,8 @@ update msg m =
                                                     |> GF.getVertexIdsWithPositions m.selectedVertices
                                             }
                                         )
-                                , simulationState = m.simulationState |> Force.alphaTarget 0.3
                             }
+                                |> setAlphaTarget 0.3
                                 |> reheatSimulation
 
                     else
@@ -984,8 +981,8 @@ update msg m =
                                                 |> GF.getVertexIdsWithPositions newSelectedVertices
                                         }
                                     )
-                            , simulationState = m.simulationState |> Force.alphaTarget 0.3
                         }
+                            |> setAlphaTarget 0.3
                             |> reheatSimulation
 
                 _ ->
