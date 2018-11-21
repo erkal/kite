@@ -633,13 +633,67 @@ forceTick forceState (GraphFile p) =
     ( newForceState, GraphFile { p | graph = newGraph } )
 
 
+{-| the integers represent milliseconds
+-}
 type alias TransitionState =
-    Float
+    { elapsed : Int
+    , duration : Int
+    }
+
+
+hasFinished : TransitionState -> Bool
+hasFinished tS =
+    tS.elapsed > tS.duration
 
 
 transitionTick :
-    TransitionState
+    Int
+    -> TransitionState
     -> { start : GraphFile, end : GraphFile }
     -> ( TransitionState, GraphFile )
-transitionTick transitionState { start, end } =
-    ( transitionState, end )
+transitionTick timeDelta ({ elapsed } as transitionState) { start, end } =
+    let
+        duration =
+            300
+
+        elapsedTimeRatio =
+            toFloat elapsed / toFloat duration
+
+        upVertices =
+            Graph.Extra.updateNodesBy
+                (end
+                    |> getVertices
+                    |> List.map (\{ id, label } -> ( id, label ))
+                )
+                (\endVertex startVertex ->
+                    transitionTickForVertex
+                        { startVertex = startVertex
+                        , endVertex = endVertex
+                        , elapsedTimeRatio = elapsedTimeRatio
+                        }
+                )
+
+        upEdges =
+            --TODO
+            identity
+    in
+    ( { transitionState | elapsed = elapsed + timeDelta }
+    , start |> mapGraph (upVertices >> upEdges)
+    )
+
+
+transitionTickForVertex :
+    { startVertex : VertexProperties
+    , endVertex : VertexProperties
+    , elapsedTimeRatio : Float
+    }
+    -> VertexProperties
+transitionTickForVertex { startVertex, endVertex, elapsedTimeRatio } =
+    { startVertex
+        | position =
+            startVertex.position
+                |> Point2d.translateBy
+                    (Vector2d.scaleBy elapsedTimeRatio
+                        (Vector2d.from startVertex.position endVertex.position)
+                    )
+    }
