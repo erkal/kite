@@ -1,55 +1,80 @@
-module User exposing
-    ( BagDict
-    , BagId
-    , BagProperties
-    , EdgeId
-    , EdgeProperties
-    , MyGraph
-    , User
-    , VertexId
-    , VertexProperties
-    , addBag
-    , addEdge
-    , addGraph
-    , addStarGraph
-    , addVertex
-    , contractEdge
+module GraphFile exposing
+    ( GraphFile
+    , MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
+    , BagDict, BagId, BagProperties
     , default
-    , divideEdge
+    , updateVertices, addVertex, removeVertices
+    , updateEdges, addEdge, removeEdges
+    , contractEdge, divideEdge
+    , addBag, removeBag, updateBag
+    , addStarGraph
     , duplicateSubgraph
-    , edgeIdsIntersectiongLineSegment
-    , getBagProperties
-    , getBags
-    , getBagsWithVertices
-    , getBoundingBoxWithMargin
-    , getCentroid
-    , getCommonEdgeProperty
-    , getCommonVertexProperty
-    , getDefaultEdgeProperties
-    , getDefaultVertexProperties
+    , setCentroidX, setCentroidY, setVertexPositions
+    , getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
     , getEdges
-    , getVertexIdsWithPositions
-    , getVertexProperties
-    , getVertices
-    , getVerticesInBag
-    , inducedEdges
-    , inducedVertices
-    , pullCentersWithVertices
-    , removeBag
-    , removeEdges
-    , removeVertices
-    , setCentroidX
-    , setCentroidY
-    , setVertexPositions
-    , simulation
-    , tick
-    , updateBag
-    , updateDefaultEdgeProperties
-    , updateDefaultVertexProperties
-    , updateEdges
-    , updateVertices
-    , vertexIdsInBoundingBox
+    , inducedEdges, inducedVertices
+    , getBagProperties, getBags, getBagsWithVertices
+    , getCommonEdgeProperty, getCommonVertexProperty
+    , getCentroid, getBoundingBoxWithMargin, vertexIdsInBoundingBox, edgeIdsIntersectiongLineSegment
+    , getDefaultEdgeProperties, getDefaultVertexProperties
+    , updateDefaultEdgeProperties, updateDefaultVertexProperties
+    , forceTick, transitionTick
+    , TransitionState
     )
+
+{-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
+This module also contains operations acting on graphs needed bei the Main module. Note that the interaction of the Main module with `MyGraph` type happens only by these operators. The Main module does not import `Graph` or `MyGraph`.
+
+
+# Definition
+
+@docs GraphFile
+@docs MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
+@docs BagDict, BagId, BagProperties
+
+
+# Constructor
+
+@docs default
+
+
+# Graph Operations
+
+@docs updateVertices, addVertex, removeVertices
+@docs updateEdges, addEdge, removeEdges
+@docs contractEdge, divideEdge
+@docs addBag, removeBag, updateBag
+@docs addStarGraph
+@docs duplicateSubgraph
+@docs setCentroidX, setCentroidY, setVertexPositions
+
+
+# Graph Queries
+
+@docs getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
+@docs getEdges
+@docs inducedEdges, inducedVertices
+@docs getBagProperties, getBags, getBagsWithVertices
+@docs getCommonEdgeProperty, getCommonVertexProperty
+@docs getCentroid, getBoundingBoxWithMargin, vertexIdsInBoundingBox, edgeIdsIntersectiongLineSegment
+
+
+# Accessing Default Properties
+
+@docs getDefaultEdgeProperties, getDefaultVertexProperties
+@docs updateDefaultEdgeProperties, updateDefaultVertexProperties
+
+
+# Animation Related Operations
+
+@docs forceTick, transitionTick
+
+
+## Internals
+
+unionWithNewGraph, setVertexPositionsForGraph
+
+-}
 
 import BoundingBox2d exposing (BoundingBox2d)
 import Circle2d exposing (Circle2d)
@@ -57,9 +82,9 @@ import Colors
 import Dict exposing (Dict)
 import Dict.Extra
 import Element exposing (Color)
-import Force exposing (Force, ForceGraph)
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Graph.Extra
+import Graph.Force as Force exposing (Force, ForceGraph)
 import Graph.Generators
 import IntDict exposing (IntDict)
 import LineSegment2d exposing (LineSegment2d)
@@ -72,11 +97,10 @@ import Vector2d exposing (Vector2d)
 The GUI-state data does not enter here!
 Everything about the GUI is in Main.elm.
 -}
-type User
-    = User
+type GraphFile
+    = GraphFile
         { graph : MyGraph
         , bags : BagDict
-        , forces : List Force
         , defaultVertexProperties : VertexProperties
         , defaultEdgeProperties : EdgeProperties
         }
@@ -140,16 +164,11 @@ type alias BagProperties =
     }
 
 
-default : User
+default : GraphFile
 default =
-    User
+    GraphFile
         { graph = Graph.empty
         , bags = Dict.empty
-        , forces =
-            [ Force.Link
-            , Force.ManyBody 0.9
-            , Force.Gravity
-            ]
         , defaultVertexProperties =
             { label = Nothing
             , labelIsVisible = True
@@ -174,42 +193,28 @@ default =
         }
 
 
-simulation : User -> Force.State
-simulation (User { forces }) =
-    Force.simulation forces
+mapGraph : (MyGraph -> MyGraph) -> GraphFile -> GraphFile
+mapGraph f (GraphFile p) =
+    GraphFile { p | graph = f p.graph }
 
 
-tick : Force.State -> User -> ( Force.State, User )
-tick state (User p) =
-    let
-        ( newState, newGraph ) =
-            Force.tick state p.graph
-    in
-    ( newState, User { p | graph = newGraph } )
+mapBags : (BagDict -> BagDict) -> GraphFile -> GraphFile
+mapBags f (GraphFile p) =
+    GraphFile { p | bags = f p.bags }
 
 
-mapGraph : (MyGraph -> MyGraph) -> User -> User
-mapGraph f (User p) =
-    User { p | graph = f p.graph }
-
-
-mapBags : (BagDict -> BagDict) -> User -> User
-mapBags f (User p) =
-    User { p | bags = f p.bags }
-
-
-getVertices : User -> List (Node VertexProperties)
-getVertices (User { graph }) =
+getVertices : GraphFile -> List (Node VertexProperties)
+getVertices (GraphFile { graph }) =
     Graph.nodes graph
 
 
-getEdges : User -> List (Edge EdgeProperties)
-getEdges (User { graph }) =
+getEdges : GraphFile -> List (Edge EdgeProperties)
+getEdges (GraphFile { graph }) =
     Graph.edges graph
 
 
-getBags : User -> List Bag
-getBags (User { bags }) =
+getBags : GraphFile -> List Bag
+getBags (GraphFile { bags }) =
     bags
         |> Dict.map
             (\bagId bagProperties ->
@@ -220,38 +225,38 @@ getBags (User { bags }) =
         |> Dict.values
 
 
-getBagProperties : BagId -> User -> Maybe BagProperties
-getBagProperties bagId (User { bags }) =
+getBagProperties : BagId -> GraphFile -> Maybe BagProperties
+getBagProperties bagId (GraphFile { bags }) =
     Dict.get bagId bags
 
 
-updateBag : BagId -> (BagProperties -> BagProperties) -> User -> User
-updateBag bagId up (User p) =
-    User { p | bags = Dict.update bagId (Maybe.map up) p.bags }
+updateBag : BagId -> (BagProperties -> BagProperties) -> GraphFile -> GraphFile
+updateBag bagId up (GraphFile p) =
+    GraphFile { p | bags = Dict.update bagId (Maybe.map up) p.bags }
 
 
-updateDefaultVertexProperties : (VertexProperties -> VertexProperties) -> User -> User
-updateDefaultVertexProperties up (User p) =
-    User { p | defaultVertexProperties = up p.defaultVertexProperties }
+updateDefaultVertexProperties : (VertexProperties -> VertexProperties) -> GraphFile -> GraphFile
+updateDefaultVertexProperties up (GraphFile p) =
+    GraphFile { p | defaultVertexProperties = up p.defaultVertexProperties }
 
 
-updateDefaultEdgeProperties : (EdgeProperties -> EdgeProperties) -> User -> User
-updateDefaultEdgeProperties up (User p) =
-    User { p | defaultEdgeProperties = up p.defaultEdgeProperties }
+updateDefaultEdgeProperties : (EdgeProperties -> EdgeProperties) -> GraphFile -> GraphFile
+updateDefaultEdgeProperties up (GraphFile p) =
+    GraphFile { p | defaultEdgeProperties = up p.defaultEdgeProperties }
 
 
-updateVertices : Set VertexId -> (VertexProperties -> VertexProperties) -> User -> User
+updateVertices : Set VertexId -> (VertexProperties -> VertexProperties) -> GraphFile -> GraphFile
 updateVertices vs up =
     mapGraph (Graph.Extra.updateNodes vs up)
 
 
-updateEdges : Set EdgeId -> (EdgeProperties -> EdgeProperties) -> User -> User
+updateEdges : Set EdgeId -> (EdgeProperties -> EdgeProperties) -> GraphFile -> GraphFile
 updateEdges es up =
     mapGraph (Graph.Extra.updateEdges es up)
 
 
-getCentroid : Set VertexId -> User -> Maybe Point2d
-getCentroid vs (User { graph }) =
+getCentroid : Set VertexId -> GraphFile -> Maybe Point2d
+getCentroid vs (GraphFile { graph }) =
     graph
         |> Graph.nodes
         |> List.filterMap
@@ -265,7 +270,7 @@ getCentroid vs (User { graph }) =
         |> Point2d.centroid
 
 
-setCentroidX : Set VertexId -> Float -> User -> User
+setCentroidX : Set VertexId -> Float -> GraphFile -> GraphFile
 setCentroidX vs newCentroidX user =
     let
         oldCentroidX =
@@ -277,7 +282,7 @@ setCentroidX vs newCentroidX user =
     user |> updateVertices vs (\vP -> { vP | position = vP.position |> Point2d.translateBy shift })
 
 
-setCentroidY : Set VertexId -> Float -> User -> User
+setCentroidY : Set VertexId -> Float -> GraphFile -> GraphFile
 setCentroidY vs newCentroidY user =
     let
         oldCentroidY =
@@ -289,8 +294,8 @@ setCentroidY vs newCentroidY user =
     user |> updateVertices vs (\vP -> { vP | position = vP.position |> Point2d.translateBy shift })
 
 
-getVerticesInBag : BagId -> User -> Set VertexId
-getVerticesInBag bagId (User { graph }) =
+getVerticesInBag : BagId -> GraphFile -> Set VertexId
+getVerticesInBag bagId (GraphFile { graph }) =
     let
         takeIfBagIdIsInBags { id, label } =
             if Set.member bagId label.inBags then
@@ -302,8 +307,8 @@ getVerticesInBag bagId (User { graph }) =
     graph |> Graph.nodes |> List.filterMap takeIfBagIdIsInBags |> Set.fromList
 
 
-getBagsWithVertices : User -> Dict BagId ( BagProperties, List ( VertexId, VertexProperties ) )
-getBagsWithVertices (User { graph, bags }) =
+getBagsWithVertices : GraphFile -> Dict BagId ( BagProperties, List ( VertexId, VertexProperties ) )
+getBagsWithVertices (GraphFile { graph, bags }) =
     let
         cons id label bagId =
             Dict.update bagId (Maybe.map (Tuple.mapSecond ((::) ( id, label ))))
@@ -317,8 +322,8 @@ getBagsWithVertices (User { graph, bags }) =
     graph |> Graph.nodes |> List.foldr handleVertex initialAcc
 
 
-addBag : Set VertexId -> User -> ( User, BagId )
-addBag vs ((User p) as user) =
+addBag : Set VertexId -> GraphFile -> ( GraphFile, BagId )
+addBag vs ((GraphFile p) as user) =
     let
         idOfTheNewBag =
             p.bags |> Dict.keys |> List.maximum |> Maybe.withDefault 0 |> (+) 1
@@ -342,7 +347,7 @@ addBag vs ((User p) as user) =
     )
 
 
-removeBag : BagId -> User -> User
+removeBag : BagId -> GraphFile -> GraphFile
 removeBag bagId user =
     let
         removeFromBag vP =
@@ -357,23 +362,23 @@ removeBag bagId user =
 --
 
 
-getDefaultVertexProperties : User -> VertexProperties
-getDefaultVertexProperties (User { defaultVertexProperties }) =
+getDefaultVertexProperties : GraphFile -> VertexProperties
+getDefaultVertexProperties (GraphFile { defaultVertexProperties }) =
     defaultVertexProperties
 
 
-getDefaultEdgeProperties : User -> EdgeProperties
-getDefaultEdgeProperties (User { defaultEdgeProperties }) =
+getDefaultEdgeProperties : GraphFile -> EdgeProperties
+getDefaultEdgeProperties (GraphFile { defaultEdgeProperties }) =
     defaultEdgeProperties
 
 
-getCommonVertexProperty : Set VertexId -> (VertexProperties -> a) -> User -> Maybe a
-getCommonVertexProperty vs prop (User { graph }) =
+getCommonVertexProperty : Set VertexId -> (VertexProperties -> a) -> GraphFile -> Maybe a
+getCommonVertexProperty vs prop (GraphFile { graph }) =
     Graph.Extra.getCommonNodeProperty vs prop graph
 
 
-getCommonEdgeProperty : Set EdgeId -> (EdgeProperties -> a) -> User -> Maybe a
-getCommonEdgeProperty vs prop (User { graph }) =
+getCommonEdgeProperty : Set EdgeId -> (EdgeProperties -> a) -> GraphFile -> Maybe a
+getCommonEdgeProperty vs prop (GraphFile { graph }) =
     Graph.Extra.getCommonEdgeProperty vs prop graph
 
 
@@ -381,15 +386,15 @@ getCommonEdgeProperty vs prop (User { graph }) =
 --
 
 
-getVertexProperties : VertexId -> User -> Maybe VertexProperties
-getVertexProperties vertexId (User { graph }) =
+getVertexProperties : VertexId -> GraphFile -> Maybe VertexProperties
+getVertexProperties vertexId (GraphFile { graph }) =
     graph
         |> Graph.get vertexId
         |> Maybe.map (.node >> .label)
 
 
-getVertexIdsWithPositions : Set VertexId -> User -> IntDict Point2d
-getVertexIdsWithPositions s (User { graph }) =
+getVertexIdsWithPositions : Set VertexId -> GraphFile -> IntDict Point2d
+getVertexIdsWithPositions s (GraphFile { graph }) =
     graph
         |> Graph.nodes
         |> List.filter (\{ id } -> Set.member id s)
@@ -397,8 +402,8 @@ getVertexIdsWithPositions s (User { graph }) =
         |> IntDict.fromList
 
 
-vertexIdsInBoundingBox : BoundingBox2d -> User -> Set VertexId
-vertexIdsInBoundingBox bB (User { graph }) =
+vertexIdsInBoundingBox : BoundingBox2d -> GraphFile -> Set VertexId
+vertexIdsInBoundingBox bB (GraphFile { graph }) =
     let
         vertexBB vertexProperties =
             vertexProperties.position
@@ -412,7 +417,7 @@ vertexIdsInBoundingBox bB (User { graph }) =
         |> Set.fromList
 
 
-lineSegmentOf : EdgeId -> User -> LineSegment2d
+lineSegmentOf : EdgeId -> GraphFile -> LineSegment2d
 lineSegmentOf ( from, to ) user =
     let
         getPosition vertexId =
@@ -429,8 +434,8 @@ lineSegmentOf ( from, to ) user =
             LineSegment2d.from Point2d.origin Point2d.origin
 
 
-edgeIdsIntersectiongLineSegment : LineSegment2d -> User -> Set ( VertexId, VertexId )
-edgeIdsIntersectiongLineSegment lS ((User { graph }) as user) =
+edgeIdsIntersectiongLineSegment : LineSegment2d -> GraphFile -> Set ( VertexId, VertexId )
+edgeIdsIntersectiongLineSegment lS ((GraphFile { graph }) as user) =
     let
         intersects l1 l2 =
             case LineSegment2d.intersectionPoint l1 l2 of
@@ -447,7 +452,7 @@ edgeIdsIntersectiongLineSegment lS ((User { graph }) as user) =
         |> Set.fromList
 
 
-getBoundingBoxWithMargin : Set VertexId -> User -> Maybe BoundingBox2d
+getBoundingBoxWithMargin : Set VertexId -> GraphFile -> Maybe BoundingBox2d
 getBoundingBoxWithMargin s user =
     let
         vertexBb id =
@@ -464,8 +469,8 @@ getBoundingBoxWithMargin s user =
     BoundingBox2d.aggregate boundingBoxesOfvertices
 
 
-inducedEdges : Set VertexId -> User -> Set ( VertexId, VertexId )
-inducedEdges vs (User { graph }) =
+inducedEdges : Set VertexId -> GraphFile -> Set ( VertexId, VertexId )
+inducedEdges vs (GraphFile { graph }) =
     Graph.Extra.inducedEdges vs graph
 
 
@@ -478,8 +483,8 @@ inducedVertices =
 --
 
 
-addVertex : Point2d -> User -> ( User, VertexId )
-addVertex coordinates (User ({ defaultVertexProperties } as p)) =
+addVertex : Point2d -> GraphFile -> ( GraphFile, VertexId )
+addVertex coordinates (GraphFile ({ defaultVertexProperties } as p)) =
     let
         propertiesOfTheNewVertex =
             { defaultVertexProperties | position = coordinates }
@@ -487,23 +492,23 @@ addVertex coordinates (User ({ defaultVertexProperties } as p)) =
         ( newMyGraph, newId ) =
             p.graph |> Graph.Extra.insertNode propertiesOfTheNewVertex
     in
-    ( User { p | graph = newMyGraph }
+    ( GraphFile { p | graph = newMyGraph }
     , newId
     )
 
 
-addEdge : EdgeId -> User -> User
-addEdge edgeId ((User p) as user) =
+addEdge : EdgeId -> GraphFile -> GraphFile
+addEdge edgeId ((GraphFile p) as user) =
     user |> mapGraph (Graph.Extra.insertEdge edgeId p.defaultEdgeProperties)
 
 
-removeEdge : EdgeId -> User -> User
+removeEdge : EdgeId -> GraphFile -> GraphFile
 removeEdge edgeId =
     mapGraph (Graph.Extra.removeEdge edgeId)
 
 
-contractEdge : EdgeId -> User -> User
-contractEdge edgeId ((User p) as user) =
+contractEdge : EdgeId -> GraphFile -> GraphFile
+contractEdge edgeId ((GraphFile p) as user) =
     let
         ( newGraph_, newId ) =
             p.graph
@@ -522,24 +527,24 @@ contractEdge edgeId ((User p) as user) =
         newGraph =
             newGraph_ |> Graph.update newId (Maybe.map setPos)
     in
-    User { p | graph = newGraph }
+    GraphFile { p | graph = newGraph }
 
 
-removeEdges : Set EdgeId -> User -> User
+removeEdges : Set EdgeId -> GraphFile -> GraphFile
 removeEdges s user =
     s |> Set.foldr removeEdge user
 
 
-removeVertices : Set VertexId -> User -> User
-removeVertices l (User p) =
+removeVertices : Set VertexId -> GraphFile -> GraphFile
+removeVertices l (GraphFile p) =
     let
         rem vertexId acc =
             acc |> Graph.remove vertexId
     in
-    User { p | graph = l |> Set.foldr rem p.graph }
+    GraphFile { p | graph = l |> Set.foldr rem p.graph }
 
 
-divideEdge : Point2d -> EdgeId -> User -> ( User, VertexId )
+divideEdge : Point2d -> EdgeId -> GraphFile -> ( GraphFile, VertexId )
 divideEdge coordinates ( s, t ) user =
     let
         ( user_, newId ) =
@@ -559,18 +564,19 @@ setVertexPositionsForGraph l =
     Graph.Extra.updateNodesBy l (\pos vP -> { vP | position = pos })
 
 
-setVertexPositions : List ( VertexId, Point2d ) -> User -> User
+setVertexPositions : List ( VertexId, Point2d ) -> GraphFile -> GraphFile
 setVertexPositions l =
     mapGraph (setVertexPositionsForGraph l)
 
 
-addGraph :
+unionWithNewGraph :
     { graph : MyGraph
     , suggestedLayout : List ( VertexId, Point2d )
     }
-    -> User
-    -> User
-addGraph { graph, suggestedLayout } =
+    -> GraphFile
+    -> GraphFile
+unionWithNewGraph { graph, suggestedLayout } =
+    -- this is internal!
     let
         graphWithSuggestedLayout =
             graph |> setVertexPositionsForGraph suggestedLayout
@@ -581,7 +587,7 @@ addGraph { graph, suggestedLayout } =
         )
 
 
-addStarGraph : { numberOfLeaves : Int } -> User -> User
+addStarGraph : { numberOfLeaves : Int } -> GraphFile -> GraphFile
 addStarGraph { numberOfLeaves } user =
     let
         starGraphWithLayout =
@@ -591,23 +597,104 @@ addStarGraph { numberOfLeaves } user =
                 , edgeProperties = getDefaultEdgeProperties user
                 }
     in
-    addGraph starGraphWithLayout user
+    unionWithNewGraph starGraphWithLayout user
 
 
-duplicateSubgraph : Set VertexId -> Set ( VertexId, VertexId ) -> User -> ( User, Set VertexId, Set ( VertexId, VertexId ) )
-duplicateSubgraph vs es ((User p) as user) =
+duplicateSubgraph : Set VertexId -> Set ( VertexId, VertexId ) -> GraphFile -> ( GraphFile, Set VertexId, Set ( VertexId, VertexId ) )
+duplicateSubgraph vs es ((GraphFile p) as user) =
     let
         ( newGraph, nvs, nes ) =
             p.graph |> Graph.Extra.duplicateSubgraph vs es
     in
-    ( User { p | graph = newGraph }
+    ( GraphFile { p | graph = newGraph }
     , Set.fromList nvs
     , Set.fromList nes
     )
 
 
-pullCentersWithVertices : User -> Dict ( Float, Float ) (List VertexId)
-pullCentersWithVertices (User { graph }) =
+pullCentersWithVertices : GraphFile -> Dict ( Float, Float ) (List VertexId)
+pullCentersWithVertices (GraphFile { graph }) =
     Graph.nodes graph
         |> Dict.Extra.groupBy (.label >> .gravityCenter >> Point2d.coordinates)
         |> Dict.map (\_ nodeList -> List.map .id nodeList)
+
+
+
+----------------------------------
+-- Animation Related Operations --
+----------------------------------
+
+
+forceTick : Force.State -> GraphFile -> ( Force.State, GraphFile )
+forceTick forceState (GraphFile p) =
+    let
+        ( newForceState, newGraph ) =
+            Force.tick forceState p.graph
+    in
+    ( newForceState, GraphFile { p | graph = newGraph } )
+
+
+{-| the integers represent milliseconds
+-}
+type alias TransitionState =
+    { elapsed : Int
+    , duration : Int
+    }
+
+
+hasFinished : TransitionState -> Bool
+hasFinished tS =
+    tS.elapsed > tS.duration
+
+
+transitionTick :
+    Int
+    -> TransitionState
+    -> { start : GraphFile, end : GraphFile }
+    -> ( TransitionState, GraphFile )
+transitionTick timeDelta ({ elapsed } as transitionState) { start, end } =
+    let
+        duration =
+            300
+
+        elapsedTimeRatio =
+            toFloat elapsed / toFloat duration
+
+        upVertices =
+            Graph.Extra.updateNodesBy
+                (end
+                    |> getVertices
+                    |> List.map (\{ id, label } -> ( id, label ))
+                )
+                (\endVertex startVertex ->
+                    transitionTickForVertex
+                        { startVertex = startVertex
+                        , endVertex = endVertex
+                        , elapsedTimeRatio = elapsedTimeRatio
+                        }
+                )
+
+        upEdges =
+            --TODO
+            identity
+    in
+    ( { transitionState | elapsed = elapsed + timeDelta }
+    , start |> mapGraph (upVertices >> upEdges)
+    )
+
+
+transitionTickForVertex :
+    { startVertex : VertexProperties
+    , endVertex : VertexProperties
+    , elapsedTimeRatio : Float
+    }
+    -> VertexProperties
+transitionTickForVertex { startVertex, endVertex, elapsedTimeRatio } =
+    { startVertex
+        | position =
+            startVertex.position
+                |> Point2d.translateBy
+                    (Vector2d.scaleBy elapsedTimeRatio
+                        (Vector2d.from startVertex.position endVertex.position)
+                    )
+    }

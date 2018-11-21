@@ -1,4 +1,4 @@
-module Force exposing
+module Graph.Force exposing
     ( Force(..)
     , ForceGraph
     , State
@@ -11,19 +11,18 @@ module Force exposing
     )
 
 import Dict exposing (Dict)
-import Force.Gravity as Gravity
-import Force.Link as Link
-import Force.ManyBody as ManyBody
 import Graph exposing (Edge, Graph, Node, NodeId)
 import Graph.Extra
+import Graph.Force.Gravity as Gravity
+import Graph.Force.Link as Link
+import Graph.Force.ManyBody as ManyBody
 import Point2d exposing (Point2d)
 import Vector2d exposing (Vector2d)
 
 
 type State
     = State
-        { forces : List Force
-        , alpha : Float
+        { alpha : Float
         , minAlpha : Float
         , alphaDecay : Float
         , alphaTarget : Float
@@ -63,11 +62,10 @@ type alias ForceGraph n e =
     Graph (ForceVertex n) (ForceEdge e)
 
 
-simulation : List Force -> State
-simulation forces =
+simulation : State
+simulation =
     State
-        { forces = forces
-        , alpha = 1.0
+        { alpha = 1.0
         , minAlpha = 0.001
         , alphaDecay = 1 - 0.001 ^ (1 / 300)
         , alphaTarget = 0.0
@@ -190,7 +188,7 @@ tick (State state) forceGraph =
                 }
     in
     ( State { state | alpha = newAlpha }
-    , state.forces
+    , [ Link, ManyBody 0.9, Gravity ]
         |> List.foldl (applyForce newAlpha) forceGraph
         |> Graph.mapNodes applyVelocity
     )

@@ -1,4 +1,4 @@
-module Force.Gravity exposing (Vertex, run)
+module Graph.Force.Gravity exposing (Vertex, run)
 
 import IntDict exposing (IntDict)
 import Point2d exposing (Point2d)
@@ -20,12 +20,6 @@ run alpha =
         handle : Vertex -> ( Int, Vector2d )
         handle { id, position, velocity, gravityCenter, gravityStrength } =
             let
-                --var k = .1 * e.alpha;
-                --// Push nodes toward their designated focus.
-                --nodes.forEach(function(o, i) {
-                --  o.y += (foci[o.id].y - o.y) * k;
-                --  o.x += (foci[o.id].x - o.x) * k;
-                --});
                 k =
                     gravityStrength * alpha
 
