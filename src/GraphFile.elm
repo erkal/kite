@@ -18,7 +18,7 @@ module GraphFile exposing
     , getCentroid, getBoundingBoxWithMargin, vertexIdsInBoundingBox, edgeIdsIntersectiongLineSegment
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
-    , forceTick
+    , forceTick, transitionTick
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -64,9 +64,9 @@ This module also contains operations acting on graphs needed bei the Main module
 @docs updateDefaultEdgeProperties, updateDefaultVertexProperties
 
 
-# Force related operations
+# Animation Related Operations
 
-@docs forceTick
+@docs forceTick, transitionTick
 
 
 ## Internals
@@ -190,24 +190,6 @@ default =
             , strength = 0.7
             }
         }
-
-
-forceTick : Force.State -> GraphFile -> ( Force.State, GraphFile )
-forceTick forceState (GraphFile p) =
-    let
-        ( newForceState, newGraph ) =
-            Force.tick forceState p.graph
-    in
-    ( newForceState, GraphFile { p | graph = newGraph } )
-
-
-
---transitionTick :
---    Transition.State
---    -> { start : GraphFile, end : GraphFile }
---    -> ( Transition.State, GraphFile )
---transitionTick transitionState startAndEnd =
---    Transition.tick transitionState startAndEnd
 
 
 mapGraph : (MyGraph -> MyGraph) -> GraphFile -> GraphFile
@@ -634,3 +616,30 @@ pullCentersWithVertices (GraphFile { graph }) =
     Graph.nodes graph
         |> Dict.Extra.groupBy (.label >> .gravityCenter >> Point2d.coordinates)
         |> Dict.map (\_ nodeList -> List.map .id nodeList)
+
+
+
+----------------------------------
+-- Animation Related Operations --
+----------------------------------
+
+
+forceTick : Force.State -> GraphFile -> ( Force.State, GraphFile )
+forceTick forceState (GraphFile p) =
+    let
+        ( newForceState, newGraph ) =
+            Force.tick forceState p.graph
+    in
+    ( newForceState, GraphFile { p | graph = newGraph } )
+
+
+type alias TransitionState =
+    Float
+
+
+transitionTick :
+    TransitionState
+    -> { start : GraphFile, end : GraphFile }
+    -> ( TransitionState, GraphFile )
+transitionTick transitionState { start, end } =
+    ( transitionState, end )
