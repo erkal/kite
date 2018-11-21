@@ -105,6 +105,10 @@ type alias Model =
     , vaderIsOn : Bool
 
     --
+    , openedFilesIsExpanded : Bool
+    , allFilesIsExpanded : Bool
+
+    --
     , vertexColorPickerIsExpanded : Bool
     , edgeColorPickerIsExpanded : Bool
     , bagColorPickerIsExpanded : Bool
@@ -241,12 +245,16 @@ initialModel graphFile =
     , vaderIsOn = True
 
     --
+    , openedFilesIsExpanded = True
+    , allFilesIsExpanded = True
+
+    --
     , vertexColorPickerIsExpanded = False
     , edgeColorPickerIsExpanded = False
     , bagColorPickerIsExpanded = False
 
     --
-    , selectedMode = ListsOfBagsVerticesAndEdges
+    , selectedMode = GraphsFolder
 
     --
     , tableOfVerticesIsOn = True
@@ -356,6 +364,9 @@ type Msg
     | MouseDownOnGravityCenter (List VertexId)
     | MouseDownOnDefaultGravityCenter
       --
+    | ToggleOpenedFiles
+    | ToggleAllFiles
+      --
     | ToggleTableOfVertices
     | ToggleTableOfEdges
       --
@@ -408,6 +419,8 @@ type Msg
       --
     | ClickOnNewFile
     | ClickOnDeleteFile
+    | ClickOnSaveFile
+    | ClickOnCloseFile Int
     | ClickOnFileItem Int
 
 
@@ -1352,6 +1365,12 @@ update msg m =
                 |> setPresent newFile
                     "Changed the strength of some edges "
 
+        ToggleOpenedFiles ->
+            { m | openedFilesIsExpanded = not m.openedFilesIsExpanded }
+
+        ToggleAllFiles ->
+            { m | allFilesIsExpanded = not m.allFilesIsExpanded }
+
         ToggleTableOfVertices ->
             { m | tableOfVerticesIsOn = not m.tableOfVerticesIsOn }
 
@@ -1521,6 +1540,12 @@ update msg m =
 
         ClickOnDeleteFile ->
             { m | files = Files.deleteFocused m.files }
+
+        ClickOnSaveFile ->
+            { m | files = Files.save m.files }
+
+        ClickOnCloseFile i ->
+            { m | files = Files.reallyClose i m.files }
 
         ClickOnFileItem i ->
             { m | files = Files.focus i m.files }
@@ -1768,6 +1793,7 @@ fpsView m =
     El.row
         [ El.padding 10
         , El.spacing 4
+        , El.centerX
         ]
         [ El.el [ El.width (El.px 40), Font.alignRight ] <|
             El.text (String.fromInt (round fps))
@@ -2050,31 +2076,75 @@ leftBarContentForFiles m =
                 (commonItemAttr i ++ specialAttr i)
                 [ El.text name ]
 
-        content =
+        openedItem i name =
+            El.row
+                (commonItemAttr i ++ specialAttr i)
+                [ El.row [ El.spacing 6 ]
+                    [ El.text name
+                    , El.el [] <|
+                        if Files.hasChangedAfterLastSave i m.files then
+                            El.html (Icons.draw14px Icons.icons.editedPen)
+
+                        else
+                            El.none
+                    ]
+                , leftBarHeaderButton
+                    { title = "Close"
+                    , onClickMsg = ClickOnCloseFile i
+                    , iconPath = Icons.icons.closeFile
+                    }
+                ]
+
+        allFilesContent =
             El.column [ El.width El.fill ]
-                (List.indexedMap item (Files.fileNames m.files))
+                (Files.fileNames m.files |> List.indexedMap item)
 
-        newFileButton =
-            leftBarHeaderButton
-                { title = "New File"
-                , onClickMsg = ClickOnNewFile
-                , iconPath = Icons.icons.plus
-                }
+        openedFilesContent =
+            El.column [ El.width El.fill ]
+                (Files.fileNames m.files
+                    |> List.indexedMap
+                        (\i name ->
+                            if Files.hasPast i m.files then
+                                openedItem i name
 
-        deleteFileButton =
-            leftBarHeaderButton
-                { title = "Delete File"
-                , onClickMsg = ClickOnDeleteFile
-                , iconPath = Icons.icons.trash
-                }
+                            else
+                                El.none
+                        )
+                )
     in
-    menu
-        { headerText = "Files"
-        , isOn = True
-        , headerButtons = [ newFileButton, deleteFileButton ]
-        , toggleMsg = NoOp
-        , contentItems = [ content ]
-        }
+    El.column [ El.width El.fill ]
+        [ menu
+            { headerText = "Opened Files"
+            , isOn = m.openedFilesIsExpanded
+            , headerButtons =
+                [ leftBarHeaderButton
+                    { title = "Save File"
+                    , onClickMsg = ClickOnSaveFile
+                    , iconPath = Icons.icons.save
+                    }
+                ]
+            , toggleMsg = ToggleOpenedFiles
+            , contentItems = [ openedFilesContent ]
+            }
+        , menu
+            { headerText = "All Files"
+            , isOn = m.allFilesIsExpanded
+            , headerButtons =
+                [ leftBarHeaderButton
+                    { title = "New File"
+                    , onClickMsg = ClickOnNewFile
+                    , iconPath = Icons.icons.plus
+                    }
+                , leftBarHeaderButton
+                    { title = "Delete File"
+                    , onClickMsg = ClickOnDeleteFile
+                    , iconPath = Icons.icons.trash
+                    }
+                ]
+            , toggleMsg = ToggleAllFiles
+            , contentItems = [ allFilesContent ]
+            }
+        ]
 
 
 leftBarContentForListsOfBagsVerticesAndEdges : Model -> Element Msg

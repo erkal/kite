@@ -6,7 +6,7 @@ module Files exposing
     , set, mapPresent
     , save, saveAs, saveAll
     , undo, redo, goTo
-    , fileNames, hasTheFocus, present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
+    , fileNames, hasTheFocus, present, lengthPast, hasPast, hasChangedAfterLastSave, hasFuture, focusedHasFuture, focusedHasPast, uLToList
     )
 
 {-| Represent an ordered list of files, allowing saving and undo-redo operations on each file.
@@ -63,7 +63,7 @@ Apart from this, it behaves similar to most editors, namely:
 
 # Queries (only to use in **view**)
 
-@docs fileNames, hasTheFocus, present, lengthPast, hasPast, hasFuture, focusedHasFuture, focusedHasPast, uLToList
+@docs fileNames, hasTheFocus, present, lengthPast, hasPast, hasChangedAfterLastSave, hasFuture, focusedHasFuture, focusedHasPast, uLToList
 
 -}
 
@@ -353,6 +353,13 @@ hasTheFocus i (Files { maybeFocus }) =
     maybeFocus == Just i
 
 
+hasChangedAfterLastSave : Int -> Files a -> Bool
+hasChangedAfterLastSave i (Files { arr }) =
+    Array.get i arr
+        |> Maybe.map (.uLWS >> ULWS.presentIsTheLastSaved >> not)
+        |> Maybe.withDefault False
+
+
 {-| The present a of the focused File.
 -}
 present : Files a -> a
@@ -387,8 +394,8 @@ lengthPast (Files { maybeFocus, arr }) =
 {-| returns True if the file in the given index has a past.
 -}
 hasPast : Int -> Files a -> Bool
-hasPast fileId (Files { arr }) =
-    Array.get fileId arr
+hasPast i (Files { arr }) =
+    Array.get i arr
         |> Maybe.map (.uLWS >> ULWS.hasPast)
         |> Maybe.withDefault False
 
@@ -396,8 +403,8 @@ hasPast fileId (Files { arr }) =
 {-| returns True if the file in the given index has a future.
 -}
 hasFuture : Int -> Files a -> Bool
-hasFuture fileId (Files { arr }) =
-    Array.get fileId arr
+hasFuture i (Files { arr }) =
+    Array.get i arr
         |> Maybe.map (.uLWS >> ULWS.hasFuture)
         |> Maybe.withDefault False
 
