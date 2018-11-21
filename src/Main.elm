@@ -220,12 +220,7 @@ initialModel graphFile =
     , focusIsOnSomeTextInput = False
 
     --
-    , simulationState =
-        Force.simulation
-            [ Force.Link
-            , Force.ManyBody 0.9
-            , Force.Gravity
-            ]
+    , simulationState = Force.simulation
 
     --
     , timeList = []
@@ -485,7 +480,7 @@ update msg m =
         Tick t ->
             let
                 ( newSimulationState, newFile_ ) =
-                    presentFile m |> GF.tick m.simulationState
+                    presentFile m |> GF.forceTick m.simulationState
 
                 newFile =
                     case m.selectedTool of

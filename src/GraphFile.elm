@@ -18,7 +18,7 @@ module GraphFile exposing
     , getCentroid, getBoundingBoxWithMargin, vertexIdsInBoundingBox, edgeIdsIntersectiongLineSegment
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
-    , tick
+    , forceTick
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -66,7 +66,7 @@ This module also contains operations acting on graphs needed bei the Main module
 
 # Force related operations
 
-@docs tick
+@docs forceTick
 
 
 ## Internals
@@ -192,13 +192,22 @@ default =
         }
 
 
-tick : Force.State -> GraphFile -> ( Force.State, GraphFile )
-tick state (GraphFile p) =
+forceTick : Force.State -> GraphFile -> ( Force.State, GraphFile )
+forceTick forceState (GraphFile p) =
     let
-        ( newState, newGraph ) =
-            Force.tick state p.graph
+        ( newForceState, newGraph ) =
+            Force.tick forceState p.graph
     in
-    ( newState, GraphFile { p | graph = newGraph } )
+    ( newForceState, GraphFile { p | graph = newGraph } )
+
+
+
+--transitionTick :
+--    Transition.State
+--    -> { start : GraphFile, end : GraphFile }
+--    -> ( Transition.State, GraphFile )
+--transitionTick transitionState startAndEnd =
+--    Transition.tick transitionState startAndEnd
 
 
 mapGraph : (MyGraph -> MyGraph) -> GraphFile -> GraphFile
