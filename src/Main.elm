@@ -207,8 +207,7 @@ type GravityState
 initialModel : GraphFile -> Model
 initialModel graphFile =
     { files =
-        Files.empty
-            |> Files.new "graph-1" ( "Started with empty graph", graphFile )
+        Files.singleton "graph-1" ( "Started with empty graph", graphFile )
             |> Files.new "graph-2" ( "Started with empty graph", graphFile )
             |> Files.new "graph-3" ( "Started with empty graph", graphFile )
             |> Files.new "graph-4" ( "Started with empty graph", graphFile )
@@ -440,7 +439,7 @@ stopSimulation m =
 
 presentFile : Model -> GraphFile
 presentFile m =
-    Tuple.second (Files.present m.files)
+    Tuple.second (Files.present ( "", GF.default ) m.files)
 
 
 setPresent : GraphFile -> String -> Model -> Model
@@ -559,15 +558,15 @@ update msg m =
 
         ClickOnUndoButton ->
             reheatSimulation
-                { m | files = m.files |> Files.undo }
+                { m | files = Files.undo m.files }
 
         ClickOnRedoButton ->
             reheatSimulation
-                { m | files = m.files |> Files.redo }
+                { m | files = Files.redo m.files }
 
         ClickOnHistoryItem i ->
             reheatSimulation
-                { m | files = m.files |> Files.goTo i }
+                { m | files = Files.goTo i m.files }
 
         ClickOnResetZoomAndPanButton ->
             { m
@@ -2059,7 +2058,7 @@ leftBarContentForFiles m =
             ]
 
         specialAttr i =
-            if Files.hasTheFocus i m.files then
+            if Files.indexHasTheFocus i m.files then
                 [ Font.bold, Font.color Colors.white ]
 
             else
@@ -2077,7 +2076,7 @@ leftBarContentForFiles m =
                 [ El.row [ El.spacing 6 ]
                     [ El.text name
                     , El.el [] <|
-                        if Files.hasChangedAfterLastSave i m.files then
+                        if Files.indexHasChangedAfterLastSave i m.files then
                             El.html (Icons.draw14px Icons.icons.editedPen)
 
                         else
@@ -2099,7 +2098,7 @@ leftBarContentForFiles m =
                 (Files.fileNames m.files
                     |> List.indexedMap
                         (\i name ->
-                            if Files.hasPast i m.files then
+                            if Files.indexHasPast i m.files then
                                 openedItem i name
 
                             else
@@ -2657,13 +2656,13 @@ topBar m =
                     { title = "Undo"
                     , iconPath = Icons.icons.undo
                     , onClickMsg = ClickOnUndoButton
-                    , disabled = not (m.files |> Files.focusedHasPast)
+                    , disabled = not (m.files |> Files.hasPast)
                     }
                 , oneClickButton
                     { title = "Redo"
                     , iconPath = Icons.icons.redo
                     , onClickMsg = ClickOnRedoButton
-                    , disabled = not (m.files |> Files.focusedHasFuture)
+                    , disabled = not (m.files |> Files.hasFuture)
                     }
                 ]
             , oneClickButtonGroup
