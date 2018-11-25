@@ -81,7 +81,8 @@ type alias Model =
         Bool
 
     --
-    , simulationState : Force.State
+    , animation : Animation
+    , forceState : Force.State
 
     --
     , timeList : List Time.Posix
@@ -144,6 +145,15 @@ type alias Model =
     , selectedVertices : Set VertexId
     , selectedEdges : Set EdgeId
     }
+
+
+type Animation
+    = NoAnimation
+    | ForceAnimation
+
+
+
+--| TransitionAnimation TransitionState
 
 
 type Mode
@@ -219,7 +229,8 @@ initialModel graphFile =
     , focusIsOnSomeTextInput = False
 
     --
-    , simulationState = Force.simulation
+    , animation = NoAnimation
+    , forceState = Force.simulation
 
     --
     , timeList = []
@@ -418,10 +429,13 @@ type Msg
     | ClickOnFileItem Int
 
 
-reheatSimulation : Model -> Model
-reheatSimulation m =
+reheatForce : Model -> Model
+reheatForce m =
     if m.vaderIsOn then
-        { m | simulationState = Force.reheat m.simulationState }
+        { m
+            | animation = ForceAnimation
+            , forceState = Force.reheat m.forceState
+        }
 
     else
         m
@@ -429,12 +443,17 @@ reheatSimulation m =
 
 setAlphaTarget : Float -> Model -> Model
 setAlphaTarget aT m =
-    { m | simulationState = m.simulationState |> Force.alphaTarget aT }
+    { m
+        | forceState = m.forceState |> Force.alphaTarget aT
+    }
 
 
-stopSimulation : Model -> Model
-stopSimulation m =
-    { m | simulationState = Force.stop m.simulationState }
+stopForce : Model -> Model
+stopForce m =
+    { m
+        | animation = NoAnimation
+        , forceState = Force.stop m.forceState
+    }
 
 
 presentFile : Model -> GraphFile
@@ -477,32 +496,36 @@ update msg m =
             m
 
         Tick t ->
-            let
-                ( newSimulationState, newFile_ ) =
-                    presentFile m |> GF.forceTick m.simulationState
+            if Force.isCompleted m.forceState then
+                m |> stopForce
 
-                newFile =
-                    case m.selectedTool of
-                        Select (DraggingSelection { brushStart, vertexPositionsAtStart }) ->
-                            let
-                                delta =
-                                    Vector2d.from brushStart m.svgMousePosition
+            else
+                let
+                    ( newForceState, newFile_ ) =
+                        presentFile m |> GF.forceTick m.forceState
 
-                                newVertexPositions =
-                                    vertexPositionsAtStart
-                                        |> IntDict.toList
-                                        |> List.map (Tuple.mapSecond (Point2d.translateBy delta))
-                            in
-                            newFile_ |> GF.setVertexPositions newVertexPositions
+                    newFile =
+                        case m.selectedTool of
+                            Select (DraggingSelection { brushStart, vertexPositionsAtStart }) ->
+                                let
+                                    delta =
+                                        Vector2d.from brushStart m.svgMousePosition
 
-                        _ ->
-                            newFile_
-            in
-            { m
-                | simulationState = newSimulationState
-                , timeList = t :: m.timeList |> List.take 42
-            }
-                |> setPresentWithoutrecording newFile
+                                    newVertexPositions =
+                                        vertexPositionsAtStart
+                                            |> IntDict.toList
+                                            |> List.map (Tuple.mapSecond (Point2d.translateBy delta))
+                                in
+                                newFile_ |> GF.setVertexPositions newVertexPositions
+
+                            _ ->
+                                newFile_
+                in
+                { m
+                    | forceState = newForceState
+                    , timeList = t :: m.timeList |> List.take 42
+                }
+                    |> setPresentWithoutrecording newFile
 
         WindowResize wS ->
             { m | windowSize = wS }
@@ -557,15 +580,15 @@ update msg m =
             { m | selectedMode = selectedMode }
 
         ClickOnUndoButton ->
-            reheatSimulation
+            reheatForce
                 { m | files = Files.undo m.files }
 
         ClickOnRedoButton ->
-            reheatSimulation
+            reheatForce
                 { m | files = Files.redo m.files }
 
         ClickOnHistoryItem i ->
-            reheatSimulation
+            reheatForce
                 { m | files = Files.goTo i m.files }
 
         ClickOnResetZoomAndPanButton ->
@@ -587,7 +610,7 @@ update msg m =
             { m | selectedTool = Gravity GravityIdle }
 
         ClickOnVader ->
-            reheatSimulation
+            reheatForce
                 { m | vaderIsOn = not m.vaderIsOn }
 
         ClickOnVertexColorPicker ->
@@ -681,7 +704,7 @@ update msg m =
 
                 Gravity GravityDragging ->
                     m
-                        |> reheatSimulation
+                        |> reheatForce
                         |> setPresentWithoutrecording
                             (withNewGravityCenter m)
 
@@ -754,7 +777,7 @@ update msg m =
                     { m
                         | selectedTool = Draw (BrushingNewEdgeWithSourceId sourceId)
                     }
-                        |> stopSimulation
+                        |> stopForce
                         |> setPresent newFile
                             ("Added vertex " ++ vertexIdToString sourceId)
 
@@ -777,7 +800,7 @@ update msg m =
                                 |> GF.addEdge ( sourceId, newId )
                     in
                     { m | selectedTool = Draw DrawIdle }
-                        |> reheatSimulation
+                        |> reheatForce
                         |> setPresent newFile
                             ("Added vertex "
                                 ++ vertexIdToString newId
@@ -803,7 +826,7 @@ update msg m =
 
                 Gravity GravityIdle ->
                     { m | selectedTool = Gravity GravityDragging }
-                        |> reheatSimulation
+                        |> reheatForce
                         |> setPresent (withNewGravityCenter m)
                             "Changed gravity center of some vertices"
 
@@ -849,7 +872,7 @@ update msg m =
                                         )
                             }
                                 |> setAlphaTarget 0.3
-                                |> stopSimulation
+                                |> stopForce
                                 |> setPresent newFile "Duplicated a subgraph"
 
                         else
@@ -865,7 +888,7 @@ update msg m =
                                         )
                             }
                                 |> setAlphaTarget 0.3
-                                |> reheatSimulation
+                                |> reheatForce
 
                     else
                         let
@@ -886,7 +909,7 @@ update msg m =
                                     )
                         }
                             |> setAlphaTarget 0.3
-                            |> reheatSimulation
+                            |> reheatForce
 
                 _ ->
                     m
@@ -896,7 +919,7 @@ update msg m =
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     if sourceId == targetId then
                         { m | selectedTool = Draw DrawIdle }
-                            |> reheatSimulation
+                            |> reheatForce
 
                     else
                         let
@@ -905,7 +928,7 @@ update msg m =
                                     |> GF.addEdge ( sourceId, targetId )
                         in
                         { m | selectedTool = Draw DrawIdle }
-                            |> reheatSimulation
+                            |> reheatForce
                             |> setPresent newFile
                                 ("Added edge "
                                     ++ edgeIdToString ( sourceId, targetId )
@@ -926,7 +949,7 @@ update msg m =
                         | highlightedEdges = Set.empty
                         , selectedTool = Draw (BrushingNewEdgeWithSourceId newId)
                     }
-                        |> stopSimulation
+                        |> stopForce
                         |> setPresent newFile
                             ("Divided Edge "
                                 ++ edgeIdToString ( s, t )
@@ -953,7 +976,7 @@ update msg m =
                                             }
                                         )
                             }
-                                |> stopSimulation
+                                |> stopForce
                                 |> setPresent newFile "Duplicated a subgraph"
 
                         else
@@ -969,7 +992,7 @@ update msg m =
                                         )
                             }
                                 |> setAlphaTarget 0.3
-                                |> reheatSimulation
+                                |> reheatForce
 
                     else
                         let
@@ -990,7 +1013,7 @@ update msg m =
                                     )
                         }
                             |> setAlphaTarget 0.3
-                            |> reheatSimulation
+                            |> reheatForce
 
                 _ ->
                     m
@@ -1010,7 +1033,7 @@ update msg m =
                         | highlightedEdges = Set.empty
                         , selectedTool = Draw DrawIdle
                     }
-                        |> reheatSimulation
+                        |> reheatForce
                         |> setPresent newFile
                             ("Divided Edge "
                                 ++ edgeIdToString ( s, t )
@@ -1148,7 +1171,7 @@ update msg m =
                             |> GF.updateVertices m.selectedVertices updateGravityStrength
             in
             m
-                |> reheatSimulation
+                |> reheatForce
                 |> setPresent newFile
                     "Changed gravity strength of some vertices"
 
@@ -1167,7 +1190,7 @@ update msg m =
                             |> GF.updateVertices m.selectedVertices updateManyBodyStrength
             in
             m
-                |> reheatSimulation
+                |> reheatForce
                 |> setPresent newFile
                     "Changed the strength of some vertices"
 
@@ -1218,7 +1241,7 @@ update msg m =
                         "Released vertices "
             in
             m
-                |> reheatSimulation
+                |> reheatForce
                 |> setPresent newFile
                     (descriptionStart
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
@@ -1336,7 +1359,7 @@ update msg m =
                             |> GF.updateEdges m.selectedEdges updateDistance
             in
             m
-                |> reheatSimulation
+                |> reheatForce
                 |> setPresent newFile
                     "Changed the distance of some edges"
 
@@ -1355,7 +1378,7 @@ update msg m =
                             |> GF.updateEdges m.selectedEdges updateStrength
             in
             m
-                |> reheatSimulation
+                |> reheatForce
                 |> setPresent newFile
                     "Changed the strength of some edges "
 
@@ -1397,7 +1420,7 @@ update msg m =
                 , selectedEdges = Set.empty
                 , highlightedEdges = Set.empty
             }
-                |> reheatSimulation
+                |> reheatForce
                 |> setPresent newFile
                     ("Removed vertices "
                         ++ vertexIdsToString (Set.toList m.selectedVertices)
@@ -1423,7 +1446,7 @@ update msg m =
                             presentFile m |> GF.removeBag bagId
                     in
                     { m | maybeSelectedBag = Nothing }
-                        |> reheatSimulation
+                        |> reheatForce
                         |> setPresent newFile
                             ("Removed bag " ++ bagIdToString bagId)
 
@@ -1439,7 +1462,7 @@ update msg m =
                 | highlightedEdges = Set.empty
                 , selectedEdges = Set.empty
             }
-                |> reheatSimulation
+                |> reheatForce
                 |> setPresent newFile
                     ("Removed edges "
                         ++ edgeIdsToString (Set.toList m.selectedEdges)
@@ -1456,7 +1479,7 @@ update msg m =
                         | highlightedEdges = Set.empty
                         , selectedEdges = Set.empty
                     }
-                        |> reheatSimulation
+                        |> reheatForce
                         |> setPresent newFile
                             ("Contracted edge" ++ edgeIdToString selectedEdge)
 
@@ -1558,17 +1581,33 @@ subscriptions m =
         , Browser.Events.onMouseUp (Decode.map MouseUp mousePosition)
         , Browser.Events.onKeyUp (Decode.map toKeyUpMsg keyDecoder)
         , Browser.Events.onVisibilityChange PageVisibility
-        , if m.focusIsOnSomeTextInput then
-            Sub.none
-
-          else
-            Browser.Events.onKeyDown (Decode.map toKeyDownMsg keyDecoder)
-        , if Force.isCompleted m.simulationState || not m.vaderIsOn then
-            Sub.none
-
-          else
-            Browser.Events.onAnimationFrame Tick
+        , keyDown m
+        , animationFrame m
         ]
+
+
+keyDown : Model -> Sub Msg
+keyDown m =
+    if m.focusIsOnSomeTextInput then
+        Sub.none
+
+    else
+        Browser.Events.onKeyDown (Decode.map toKeyDownMsg keyDecoder)
+
+
+animationFrame : Model -> Sub Msg
+animationFrame m =
+    case m.animation of
+        NoAnimation ->
+            Sub.none
+
+        ForceAnimation ->
+            if m.vaderIsOn then
+                Debug.log "tick" <|
+                    Browser.Events.onAnimationFrame Tick
+
+            else
+                Sub.none
 
 
 toKeyDownMsg : Key -> Msg
@@ -1743,7 +1782,17 @@ guiColumns m =
                     , El.htmlAttribute (HA.style "pointer-events" "auto")
                     ]
                     (topBar m)
-                , El.el [ El.alignBottom, El.width El.fill ]
+                , El.el
+                    [ El.alignTop
+                    , Font.center
+                    , Font.size 20
+                    , El.width El.fill
+                    ]
+                    (debugView m)
+                , El.el
+                    [ El.alignBottom
+                    , El.width El.fill
+                    ]
                     (fpsView m)
                 ]
     in
@@ -1758,6 +1807,11 @@ guiColumns m =
         , midCol
         , rightBar m
         ]
+
+
+debugView : Model -> Element Msg
+debugView m =
+    El.text (Debug.toString m.animation)
 
 
 fpsView : Model -> Element Msg
