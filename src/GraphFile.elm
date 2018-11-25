@@ -675,7 +675,7 @@ transitionTick timeDelta ({ elapsed } as transitionState) { start, end } =
                 )
 
         upEdges =
-            --TODO
+            -- TODO : Animate thcikness, color etc.
             identity
     in
     ( { transitionState | elapsed = elapsed + timeDelta }
