@@ -83,6 +83,7 @@ type alias Model =
     --
     , animation : Animation
     , forceState : Force.State
+    , transitionState : GF.TransitionState
 
     --
     , timeList : List Time.Posix
@@ -150,10 +151,7 @@ type alias Model =
 type Animation
     = NoAnimation
     | ForceAnimation
-
-
-
---| TransitionAnimation TransitionState
+    | TransitionAnimation
 
 
 type Mode
@@ -230,7 +228,8 @@ initialModel graphFile =
 
     --
     , animation = NoAnimation
-    , forceState = Force.simulation
+    , forceState = Force.defaultForceState
+    , transitionState = GF.defaultTransitionState
 
     --
     , timeList = []
@@ -305,7 +304,8 @@ initialPan =
 type Msg
     = NoOp
       --
-    | Tick Time.Posix
+    | ForceTick Time.Posix
+    | TransitionTimeDelta Float
       --
     | WindowResize { width : Int, height : Int }
       --
@@ -495,7 +495,7 @@ update msg m =
         NoOp ->
             m
 
-        Tick t ->
+        ForceTick t ->
             if Force.isCompleted m.forceState then
                 m |> stopForce
 
@@ -524,6 +524,26 @@ update msg m =
                 { m
                     | forceState = newForceState
                     , timeList = t :: m.timeList |> List.take 42
+                }
+                    |> setPresentWithoutrecording newFile
+
+        TransitionTimeDelta t ->
+            if GF.transitionHasFinished m.transitionState then
+                { m | animation = NoAnimation }
+
+            else
+                let
+                    ( newTransitionState, newFile ) =
+                        GF.transitionTick t
+                            m.transitionState
+                            { start = presentFile m
+                            , end =
+                                -- TODO
+                                presentFile m
+                            }
+                in
+                { m
+                    | transitionState = newTransitionState
                 }
                     |> setPresentWithoutrecording newFile
 
@@ -1601,10 +1621,14 @@ animationFrame m =
         NoAnimation ->
             Sub.none
 
+        TransitionAnimation ->
+            Debug.log "transition tick" <|
+                Browser.Events.onAnimationFrameDelta TransitionTimeDelta
+
         ForceAnimation ->
             if m.vaderIsOn then
-                Debug.log "tick" <|
-                    Browser.Events.onAnimationFrame Tick
+                Debug.log "force tick" <|
+                    Browser.Events.onAnimationFrame ForceTick
 
             else
                 Sub.none
