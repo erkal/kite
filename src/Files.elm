@@ -14,11 +14,10 @@ module Files exposing
     , focus, set, saveAll, fileNames
     )
 
-{-| Represent an ordered nonempty array of files, allowing efficent saving and undo-redo operations on each file.
+{-| Represent an ordered nonempty array of files, allowing efficent saving and undo-redo operations on each file. It also keeps track of a focused file.
 An example usage can be seen in the source of [this app](https://erkal.github.io/kite/).
 
-The main data structure, called `Files`, keeps an **ordered** list of files and the API allows the user to move files via `move` function.
-Apart from this, it behaves similar to most editors, namely:
+It behaves similar to most editors, namely:
 
   - If a new file is added (via `new`), it immediately gets the focus.
   - If a file is closed, the past and the future of the file gets lost, in the sense that undo and redo will not work directly after the file is refocused.
@@ -28,7 +27,7 @@ Apart from this, it behaves similar to most editors, namely:
 
   - There is no folder structure.
   - There is no concept of "opening a file". Instead, use `indexHasPast`.
-  - There is no way of getting data of a file if the file is not focused.
+  - There is no way of looking inside a file if the file is not focused.
 
 
 # Definition
@@ -88,7 +87,7 @@ type Files a
 
 
 type File a
-    = File String (UndoListWithSave a)
+    = File Name (UndoListWithSave a)
 
 
 type alias Name =
@@ -164,11 +163,7 @@ getULWSProperty get default i (Files _ arr) =
         |> Maybe.withDefault default
 
 
-getULWSPropertyOfFocused :
-    (UndoListWithSave a -> b)
-    -> b
-    -> Files a
-    -> b
+getULWSPropertyOfFocused : (UndoListWithSave a -> b) -> b -> Files a -> b
 getULWSPropertyOfFocused get default ((Files i _) as files) =
     getULWSProperty get default i files
 
@@ -207,12 +202,6 @@ singleton name d =
     Files 0 arr
 
 
-
--------------------------------
--- Adding and Deleting Files --
--------------------------------
-
-
 new : Name -> a -> Files a -> Files a
 new name d ((Files i arr) as files) =
     let
@@ -241,40 +230,9 @@ delete i ((Files _ arr) as files) =
 
 
 
---------------------------------
--- Focusing and Closing Files --
---------------------------------
-
-
-{-| `focus i` focuses the file with index **i** given that **i** is smaller than the number of files. If **i** is out of bounds, than it makes the focus get lost. This serves as a warning because, usually, the GUI should not allow such a high value for `i`.
-The indexing of files starts with 0.
--}
-focus : Int -> Files a -> Files a
-focus i ((Files _ arr) as files) =
-    if i < Array.length arr then
-        Files i arr
-
-    else
-        files
-
-
-close : Int -> Files a -> Files a
-close i =
-    -- TODO
-    identity
-
-
-reallyClose : Int -> Files a -> Files a
-reallyClose i (Files _ arr) =
-    Files
-        (max 0 (i - 1))
-        (mapArray i (mapULWS ULWS.resetToSaved) arr)
-
-
-
----------------------------
--- Updating Focused File --
----------------------------
+------------------
+-- Focused File --
+------------------
 
 
 set : a -> Files a -> Files a
@@ -341,9 +299,16 @@ goTo i =
     mapFocusedULWS (ULWS.goTo i)
 
 
-indexHasTheFocus : Int -> Files a -> Bool
-indexHasTheFocus j (Files i _) =
-    j == i
+{-| The length of the past of the focused File. Returns 0 if no file is focused.
+-}
+lengthPast : Files a -> Int
+lengthPast =
+    getULWSPropertyOfFocused ULWS.lengthPast 0
+
+
+uLToList : Files a -> List a
+uLToList =
+    getULWSPropertyOfFocused ULWS.toList []
 
 
 
@@ -355,6 +320,17 @@ indexHasTheFocus j (Files i _) =
 fileNames : Files a -> List Name
 fileNames (Files _ arr) =
     List.map getName (Array.toList arr)
+
+
+closeAll : Files a -> Files a
+closeAll =
+    -- TODO
+    identity
+
+
+indexHasTheFocus : Int -> Files a -> Bool
+indexHasTheFocus j (Files i _) =
+    j == i
 
 
 indexHasChangedAfterLastSave : Int -> Files a -> Bool
@@ -377,19 +353,26 @@ indexHasFuture =
     getULWSProperty ULWS.hasFuture False
 
 
-{-| The length of the past of the focused File. Returns 0 if no file is focused.
+{-| `focus i` focuses the file with index **i** given that **i** is smaller than the number of files. If **i** is out of bounds, than it makes the focus get lost. This serves as a warning because, usually, the GUI should not allow such a high value for `i`.
+The indexing of files starts with 0.
 -}
-lengthPast : Files a -> Int
-lengthPast =
-    getULWSPropertyOfFocused ULWS.lengthPast 0
+focus : Int -> Files a -> Files a
+focus i ((Files _ arr) as files) =
+    if i < Array.length arr then
+        Files i arr
+
+    else
+        files
 
 
-uLToList : Files a -> List a
-uLToList =
-    getULWSPropertyOfFocused ULWS.toList []
-
-
-closeAll : Files a -> Files a
-closeAll =
+close : Int -> Files a -> Files a
+close i =
     -- TODO
     identity
+
+
+reallyClose : Int -> Files a -> Files a
+reallyClose i (Files _ arr) =
+    Files
+        (max 0 (i - 1))
+        (mapArray i (mapULWS ULWS.resetToSaved) arr)
