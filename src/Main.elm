@@ -82,8 +82,6 @@ type alias Model =
 
     --
     , animation : Animation
-    , forceState : Force.State
-    , transitionState : GF.TransitionState
 
     --
     , timeList : List Time.Posix
@@ -150,8 +148,8 @@ type alias Model =
 
 type Animation
     = NoAnimation
-    | ForceAnimation
-    | TransitionAnimation
+    | ForceAnimation Force.State
+    | TransitionAnimation GF.TransitionState
 
 
 type Mode
@@ -228,8 +226,6 @@ initialModel graphFile =
 
     --
     , animation = NoAnimation
-    , forceState = Force.defaultForceState
-    , transitionState = GF.defaultTransitionState
 
     --
     , timeList = []
@@ -304,8 +300,8 @@ initialPan =
 type Msg
     = NoOp
       --
-    | ForceTick Time.Posix
-    | TransitionTimeDelta Float
+    | ForceTick Force.State Time.Posix
+    | TransitionTimeDelta GF.TransitionState Float
       --
     | WindowResize { width : Int, height : Int }
       --
@@ -432,10 +428,7 @@ type Msg
 reheatForce : Model -> Model
 reheatForce m =
     if m.vaderIsOn then
-        { m
-            | animation = ForceAnimation
-            , forceState = Force.reheat m.forceState
-        }
+        { m | animation = ForceAnimation Force.defaultForceState }
 
     else
         m
@@ -444,16 +437,19 @@ reheatForce m =
 setAlphaTarget : Float -> Model -> Model
 setAlphaTarget aT m =
     { m
-        | forceState = m.forceState |> Force.alphaTarget aT
+        | animation =
+            case m.animation of
+                ForceAnimation forceState ->
+                    ForceAnimation (Force.alphaTarget aT forceState)
+
+                _ ->
+                    m.animation
     }
 
 
 stopForce : Model -> Model
 stopForce m =
-    { m
-        | animation = NoAnimation
-        , forceState = Force.stop m.forceState
-    }
+    { m | animation = NoAnimation }
 
 
 presentFile : Model -> GraphFile
@@ -495,14 +491,14 @@ update msg m =
         NoOp ->
             m
 
-        ForceTick t ->
-            if Force.isCompleted m.forceState then
+        ForceTick forceState t ->
+            if Force.isCompleted forceState then
                 m |> stopForce
 
             else
                 let
                     ( newForceState, newFile_ ) =
-                        presentFile m |> GF.forceTick m.forceState
+                        GF.forceTick forceState (presentFile m)
 
                     newFile =
                         case m.selectedTool of
@@ -522,20 +518,20 @@ update msg m =
                                 newFile_
                 in
                 { m
-                    | forceState = newForceState
+                    | animation = ForceAnimation newForceState
                     , timeList = t :: m.timeList |> List.take 42
                 }
                     |> setPresentWithoutrecording newFile
 
-        TransitionTimeDelta t ->
-            if GF.transitionHasFinished m.transitionState then
+        TransitionTimeDelta transitionState t ->
+            if GF.transitionHasFinished transitionState then
                 { m | animation = NoAnimation }
 
             else
                 let
                     ( newTransitionState, newFile ) =
                         GF.transitionTick t
-                            m.transitionState
+                            transitionState
                             { start = presentFile m
                             , end =
                                 -- TODO
@@ -544,7 +540,7 @@ update msg m =
                             }
                 in
                 { m
-                    | transitionState = newTransitionState
+                    | animation = TransitionAnimation newTransitionState
                 }
                     |> setPresentWithoutrecording newFile
 
@@ -1588,9 +1584,7 @@ update msg m =
         ClickOnFileItem i ->
             { m
                 | files = Files.focus i m.files
-                , animation =
-                    TransitionAnimation
-                , transitionState = GF.defaultTransitionState
+                , animation = TransitionAnimation GF.defaultTransitionState
             }
 
 
@@ -1627,14 +1621,15 @@ animationFrame m =
         NoAnimation ->
             Sub.none
 
-        TransitionAnimation ->
+        TransitionAnimation transitionState ->
             Debug.log "transition tick" <|
-                Browser.Events.onAnimationFrameDelta TransitionTimeDelta
+                Browser.Events.onAnimationFrameDelta
+                    (TransitionTimeDelta transitionState)
 
-        ForceAnimation ->
+        ForceAnimation forceState ->
             if m.vaderIsOn then
                 Debug.log "force tick" <|
-                    Browser.Events.onAnimationFrame ForceTick
+                    Browser.Events.onAnimationFrame (ForceTick forceState)
 
             else
                 Sub.none
@@ -1814,9 +1809,9 @@ guiColumns m =
                     (topBar m)
                 , El.el
                     [ El.alignTop
-                    , Font.center
-                    , Font.size 20
-                    , El.width El.fill
+                    , Font.size 16
+                    , El.width (El.px 400)
+                    , El.scrollbarX
                     ]
                     (debugView m)
                 , El.el

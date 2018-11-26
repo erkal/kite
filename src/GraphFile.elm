@@ -662,11 +662,8 @@ transitionTick :
     -> ( TransitionState, GraphFile )
 transitionTick timeDelta (TransitionState tS) { start, end } =
     let
-        duration =
-            300
-
         elapsedTimeRatio =
-            tS.elapsed / duration
+            tS.elapsed / tS.duration
 
         upVertices =
             Graph.Extra.updateNodesBy
