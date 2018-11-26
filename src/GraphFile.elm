@@ -18,7 +18,7 @@ module GraphFile exposing
     , getCentroid, getBoundingBoxWithMargin, vertexIdsInBoundingBox, edgeIdsIntersectiongLineSegment
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
-    , TransitionState, defaultTransitionState, forceTick, transitionTick, transitionHasFinished
+    , forceTick, transitionGraphFile
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -66,7 +66,7 @@ This module also contains operations acting on graphs needed bei the Main module
 
 # Animation Related Operations
 
-@docs TransitionState, defaultTransitionState, forceTick, transitionTick, transitionHasFinished
+@docs forceTick, transitionGraphFile
 
 
 ## Internals
@@ -633,38 +633,9 @@ forceTick forceState (GraphFile p) =
     ( newForceState, GraphFile { p | graph = newGraph } )
 
 
-{-| the integers represent milliseconds
--}
-type TransitionState
-    = TransitionState
-        { elapsed : Float
-        , duration : Float
-        }
-
-
-defaultTransitionState : TransitionState
-defaultTransitionState =
-    TransitionState
-        { elapsed = 0
-        , duration = 1000
-        }
-
-
-transitionHasFinished : TransitionState -> Bool
-transitionHasFinished (TransitionState { elapsed, duration }) =
-    elapsed > duration
-
-
-transitionTick :
-    Float
-    -> TransitionState
-    -> { start : GraphFile, end : GraphFile }
-    -> ( TransitionState, GraphFile )
-transitionTick timeDelta (TransitionState tS) { start, end } =
+transitionGraphFile : Float -> { start : GraphFile, end : GraphFile } -> GraphFile
+transitionGraphFile elapsedTimeRatio { start, end } =
     let
-        elapsedTimeRatio =
-            tS.elapsed / tS.duration
-
         upVertices =
             Graph.Extra.updateNodesBy
                 (end
@@ -672,7 +643,7 @@ transitionTick timeDelta (TransitionState tS) { start, end } =
                     |> List.map (\{ id, label } -> ( id, label ))
                 )
                 (\endVertex startVertex ->
-                    transitionTickForVertex
+                    transitionVertex
                         { startVertex = startVertex
                         , endVertex = endVertex
                         , elapsedTimeRatio = elapsedTimeRatio
@@ -683,18 +654,16 @@ transitionTick timeDelta (TransitionState tS) { start, end } =
             -- TODO : Animate thcikness, color etc.
             identity
     in
-    ( TransitionState { tS | elapsed = tS.elapsed + timeDelta }
-    , start |> mapGraph (upVertices >> upEdges)
-    )
+    start |> mapGraph (upVertices >> upEdges)
 
 
-transitionTickForVertex :
+transitionVertex :
     { startVertex : VertexProperties
     , endVertex : VertexProperties
     , elapsedTimeRatio : Float
     }
     -> VertexProperties
-transitionTickForVertex { startVertex, endVertex, elapsedTimeRatio } =
+transitionVertex { startVertex, endVertex, elapsedTimeRatio } =
     { startVertex
         | position =
             startVertex.position

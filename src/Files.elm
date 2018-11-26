@@ -2,7 +2,7 @@ module Files exposing
     ( Files
     , singleton
     , new, delete, deleteFocused
-    , getFile, indexHasTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
+    , getFile, indexHasTheFocus, indexWithTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
     , reallyClose
     , present
     , hasFuture, hasPast
@@ -46,7 +46,7 @@ It behaves similar to most editors, namely:
 
 # Querying by Index
 
-@docs getFile, indexHasTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
+@docs getFile, indexHasTheFocus, indexWithTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
 
 
 # Updating by Index
@@ -343,6 +343,11 @@ closeAll =
 indexHasTheFocus : Int -> Files a -> Bool
 indexHasTheFocus j (Files i _) =
     j == i
+
+
+indexWithTheFocus : Files a -> Int
+indexWithTheFocus (Files i _) =
+    i
 
 
 indexHasChangedAfterLastSave : Int -> Files a -> Bool
