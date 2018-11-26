@@ -2,7 +2,7 @@ module Files exposing
     ( Files
     , singleton
     , new, delete, deleteFocused
-    , indexHasTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
+    , getFile, indexHasTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
     , reallyClose
     , present
     , hasFuture, hasPast
@@ -27,7 +27,6 @@ It behaves similar to most editors, namely:
 
   - There is no folder structure.
   - There is no concept of "opening a file". Instead, use `indexHasPast`.
-  - There is no way of looking inside a file if the file is not focused.
 
 
 # Definition
@@ -47,7 +46,7 @@ It behaves similar to most editors, namely:
 
 # Querying by Index
 
-@docs indexHasTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
+@docs getFile, indexHasTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
 
 
 # Updating by Index
@@ -163,8 +162,8 @@ getULWSProperty get default i (Files _ arr) =
         |> Maybe.withDefault default
 
 
-getULWSPropertyOfFocused : (UndoListWithSave a -> b) -> b -> Files a -> b
-getULWSPropertyOfFocused get default ((Files i _) as files) =
+getFocusedULWSProperty : (UndoListWithSave a -> b) -> b -> Files a -> b
+getFocusedULWSProperty get default ((Files i _) as files) =
     getULWSProperty get default i files
 
 
@@ -291,7 +290,7 @@ hasFuture =
 -}
 present : a -> Files a -> a
 present =
-    getULWSPropertyOfFocused ULWS.present
+    getFocusedULWSProperty ULWS.present
 
 
 goTo : Int -> Files a -> Files a
@@ -303,12 +302,25 @@ goTo i =
 -}
 lengthPast : Files a -> Int
 lengthPast =
-    getULWSPropertyOfFocused ULWS.lengthPast 0
+    getFocusedULWSProperty ULWS.lengthPast 0
 
 
 uLToList : Files a -> List a
 uLToList =
-    getULWSPropertyOfFocused ULWS.toList []
+    getFocusedULWSProperty ULWS.toList []
+
+
+
+-------------------------------------------------------
+-- Getter (only for using for transition animations) --
+-------------------------------------------------------
+
+
+{-| Returns the first argument as default if the index given as second parameter is out of bounds.
+-}
+getFile : a -> Int -> Files a -> a
+getFile =
+    getULWSProperty ULWS.present
 
 
 

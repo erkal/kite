@@ -539,7 +539,8 @@ update msg m =
                             { start = presentFile m
                             , end =
                                 -- TODO
-                                presentFile m
+                                Files.getFile ( "", presentFile m ) 2 m.files
+                                    |> Tuple.second
                             }
                 in
                 { m
@@ -1585,7 +1586,12 @@ update msg m =
             { m | files = Files.reallyClose i m.files }
 
         ClickOnFileItem i ->
-            { m | files = Files.focus i m.files }
+            { m
+                | files = Files.focus i m.files
+                , animation =
+                    TransitionAnimation
+                , transitionState = GF.defaultTransitionState
+            }
 
 
 

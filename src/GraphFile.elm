@@ -646,7 +646,7 @@ defaultTransitionState : TransitionState
 defaultTransitionState =
     TransitionState
         { elapsed = 0
-        , duration = 300
+        , duration = 1000
         }
 
 
