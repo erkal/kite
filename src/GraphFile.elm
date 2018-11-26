@@ -637,6 +637,15 @@ forceTick forceState (GraphFile p) =
 transitionGraphFile : Float -> { start : GraphFile, end : GraphFile } -> GraphFile
 transitionGraphFile elapsedTimeRatio { start, end } =
     let
+        --disappearingVertices : List Int
+        --disappearingVertices =
+        --    []
+        --transitioningVertices : List Int
+        --transitioningVertices =
+        --    []
+        --appearingVertices : List Int
+        --appearingVertices =
+        --    []
         upVertices =
             Graph.Extra.updateNodesBy
                 (end
@@ -644,7 +653,7 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map (\{ id, label } -> ( id, label ))
                 )
                 (\endVertex startVertex ->
-                    transitionVertex
+                    transitioningVertex
                         { startVertex = startVertex
                         , endVertex = endVertex
                         , elapsedTimeRatio = Ease.inOutCubic elapsedTimeRatio
@@ -652,19 +661,19 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                 )
 
         upEdges =
-            -- TODO : Animate thcikness, color etc.
+            -- TODO : Animate thickness, color etc.
             identity
     in
     start |> mapGraph (upVertices >> upEdges)
 
 
-transitionVertex :
+transitioningVertex :
     { startVertex : VertexProperties
     , endVertex : VertexProperties
     , elapsedTimeRatio : Float
     }
     -> VertexProperties
-transitionVertex { startVertex, endVertex, elapsedTimeRatio } =
+transitioningVertex { startVertex, endVertex, elapsedTimeRatio } =
     { startVertex
         | position =
             startVertex.position
