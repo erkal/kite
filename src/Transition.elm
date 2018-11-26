@@ -12,7 +12,7 @@ initialState : State
 initialState =
     State
         { elapsed = 0
-        , duration = 3000
+        , duration = 1000
         }
 
 

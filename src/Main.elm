@@ -8,7 +8,6 @@ import Circle2d exposing (Circle2d)
 import Colors
 import Dict exposing (Dict)
 import Direction2d exposing (Direction2d)
-import Ease
 import Element as El exposing (Color, Element)
 import Element.Background as Background
 import Element.Border as Border
@@ -3789,9 +3788,7 @@ mainSvg m =
             case m.animation of
                 TransitionAnimation { fromGraphAt, toGraphAt, transitionState } ->
                     GF.transitionGraphFile
-                        (Ease.outElastic
-                            (Transition.elapsedTimeRatio transitionState)
-                        )
+                        (Transition.elapsedTimeRatio transitionState)
                         { start = graphFileAt fromGraphAt m
                         , end = graphFileAt toGraphAt m
                         }

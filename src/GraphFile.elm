@@ -80,6 +80,7 @@ import Circle2d exposing (Circle2d)
 import Colors
 import Dict exposing (Dict)
 import Dict.Extra
+import Ease exposing (Easing)
 import Element exposing (Color)
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Graph.Extra
@@ -646,7 +647,7 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     transitionVertex
                         { startVertex = startVertex
                         , endVertex = endVertex
-                        , elapsedTimeRatio = elapsedTimeRatio
+                        , elapsedTimeRatio = Ease.inOutCubic elapsedTimeRatio
                         }
                 )
 
