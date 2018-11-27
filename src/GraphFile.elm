@@ -588,7 +588,8 @@ unionWithNewGraph { graph, suggestedLayout } =
     in
     mapGraph
         (\oldGraph ->
-            Graph.Extra.disjointUnion graphWithSuggestedLayout oldGraph |> .union
+            .result
+                (Graph.Extra.disjointUnion graphWithSuggestedLayout oldGraph)
         )
 
 

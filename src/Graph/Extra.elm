@@ -118,14 +118,49 @@ updateNodesBy l upBy graph =
 
 updateNodeBy : NodeId -> a -> (a -> n -> n) -> Graph n e -> Graph n e
 updateNodeBy id data =
+    -- TODO: This function (the type of it) is stupid, correct this.
     updateNodesBy [ ( id, data ) ]
+
+
+{-| Note that this is NOT the disjoint union.
+
+This function is used for the purpose of visualizing a transition that starts with the first graph and ends with the second graph.
+
+This function prioritizes the first argument.
+This means that the nodes/edges which lie in the intersection, have the properties which they have in the first graph.
+
+`nodeSeparartion` and `edgeSeparartion` fields return the node/ edge partition in the expected order, i.e.
+
+  - first G - H,
+  - then G \\cap H,
+  - and lastly H - G.
+
+-}
+union :
+    Graph n e
+    -> Graph n e
+    ->
+        { result : Graph n e
+        , nodeSeparation : ( List NodeId, List NodeId, List NodeId )
+        , edgeSeparation : ( List ( NodeId, NodeId ), List ( NodeId, NodeId ), List ( NodeId, NodeId ) )
+        }
+union g h =
+    let
+        -- TODO: Don't use `Graph.fold`. Update nodes and edges separately.
+        a =
+            42
+    in
+    { result = h
+    , nodeSeparation = ( [], [], [] )
+    , edgeSeparation = ( [], [], [] )
+    }
 
 
 disjointUnion :
     Graph n e
     -> Graph n e
     ->
-        { union : Graph n e
+        { result : Graph n e
         , verticesOfTheFirstGraphShifted : List NodeId
         , edgesOfTheFirstGraphShifted : List ( NodeId, NodeId )
         }
@@ -153,7 +188,7 @@ disjointUnion g h =
         gShifted =
             g |> Graph.mapContexts shift
     in
-    { union =
+    { result =
         Graph.fromNodesAndEdges
             (Graph.nodes gShifted ++ Graph.nodes h)
             (Graph.edges gShifted ++ Graph.edges h)
@@ -175,10 +210,10 @@ duplicateSubgraph vs es graph =
                 (graph |> Graph.nodes |> List.filter (\{ id } -> Set.member id vs))
                 (graph |> Graph.edges |> List.filter (\{ from, to } -> Set.member ( from, to ) es))
 
-        { union, verticesOfTheFirstGraphShifted, edgesOfTheFirstGraphShifted } =
+        { result, verticesOfTheFirstGraphShifted, edgesOfTheFirstGraphShifted } =
             disjointUnion subgraph graph
     in
-    ( union, verticesOfTheFirstGraphShifted, edgesOfTheFirstGraphShifted )
+    ( result, verticesOfTheFirstGraphShifted, edgesOfTheFirstGraphShifted )
 
 
 updateEdges : Set ( NodeId, NodeId ) -> (e -> e) -> Graph n e -> Graph n e
