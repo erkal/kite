@@ -193,6 +193,11 @@ default =
         }
 
 
+getGraph : GraphFile -> MyGraph
+getGraph (GraphFile { graph }) =
+    graph
+
+
 mapGraph : (MyGraph -> MyGraph) -> GraphFile -> GraphFile
 mapGraph f (GraphFile p) =
     GraphFile { p | graph = f p.graph }
@@ -637,21 +642,24 @@ forceTick forceState (GraphFile p) =
 transitionGraphFile : Float -> { start : GraphFile, end : GraphFile } -> GraphFile
 transitionGraphFile elapsedTimeRatio { start, end } =
     let
+        -- TODO: Implement Graph.Extra.union (which prioritizes the first graph for the nodes and edges which lie in the intersection) and use it here!
+        --
+        --
+        --
         --disappearingVertices : List Int
         --disappearingVertices =
         --    []
-        --transitioningVertices : List Int
-        --transitioningVertices =
-        --    []
-        --appearingVertices : List Int
-        --appearingVertices =
-        --    []
+        verticesOfEnd =
+            getVertices end |> List.map (\{ id, label } -> ( id, label ))
+
+        ( transitioningVertices, appearingVertices ) =
+            verticesOfEnd
+                |> List.partition
+                    (\( id, _ ) -> Graph.member id (getGraph start))
+
         upVertices =
             Graph.Extra.updateNodesBy
-                (end
-                    |> getVertices
-                    |> List.map (\{ id, label } -> ( id, label ))
-                )
+                transitioningVertices
                 (\endVertex startVertex ->
                     transitioningVertex
                         { startVertex = startVertex
@@ -659,6 +667,15 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                         , elapsedTimeRatio = Ease.inOutCubic elapsedTimeRatio
                         }
                 )
+                >> Graph.Extra.updateNodesBy
+                    appearingVertices
+                    (\endVertex startVertex ->
+                        transitioningVertex
+                            { startVertex = startVertex
+                            , endVertex = endVertex
+                            , elapsedTimeRatio = Ease.inOutCubic elapsedTimeRatio
+                            }
+                    )
 
         upEdges =
             -- TODO : Animate thickness, color etc.
