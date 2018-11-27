@@ -643,24 +643,33 @@ forceTick forceState (GraphFile p) =
 transitionGraphFile : Float -> { start : GraphFile, end : GraphFile } -> GraphFile
 transitionGraphFile elapsedTimeRatio { start, end } =
     let
-        -- TODO: Implement Graph.Extra.union (which prioritizes the first graph for the nodes and edges which lie in the intersection) and use it here!
-        --
-        --
-        --
-        --disappearingVertices : List Int
-        --disappearingVertices =
-        --    []
-        verticesOfEnd =
-            getVertices end |> List.map (\{ id, label } -> ( id, label ))
+        { result, nodeSeparation, edgeSeparation } =
+            Graph.Extra.union (getGraph start) (getGraph end)
 
-        ( transitioningVertices, appearingVertices ) =
-            verticesOfEnd
-                |> List.partition
-                    (\( id, _ ) -> Graph.member id (getGraph start))
+        ( verticesInStartButNotInEnd, verticesInIntersection, verticesInEndButNotInStart ) =
+            nodeSeparation
 
-        upVertices =
+        upVerticesInStartButNotInEnd =
+            Graph.Extra.updateNodes
+                (verticesInStartButNotInEnd
+                    |> List.map .id
+                    |> Set.fromList
+                )
+                (\vP -> { vP | radius = (1 - elapsedTimeRatio) * vP.radius })
+
+        upVerticesInEndButNotInStart =
+            Graph.Extra.updateNodes
+                (verticesInEndButNotInStart
+                    |> List.map .id
+                    |> Set.fromList
+                )
+                (\vP -> { vP | radius = elapsedTimeRatio * vP.radius })
+
+        upVerticesInIntersection =
             Graph.Extra.updateNodesBy
-                transitioningVertices
+                (verticesInIntersection
+                    |> List.map (\{ id, label } -> ( id, label ))
+                )
                 (\endVertex startVertex ->
                     transitioningVertex
                         { startVertex = startVertex
@@ -668,21 +677,19 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                         , elapsedTimeRatio = Ease.inOutCubic elapsedTimeRatio
                         }
                 )
-                >> Graph.Extra.updateNodesBy
-                    appearingVertices
-                    (\endVertex startVertex ->
-                        transitioningVertex
-                            { startVertex = startVertex
-                            , endVertex = endVertex
-                            , elapsedTimeRatio = Ease.inOutCubic elapsedTimeRatio
-                            }
-                    )
 
         upEdges =
             -- TODO : Animate thickness, color etc.
             identity
     in
-    start |> mapGraph (upVertices >> upEdges)
+    start
+        |> mapGraph
+            (identity
+                >> upVerticesInStartButNotInEnd
+                >> upVerticesInIntersection
+                >> upVerticesInEndButNotInStart
+                >> upEdges
+            )
 
 
 transitioningVertex :

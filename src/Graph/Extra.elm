@@ -10,15 +10,24 @@ module Graph.Extra exposing
     , insertEdge
     , insertNode
     , removeEdge
+    , union
     , updateEdges
     , updateNodeBy
     , updateNodes
     , updateNodesBy
     )
 
-import Graph exposing (Graph, NodeId)
+import Graph exposing (Edge, Graph, Node, NodeId)
 import IntDict
 import Set exposing (Set)
+
+
+hasEdge : ( NodeId, NodeId ) -> Graph n e -> Bool
+hasEdge ( from, to ) graph =
+    graph
+        |> Graph.get from
+        |> Maybe.map (.outgoing >> IntDict.member to)
+        |> Maybe.withDefault False
 
 
 degree : NodeId -> Graph n e -> Int
@@ -129,7 +138,7 @@ This function is used for the purpose of visualizing a transition that starts wi
 This function prioritizes the first argument.
 This means that the nodes/edges which lie in the intersection, have the properties which they have in the first graph.
 
-`nodeSeparartion` and `edgeSeparartion` fields return the node/ edge partition in the expected order, i.e.
+`nodeSeparartion` and `edgeSeparartion` fields return the node/edge partition in the expected order, i.e.
 
   - first G - H,
   - then G \\cap H,
@@ -141,18 +150,50 @@ union :
     -> Graph n e
     ->
         { result : Graph n e
-        , nodeSeparation : ( List NodeId, List NodeId, List NodeId )
-        , edgeSeparation : ( List ( NodeId, NodeId ), List ( NodeId, NodeId ), List ( NodeId, NodeId ) )
+        , nodeSeparation : ( List (Node n), List (Node n), List (Node n) )
+        , edgeSeparation : ( List (Edge e), List (Edge e), List (Edge e) )
         }
 union g h =
     let
-        -- TODO: Don't use `Graph.fold`. Update nodes and edges separately.
-        a =
-            42
+        ( nodesInIntersection, nodesInHButNotInG ) =
+            Graph.nodes h
+                |> List.partition (\{ id } -> Graph.member id g)
+
+        insertNewNodes g_ =
+            nodesInHButNotInG
+                |> List.foldr
+                    (\node ->
+                        Graph.insert
+                            { node = node
+                            , incoming = IntDict.empty
+                            , outgoing = IntDict.empty
+                            }
+                    )
+                    g_
+
+        ( edgesInIntersection, edgesInHButNotInG ) =
+            Graph.edges h
+                |> List.partition
+                    (\{ from, to } -> hasEdge ( from, to ) g)
+
+        insertNewEdges g_ =
+            edgesInHButNotInG
+                |> List.foldr
+                    (\{ from, to, label } -> insertEdge ( from, to ) label)
+                    g_
     in
-    { result = h
-    , nodeSeparation = ( [], [], [] )
-    , edgeSeparation = ( [], [], [] )
+    { result = g |> insertNewNodes |> insertNewEdges
+    , nodeSeparation =
+        ( Graph.nodes g |> List.filter (\{ id } -> not (Graph.member id h))
+        , nodesInIntersection
+        , nodesInHButNotInG
+        )
+    , edgeSeparation =
+        ( Graph.edges g
+            |> List.filter (\{ from, to } -> not (hasEdge ( from, to ) h))
+        , edgesInIntersection
+        , edgesInHButNotInG
+        )
     }
 
 
