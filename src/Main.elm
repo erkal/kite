@@ -944,8 +944,8 @@ update msg m =
                                             }
                                         )
                             }
-                                |> setAlphaTarget 0.3
                                 |> reheatForce
+                                |> setAlphaTarget 0.3
 
                     else
                         let
@@ -965,8 +965,8 @@ update msg m =
                                         }
                                     )
                         }
-                            |> setAlphaTarget 0.3
                             |> reheatForce
+                            |> setAlphaTarget 0.3
 
                 _ ->
                     m
@@ -1048,8 +1048,8 @@ update msg m =
                                             }
                                         )
                             }
-                                |> setAlphaTarget 0.3
                                 |> reheatForce
+                                |> setAlphaTarget 0.3
 
                     else
                         let
@@ -1069,8 +1069,8 @@ update msg m =
                                         }
                                     )
                         }
-                            |> setAlphaTarget 0.3
                             |> reheatForce
+                            |> setAlphaTarget 0.3
 
                 _ ->
                     m
