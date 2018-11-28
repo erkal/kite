@@ -4053,8 +4053,7 @@ viewEdges graphFile =
                         |> LineSegment2d.perpendicularDirection
                         |> Maybe.withDefault Direction2d.negativeY
                         |> Direction2d.reverse
-                        |> Direction2d.toVector
-                        |> Vector2d.scaleBy labelDistance
+                        |> Vector2d.withLength labelDistance
             in
             edgeLine
                 |> LineSegment2d.midpoint

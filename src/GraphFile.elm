@@ -443,12 +443,7 @@ edgeIdsIntersectiongLineSegment : LineSegment2d -> GraphFile -> Set ( VertexId, 
 edgeIdsIntersectiongLineSegment lS ((GraphFile { graph }) as user) =
     let
         intersects l1 l2 =
-            case LineSegment2d.intersectionPoint l1 l2 of
-                Just _ ->
-                    True
-
-                Nothing ->
-                    False
+            LineSegment2d.intersectionPoint l1 l2 /= Nothing
     in
     graph
         |> Graph.edges
