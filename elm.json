@@ -13,6 +13,7 @@
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm-community/dict-extra": "2.4.0",
+            "elm-community/easing-functions": "2.0.0",
             "elm-community/graph": "6.0.0",
             "elm-community/intdict": "3.0.0",
             "elm-community/undo-redo": "3.0.0",

@@ -25,6 +25,7 @@ module Colors exposing
     , sliderThumb
     , svgLine
     , toString
+    , transition
     , vertexAndEdgeColors
     , white
     , yellow
@@ -45,6 +46,22 @@ toString color =
         ++ ("," ++ String.fromInt (round (o.blue * 255)))
         ++ ("," ++ String.fromFloat o.alpha)
         ++ ")"
+
+
+transition : Float -> Color -> Color -> Color
+transition k start end =
+    let
+        ( s, e ) =
+            ( El.toRgb start, El.toRgb end )
+
+        tr s_ e_ =
+            s_ + k * (e_ - s_)
+    in
+    El.rgba
+        (tr s.red e.red)
+        (tr s.green e.green)
+        (tr s.blue e.blue)
+        (tr s.alpha e.alpha)
 
 
 rectAroundSelectedVertices =

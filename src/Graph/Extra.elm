@@ -10,15 +10,24 @@ module Graph.Extra exposing
     , insertEdge
     , insertNode
     , removeEdge
+    , union
     , updateEdges
-    , updateNodeBy
+    , updateEdgesBy
     , updateNodes
     , updateNodesBy
     )
 
-import Graph exposing (Graph, NodeId)
+import Graph exposing (Edge, Graph, Node, NodeId)
 import IntDict
 import Set exposing (Set)
+
+
+hasEdge : ( NodeId, NodeId ) -> Graph n e -> Bool
+hasEdge ( from, to ) graph =
+    graph
+        |> Graph.get from
+        |> Maybe.map (.outgoing >> IntDict.member to)
+        |> Maybe.withDefault False
 
 
 degree : NodeId -> Graph n e -> Int
@@ -56,10 +65,10 @@ insertNode n graph =
 insertEdge : ( NodeId, NodeId ) -> e -> Graph n e -> Graph n e
 insertEdge ( sourceId, targetId ) e graph =
     let
-        insertTarget ({ outgoing } as ctx) =
+        insertTarget ctx =
             { ctx | outgoing = ctx.outgoing |> IntDict.insert targetId e }
 
-        insertSource ({ incoming } as ctx) =
+        insertSource ctx =
             { ctx | incoming = ctx.incoming |> IntDict.insert sourceId e }
     in
     graph
@@ -70,10 +79,10 @@ insertEdge ( sourceId, targetId ) e graph =
 removeEdge : ( NodeId, NodeId ) -> Graph n e -> Graph n e
 removeEdge ( sourceId, targetId ) graph =
     let
-        removeFromSource ({ outgoing } as ctx) =
+        removeFromSource ctx =
             { ctx | outgoing = ctx.outgoing |> IntDict.remove targetId }
 
-        removeFromTarget ({ incoming } as ctx) =
+        removeFromTarget ctx =
             { ctx | incoming = ctx.incoming |> IntDict.remove sourceId }
     in
     graph
@@ -104,28 +113,77 @@ contractEdge ( sourceId, targetId ) label graph =
     )
 
 
-updateNodesBy : List ( NodeId, a ) -> (a -> n -> n) -> Graph n e -> Graph n e
-updateNodesBy l upBy graph =
+{-| Note that this is NOT the disjoint union.
+
+This function is used for the purpose of visualizing a transition that starts with the first graph and ends with the second graph.
+
+This function prioritizes the first argument.
+This means that the nodes/edges which lie in the intersection, have the properties which they have in the first graph.
+
+`nodeSeparartion` and `edgeSeparartion` fields return the node/edge partition in the expected order, i.e.
+
+  - first G - H,
+  - then G \\cap H,
+  - and lastly H - G.
+
+-}
+union :
+    Graph n e
+    -> Graph n e
+    ->
+        { result : Graph n e
+        , nodeSeparation : ( List (Node n), List (Node n), List (Node n) )
+        , edgeSeparation : ( List (Edge e), List (Edge e), List (Edge e) )
+        }
+union g h =
     let
-        ctxUpdater upData ({ node } as ctx) =
-            { ctx | node = { node | label = upBy upData node.label } }
+        ( nodesInIntersection, nodesInHButNotInG ) =
+            Graph.nodes h
+                |> List.partition (\{ id } -> Graph.member id g)
 
-        updateNodeProperties ( id, upData ) acc =
-            Graph.update id (Maybe.map (ctxUpdater upData)) acc
+        insertNewNodes g_ =
+            nodesInHButNotInG
+                |> List.foldr
+                    (\node ->
+                        Graph.insert
+                            { node = node
+                            , incoming = IntDict.empty
+                            , outgoing = IntDict.empty
+                            }
+                    )
+                    g_
+
+        ( edgesInIntersection, edgesInHButNotInG ) =
+            Graph.edges h
+                |> List.partition
+                    (\{ from, to } -> hasEdge ( from, to ) g)
+
+        insertNewEdges g_ =
+            edgesInHButNotInG
+                |> List.foldr
+                    (\{ from, to, label } -> insertEdge ( from, to ) label)
+                    g_
     in
-    List.foldr updateNodeProperties graph l
-
-
-updateNodeBy : NodeId -> a -> (a -> n -> n) -> Graph n e -> Graph n e
-updateNodeBy id data =
-    updateNodesBy [ ( id, data ) ]
+    { result = g |> insertNewNodes |> insertNewEdges
+    , nodeSeparation =
+        ( Graph.nodes g |> List.filter (\{ id } -> not (Graph.member id h))
+        , nodesInIntersection
+        , nodesInHButNotInG
+        )
+    , edgeSeparation =
+        ( Graph.edges g
+            |> List.filter (\{ from, to } -> not (hasEdge ( from, to ) h))
+        , edgesInIntersection
+        , edgesInHButNotInG
+        )
+    }
 
 
 disjointUnion :
     Graph n e
     -> Graph n e
     ->
-        { union : Graph n e
+        { result : Graph n e
         , verticesOfTheFirstGraphShifted : List NodeId
         , edgesOfTheFirstGraphShifted : List ( NodeId, NodeId )
         }
@@ -153,7 +211,7 @@ disjointUnion g h =
         gShifted =
             g |> Graph.mapContexts shift
     in
-    { union =
+    { result =
         Graph.fromNodesAndEdges
             (Graph.nodes gShifted ++ Graph.nodes h)
             (Graph.edges gShifted ++ Graph.edges h)
@@ -175,10 +233,19 @@ duplicateSubgraph vs es graph =
                 (graph |> Graph.nodes |> List.filter (\{ id } -> Set.member id vs))
                 (graph |> Graph.edges |> List.filter (\{ from, to } -> Set.member ( from, to ) es))
 
-        { union, verticesOfTheFirstGraphShifted, edgesOfTheFirstGraphShifted } =
+        { result, verticesOfTheFirstGraphShifted, edgesOfTheFirstGraphShifted } =
             disjointUnion subgraph graph
     in
-    ( union, verticesOfTheFirstGraphShifted, edgesOfTheFirstGraphShifted )
+    ( result, verticesOfTheFirstGraphShifted, edgesOfTheFirstGraphShifted )
+
+
+updateNodes : Set NodeId -> (n -> n) -> Graph n e -> Graph n e
+updateNodes nodeSetToUpdate up graph =
+    let
+        up_ ({ node } as ctx) =
+            { ctx | node = { node | label = up node.label } }
+    in
+    nodeSetToUpdate |> Set.foldr (\id -> Graph.update id (Maybe.map up_)) graph
 
 
 updateEdges : Set ( NodeId, NodeId ) -> (e -> e) -> Graph n e -> Graph n e
@@ -199,13 +266,36 @@ updateEdges edgeSetToUpdate up graph =
     Graph.fromNodesAndEdges (Graph.nodes graph) newEdges
 
 
-updateNodes : Set NodeId -> (n -> n) -> Graph n e -> Graph n e
-updateNodes nodeSetToUpdate up graph =
+updateNodesBy : List ( NodeId, a ) -> (a -> n -> n) -> Graph n e -> Graph n e
+updateNodesBy l upBy graph =
     let
-        up_ ({ node } as ctx) =
-            { ctx | node = { node | label = up node.label } }
+        ctxUpdater upData ({ node } as ctx) =
+            { ctx | node = { node | label = upBy upData node.label } }
+
+        updateNodeProperties ( id, upData ) acc =
+            Graph.update id (Maybe.map (ctxUpdater upData)) acc
     in
-    nodeSetToUpdate |> Set.foldr (\id -> Graph.update id (Maybe.map up_)) graph
+    List.foldr updateNodeProperties graph l
+
+
+updateEdgesBy : List ( ( NodeId, NodeId ), a ) -> (a -> e -> e) -> Graph n e -> Graph n e
+updateEdgesBy l upBy graph =
+    let
+        up_ to upData =
+            IntDict.update to (Maybe.map (upBy upData))
+
+        ctxUpdaterForOutgoing to upData ctx =
+            { ctx | outgoing = up_ to upData ctx.outgoing }
+
+        ctxUpdaterForIncoming from upData ctx =
+            { ctx | incoming = up_ from upData ctx.incoming }
+
+        updateEdgeProperties ( ( from, to ), upData ) acc =
+            acc
+                |> Graph.update from (Maybe.map (ctxUpdaterForOutgoing to upData))
+                |> Graph.update to (Maybe.map (ctxUpdaterForIncoming from upData))
+    in
+    List.foldr updateEdgeProperties graph l
 
 
 deleteDuplicates : List a -> List a

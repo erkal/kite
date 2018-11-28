@@ -18,8 +18,7 @@ module GraphFile exposing
     , getCentroid, getBoundingBoxWithMargin, vertexIdsInBoundingBox, edgeIdsIntersectiongLineSegment
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
-    , forceTick, transitionTick
-    , TransitionState
+    , forceTick, transitionGraphFile
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -67,7 +66,7 @@ This module also contains operations acting on graphs needed bei the Main module
 
 # Animation Related Operations
 
-@docs forceTick, transitionTick
+@docs forceTick, transitionGraphFile
 
 
 ## Internals
@@ -81,6 +80,7 @@ import Circle2d exposing (Circle2d)
 import Colors
 import Dict exposing (Dict)
 import Dict.Extra
+import Ease exposing (Easing)
 import Element exposing (Color)
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
 import Graph.Extra
@@ -193,14 +193,29 @@ default =
         }
 
 
+getGraph : GraphFile -> MyGraph
+getGraph (GraphFile { graph }) =
+    graph
+
+
 mapGraph : (MyGraph -> MyGraph) -> GraphFile -> GraphFile
 mapGraph f (GraphFile p) =
     GraphFile { p | graph = f p.graph }
 
 
+setGraph : MyGraph -> GraphFile -> GraphFile
+setGraph g =
+    mapGraph (always g)
+
+
 mapBags : (BagDict -> BagDict) -> GraphFile -> GraphFile
 mapBags f (GraphFile p) =
     GraphFile { p | bags = f p.bags }
+
+
+removeAllBags : GraphFile -> GraphFile
+removeAllBags =
+    mapBags (always Dict.empty)
 
 
 getVertices : GraphFile -> List (Node VertexProperties)
@@ -438,12 +453,7 @@ edgeIdsIntersectiongLineSegment : LineSegment2d -> GraphFile -> Set ( VertexId, 
 edgeIdsIntersectiongLineSegment lS ((GraphFile { graph }) as user) =
     let
         intersects l1 l2 =
-            case LineSegment2d.intersectionPoint l1 l2 of
-                Just _ ->
-                    True
-
-                Nothing ->
-                    False
+            LineSegment2d.intersectionPoint l1 l2 /= Nothing
     in
     graph
         |> Graph.edges
@@ -583,7 +593,8 @@ unionWithNewGraph { graph, suggestedLayout } =
     in
     mapGraph
         (\oldGraph ->
-            Graph.Extra.disjointUnion graphWithSuggestedLayout oldGraph |> .union
+            .result
+                (Graph.Extra.disjointUnion graphWithSuggestedLayout oldGraph)
         )
 
 
@@ -634,67 +645,114 @@ forceTick forceState (GraphFile p) =
     ( newForceState, GraphFile { p | graph = newGraph } )
 
 
-{-| the integers represent milliseconds
--}
-type alias TransitionState =
-    { elapsed : Int
-    , duration : Int
-    }
-
-
-hasFinished : TransitionState -> Bool
-hasFinished tS =
-    tS.elapsed > tS.duration
-
-
-transitionTick :
-    Int
-    -> TransitionState
-    -> { start : GraphFile, end : GraphFile }
-    -> ( TransitionState, GraphFile )
-transitionTick timeDelta ({ elapsed } as transitionState) { start, end } =
+transitionGraphFile : Float -> { start : GraphFile, end : GraphFile } -> GraphFile
+transitionGraphFile elapsedTimeRatio { start, end } =
     let
-        duration =
-            300
+        eTR =
+            -- in order to prevent flickering at the very end of tranition.
+            clamp 0 1 elapsedTimeRatio
 
-        elapsedTimeRatio =
-            toFloat elapsed / toFloat duration
+        { result, nodeSeparation, edgeSeparation } =
+            Graph.Extra.union (getGraph start) (getGraph end)
 
-        upVertices =
+        ( verticesInStartButNotInEnd, verticesInIntersection, verticesInEndButNotInStart ) =
+            nodeSeparation
+
+        upVerticesInStartButNotInEnd =
+            Graph.Extra.updateNodes
+                (verticesInStartButNotInEnd
+                    |> List.map .id
+                    |> Set.fromList
+                )
+                (\vP -> { vP | radius = (1 - Ease.outQuint eTR) * vP.radius })
+
+        upVerticesInEndButNotInStart =
+            Graph.Extra.updateNodes
+                (verticesInEndButNotInStart
+                    |> List.map .id
+                    |> Set.fromList
+                )
+                (\vP -> { vP | radius = Ease.inQuint eTR * vP.radius })
+
+        upVerticesInIntersection =
             Graph.Extra.updateNodesBy
-                (end
-                    |> getVertices
+                (verticesInIntersection
                     |> List.map (\{ id, label } -> ( id, label ))
                 )
                 (\endVertex startVertex ->
-                    transitionTickForVertex
-                        { startVertex = startVertex
-                        , endVertex = endVertex
-                        , elapsedTimeRatio = elapsedTimeRatio
-                        }
+                    transitionVertex (Ease.inOutCubic eTR)
+                        startVertex
+                        endVertex
                 )
 
-        upEdges =
-            --TODO
-            identity
+        ( edgesInStartButNotInEnd, edgesInIntersection, edgesInEndButNotInStart ) =
+            edgeSeparation
+
+        upEdgesInStartButNotInEnd =
+            Graph.Extra.updateEdges
+                (edgesInStartButNotInEnd
+                    |> List.map (\{ from, to } -> ( from, to ))
+                    |> Set.fromList
+                )
+                (\eP ->
+                    { eP | thickness = (1 - Ease.outQuint eTR) * eP.thickness }
+                )
+
+        upEdgesInEndButNotInStart =
+            Graph.Extra.updateEdges
+                (edgesInEndButNotInStart
+                    |> List.map (\{ from, to } -> ( from, to ))
+                    |> Set.fromList
+                )
+                (\eP -> { eP | thickness = Ease.inQuint eTR * eP.thickness })
+
+        upEdgesInIntersection =
+            Graph.Extra.updateEdgesBy
+                (edgesInIntersection
+                    |> List.map (\{ from, to, label } -> ( ( from, to ), label ))
+                )
+                (\endEdge startEdge ->
+                    transitionEdge (Ease.inOutCubic eTR)
+                        startEdge
+                        endEdge
+                )
     in
-    ( { transitionState | elapsed = elapsed + timeDelta }
-    , start |> mapGraph (upVertices >> upEdges)
-    )
+    end
+        |> removeAllBags
+        |> setGraph
+            (result
+                |> upVerticesInStartButNotInEnd
+                |> upVerticesInEndButNotInStart
+                |> upVerticesInIntersection
+                |> upEdgesInStartButNotInEnd
+                |> upEdgesInEndButNotInStart
+                |> upEdgesInIntersection
+            )
 
 
-transitionTickForVertex :
-    { startVertex : VertexProperties
-    , endVertex : VertexProperties
-    , elapsedTimeRatio : Float
-    }
-    -> VertexProperties
-transitionTickForVertex { startVertex, endVertex, elapsedTimeRatio } =
+transitionVertex : Float -> VertexProperties -> VertexProperties -> VertexProperties
+transitionVertex k startVertex endVertex =
     { startVertex
         | position =
             startVertex.position
                 |> Point2d.translateBy
-                    (Vector2d.scaleBy elapsedTimeRatio
+                    (Vector2d.scaleBy k
                         (Vector2d.from startVertex.position endVertex.position)
                     )
+        , radius =
+            startVertex.radius
+                + (k * (endVertex.radius - startVertex.radius))
+        , color =
+            Colors.transition k startVertex.color endVertex.color
+    }
+
+
+transitionEdge : Float -> EdgeProperties -> EdgeProperties -> EdgeProperties
+transitionEdge k startEdge endEdge =
+    { startEdge
+        | thickness =
+            startEdge.thickness
+                + (k * (endEdge.thickness - startEdge.thickness))
+        , color =
+            Colors.transition k startEdge.color endEdge.color
     }

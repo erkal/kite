@@ -3,9 +3,9 @@ module Graph.Force exposing
     , ForceGraph
     , State
     , alphaTarget
+    , defaultForceState
     , isCompleted
     , reheat
-    , simulation
     , stop
     , tick
     )
@@ -62,8 +62,8 @@ type alias ForceGraph n e =
     Graph (ForceVertex n) (ForceEdge e)
 
 
-simulation : State
-simulation =
+defaultForceState : State
+defaultForceState =
     State
         { alpha = 1.0
         , minAlpha = 0.001
