@@ -704,7 +704,17 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                 (\eP -> { eP | thickness = Ease.inQuint eTR * eP.thickness })
 
         upEdgesInIntersection =
-            identity
+            Graph.Extra.updateEdgesBy
+                (edgesInIntersection
+                    |> List.map (\{ from, to, label } -> ( ( from, to ), label ))
+                )
+                (\endEdge startEdge ->
+                    transitionEdge
+                        { startEdge = startEdge
+                        , endEdge = endEdge
+                        , elapsedTimeRatio = Ease.inOutCubic eTR
+                        }
+                )
     in
     end
         |> setGraph
@@ -735,4 +745,20 @@ transitionVertex { startVertex, endVertex, elapsedTimeRatio } =
         , radius =
             startVertex.radius
                 + (elapsedTimeRatio * (endVertex.radius - startVertex.radius))
+    }
+
+
+transitionEdge :
+    { startEdge : EdgeProperties
+    , endEdge : EdgeProperties
+    , elapsedTimeRatio : Float
+    }
+    -> EdgeProperties
+transitionEdge { startEdge, endEdge, elapsedTimeRatio } =
+    { startEdge
+        | thickness =
+            startEdge.thickness
+                + (elapsedTimeRatio
+                    * (endEdge.thickness - startEdge.thickness)
+                  )
     }

@@ -12,6 +12,7 @@ module Graph.Extra exposing
     , removeEdge
     , union
     , updateEdges
+    , updateEdgesBy
     , updateNodes
     , updateNodesBy
     )
@@ -64,10 +65,10 @@ insertNode n graph =
 insertEdge : ( NodeId, NodeId ) -> e -> Graph n e -> Graph n e
 insertEdge ( sourceId, targetId ) e graph =
     let
-        insertTarget ({ outgoing } as ctx) =
+        insertTarget ctx =
             { ctx | outgoing = ctx.outgoing |> IntDict.insert targetId e }
 
-        insertSource ({ incoming } as ctx) =
+        insertSource ctx =
             { ctx | incoming = ctx.incoming |> IntDict.insert sourceId e }
     in
     graph
@@ -78,10 +79,10 @@ insertEdge ( sourceId, targetId ) e graph =
 removeEdge : ( NodeId, NodeId ) -> Graph n e -> Graph n e
 removeEdge ( sourceId, targetId ) graph =
     let
-        removeFromSource ({ outgoing } as ctx) =
+        removeFromSource ctx =
             { ctx | outgoing = ctx.outgoing |> IntDict.remove targetId }
 
-        removeFromTarget ({ incoming } as ctx) =
+        removeFromTarget ctx =
             { ctx | incoming = ctx.incoming |> IntDict.remove sourceId }
     in
     graph
@@ -247,18 +248,6 @@ updateNodes nodeSetToUpdate up graph =
     nodeSetToUpdate |> Set.foldr (\id -> Graph.update id (Maybe.map up_)) graph
 
 
-updateNodesBy : List ( NodeId, a ) -> (a -> n -> n) -> Graph n e -> Graph n e
-updateNodesBy l upBy graph =
-    let
-        ctxUpdater upData ({ node } as ctx) =
-            { ctx | node = { node | label = upBy upData node.label } }
-
-        updateNodeProperties ( id, upData ) acc =
-            Graph.update id (Maybe.map (ctxUpdater upData)) acc
-    in
-    List.foldr updateNodeProperties graph l
-
-
 updateEdges : Set ( NodeId, NodeId ) -> (e -> e) -> Graph n e -> Graph n e
 updateEdges edgeSetToUpdate up graph =
     let
@@ -275,6 +264,38 @@ updateEdges edgeSetToUpdate up graph =
                     )
     in
     Graph.fromNodesAndEdges (Graph.nodes graph) newEdges
+
+
+updateNodesBy : List ( NodeId, a ) -> (a -> n -> n) -> Graph n e -> Graph n e
+updateNodesBy l upBy graph =
+    let
+        ctxUpdater upData ({ node } as ctx) =
+            { ctx | node = { node | label = upBy upData node.label } }
+
+        updateNodeProperties ( id, upData ) acc =
+            Graph.update id (Maybe.map (ctxUpdater upData)) acc
+    in
+    List.foldr updateNodeProperties graph l
+
+
+updateEdgesBy : List ( ( NodeId, NodeId ), a ) -> (a -> e -> e) -> Graph n e -> Graph n e
+updateEdgesBy l upBy graph =
+    let
+        up_ to upData =
+            IntDict.update to (Maybe.map (upBy upData))
+
+        ctxUpdaterForOutgoing to upData ctx =
+            { ctx | outgoing = up_ to upData ctx.outgoing }
+
+        ctxUpdaterForIncoming from upData ctx =
+            { ctx | incoming = up_ from upData ctx.incoming }
+
+        updateEdgeProperties ( ( from, to ), upData ) acc =
+            acc
+                |> Graph.update from (Maybe.map (ctxUpdaterForOutgoing to upData))
+                |> Graph.update to (Maybe.map (ctxUpdaterForIncoming from upData))
+    in
+    List.foldr updateEdgeProperties graph l
 
 
 deleteDuplicates : List a -> List a
