@@ -213,6 +213,11 @@ mapBags f (GraphFile p) =
     GraphFile { p | bags = f p.bags }
 
 
+removeAllBags : GraphFile -> GraphFile
+removeAllBags =
+    mapBags (always Dict.empty)
+
+
 getVertices : GraphFile -> List (Node VertexProperties)
 getVertices (GraphFile { graph }) =
     Graph.nodes graph
@@ -713,6 +718,7 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                 )
     in
     end
+        |> removeAllBags
         |> setGraph
             (result
                 |> upVerticesInStartButNotInEnd

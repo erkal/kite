@@ -1670,13 +1670,11 @@ animationFrame m =
             Sub.none
 
         TransitionAnimation _ ->
-            Debug.log "transition tick" <|
-                Browser.Events.onAnimationFrameDelta TransitionTimeDelta
+            Browser.Events.onAnimationFrameDelta TransitionTimeDelta
 
         ForceAnimation _ ->
             if m.vaderIsOn then
-                Debug.log "force tick" <|
-                    Browser.Events.onAnimationFrame ForceTick
+                Browser.Events.onAnimationFrame ForceTick
 
             else
                 Sub.none
@@ -1854,13 +1852,14 @@ guiColumns m =
                     , El.htmlAttribute (HA.style "pointer-events" "auto")
                     ]
                     (topBar m)
-                , El.el
-                    [ El.alignTop
-                    , Font.size 12
-                    , El.width (El.px 600)
-                    , El.scrollbarX
-                    ]
-                    (debugView m)
+
+                --, El.el
+                --    [ El.alignTop
+                --    , Font.size 12
+                --    , El.width (El.px 600)
+                --    , El.scrollbarX
+                --    ]
+                --    (debugView m)
                 , El.el
                     [ El.alignBottom
                     , El.width El.fill
@@ -1881,9 +1880,10 @@ guiColumns m =
         ]
 
 
-debugView : Model -> Element Msg
-debugView m =
-    El.text (Debug.toString m.animation)
+
+--debugView : Model -> Element Msg
+--debugView m =
+--    El.text (Debug.toString m.animation)
 
 
 fpsView : Model -> Element Msg
