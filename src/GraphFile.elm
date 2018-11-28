@@ -675,11 +675,9 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map (\{ id, label } -> ( id, label ))
                 )
                 (\endVertex startVertex ->
-                    transitionVertex
-                        { startVertex = startVertex
-                        , endVertex = endVertex
-                        , elapsedTimeRatio = Ease.inOutCubic eTR
-                        }
+                    transitionVertex (Ease.inOutCubic eTR)
+                        startVertex
+                        endVertex
                 )
 
         ( edgesInStartButNotInEnd, edgesInIntersection, edgesInEndButNotInStart ) =
@@ -709,11 +707,9 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map (\{ from, to, label } -> ( ( from, to ), label ))
                 )
                 (\endEdge startEdge ->
-                    transitionEdge
-                        { startEdge = startEdge
-                        , endEdge = endEdge
-                        , elapsedTimeRatio = Ease.inOutCubic eTR
-                        }
+                    transitionEdge (Ease.inOutCubic eTR)
+                        startEdge
+                        endEdge
                 )
     in
     end
@@ -728,37 +724,29 @@ transitionGraphFile elapsedTimeRatio { start, end } =
             )
 
 
-transitionVertex :
-    { startVertex : VertexProperties
-    , endVertex : VertexProperties
-    , elapsedTimeRatio : Float
-    }
-    -> VertexProperties
-transitionVertex { startVertex, endVertex, elapsedTimeRatio } =
+transitionVertex : Float -> VertexProperties -> VertexProperties -> VertexProperties
+transitionVertex k startVertex endVertex =
     { startVertex
         | position =
             startVertex.position
                 |> Point2d.translateBy
-                    (Vector2d.scaleBy elapsedTimeRatio
+                    (Vector2d.scaleBy k
                         (Vector2d.from startVertex.position endVertex.position)
                     )
         , radius =
             startVertex.radius
-                + (elapsedTimeRatio * (endVertex.radius - startVertex.radius))
+                + (k * (endVertex.radius - startVertex.radius))
+        , color =
+            Colors.transition k startVertex.color endVertex.color
     }
 
 
-transitionEdge :
-    { startEdge : EdgeProperties
-    , endEdge : EdgeProperties
-    , elapsedTimeRatio : Float
-    }
-    -> EdgeProperties
-transitionEdge { startEdge, endEdge, elapsedTimeRatio } =
+transitionEdge : Float -> EdgeProperties -> EdgeProperties -> EdgeProperties
+transitionEdge k startEdge endEdge =
     { startEdge
         | thickness =
             startEdge.thickness
-                + (elapsedTimeRatio
-                    * (endEdge.thickness - startEdge.thickness)
-                  )
+                + (k * (endEdge.thickness - startEdge.thickness))
+        , color =
+            Colors.transition k startEdge.color endEdge.color
     }
