@@ -12,7 +12,6 @@ module Graph.Extra exposing
     , removeEdge
     , union
     , updateEdges
-    , updateNodeBy
     , updateNodes
     , updateNodesBy
     )
@@ -111,24 +110,6 @@ contractEdge ( sourceId, targetId ) label graph =
     ( graph |> Graph.remove sourceId |> Graph.remove targetId |> Graph.insert newNode
     , newId
     )
-
-
-updateNodesBy : List ( NodeId, a ) -> (a -> n -> n) -> Graph n e -> Graph n e
-updateNodesBy l upBy graph =
-    let
-        ctxUpdater upData ({ node } as ctx) =
-            { ctx | node = { node | label = upBy upData node.label } }
-
-        updateNodeProperties ( id, upData ) acc =
-            Graph.update id (Maybe.map (ctxUpdater upData)) acc
-    in
-    List.foldr updateNodeProperties graph l
-
-
-updateNodeBy : NodeId -> a -> (a -> n -> n) -> Graph n e -> Graph n e
-updateNodeBy id data =
-    -- TODO: This function (the type of it) is stupid, correct this.
-    updateNodesBy [ ( id, data ) ]
 
 
 {-| Note that this is NOT the disjoint union.
@@ -257,6 +238,27 @@ duplicateSubgraph vs es graph =
     ( result, verticesOfTheFirstGraphShifted, edgesOfTheFirstGraphShifted )
 
 
+updateNodes : Set NodeId -> (n -> n) -> Graph n e -> Graph n e
+updateNodes nodeSetToUpdate up graph =
+    let
+        up_ ({ node } as ctx) =
+            { ctx | node = { node | label = up node.label } }
+    in
+    nodeSetToUpdate |> Set.foldr (\id -> Graph.update id (Maybe.map up_)) graph
+
+
+updateNodesBy : List ( NodeId, a ) -> (a -> n -> n) -> Graph n e -> Graph n e
+updateNodesBy l upBy graph =
+    let
+        ctxUpdater upData ({ node } as ctx) =
+            { ctx | node = { node | label = upBy upData node.label } }
+
+        updateNodeProperties ( id, upData ) acc =
+            Graph.update id (Maybe.map (ctxUpdater upData)) acc
+    in
+    List.foldr updateNodeProperties graph l
+
+
 updateEdges : Set ( NodeId, NodeId ) -> (e -> e) -> Graph n e -> Graph n e
 updateEdges edgeSetToUpdate up graph =
     let
@@ -273,15 +275,6 @@ updateEdges edgeSetToUpdate up graph =
                     )
     in
     Graph.fromNodesAndEdges (Graph.nodes graph) newEdges
-
-
-updateNodes : Set NodeId -> (n -> n) -> Graph n e -> Graph n e
-updateNodes nodeSetToUpdate up graph =
-    let
-        up_ ({ node } as ctx) =
-            { ctx | node = { node | label = up node.label } }
-    in
-    nodeSetToUpdate |> Set.foldr (\id -> Graph.update id (Maybe.map up_)) graph
 
 
 deleteDuplicates : List a -> List a

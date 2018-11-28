@@ -203,6 +203,11 @@ mapGraph f (GraphFile p) =
     GraphFile { p | graph = f p.graph }
 
 
+setGraph : MyGraph -> GraphFile -> GraphFile
+setGraph g =
+    mapGraph (always g)
+
+
 mapBags : (BagDict -> BagDict) -> GraphFile -> GraphFile
 mapBags f (GraphFile p) =
     GraphFile { p | bags = f p.bags }
@@ -638,6 +643,10 @@ forceTick forceState (GraphFile p) =
 transitionGraphFile : Float -> { start : GraphFile, end : GraphFile } -> GraphFile
 transitionGraphFile elapsedTimeRatio { start, end } =
     let
+        eTR =
+            -- in order to prevent flickering at the very end of tranition.
+            clamp 0 1 elapsedTimeRatio
+
         { result, nodeSeparation, edgeSeparation } =
             Graph.Extra.union (getGraph start) (getGraph end)
 
@@ -650,7 +659,7 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map .id
                     |> Set.fromList
                 )
-                (\vP -> { vP | radius = (1 - elapsedTimeRatio) * vP.radius })
+                (\vP -> { vP | radius = (1 - Ease.outQuint eTR) * vP.radius })
 
         upVerticesInEndButNotInStart =
             Graph.Extra.updateNodes
@@ -658,7 +667,7 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map .id
                     |> Set.fromList
                 )
-                (\vP -> { vP | radius = elapsedTimeRatio * vP.radius })
+                (\vP -> { vP | radius = Ease.inQuint eTR * vP.radius })
 
         upVerticesInIntersection =
             Graph.Extra.updateNodesBy
@@ -666,34 +675,56 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map (\{ id, label } -> ( id, label ))
                 )
                 (\endVertex startVertex ->
-                    transitioningVertex
+                    transitionVertex
                         { startVertex = startVertex
                         , endVertex = endVertex
-                        , elapsedTimeRatio = Ease.inOutCubic elapsedTimeRatio
+                        , elapsedTimeRatio = Ease.inOutCubic eTR
                         }
                 )
 
-        upEdges =
-            -- TODO : Animate thickness, color etc.
+        ( edgesInStartButNotInEnd, edgesInIntersection, edgesInEndButNotInStart ) =
+            edgeSeparation
+
+        upEdgesInStartButNotInEnd =
+            Graph.Extra.updateEdges
+                (edgesInStartButNotInEnd
+                    |> List.map (\{ from, to } -> ( from, to ))
+                    |> Set.fromList
+                )
+                (\eP ->
+                    { eP | thickness = (1 - Ease.outQuint eTR) * eP.thickness }
+                )
+
+        upEdgesInEndButNotInStart =
+            Graph.Extra.updateEdges
+                (edgesInEndButNotInStart
+                    |> List.map (\{ from, to } -> ( from, to ))
+                    |> Set.fromList
+                )
+                (\eP -> { eP | thickness = Ease.inQuint eTR * eP.thickness })
+
+        upEdgesInIntersection =
             identity
     in
-    start
-        |> mapGraph
-            (identity
-                >> upVerticesInStartButNotInEnd
-                >> upVerticesInIntersection
-                >> upVerticesInEndButNotInStart
-                >> upEdges
+    end
+        |> setGraph
+            (result
+                |> upVerticesInStartButNotInEnd
+                |> upVerticesInEndButNotInStart
+                |> upVerticesInIntersection
+                |> upEdgesInStartButNotInEnd
+                |> upEdgesInEndButNotInStart
+                |> upEdgesInIntersection
             )
 
 
-transitioningVertex :
+transitionVertex :
     { startVertex : VertexProperties
     , endVertex : VertexProperties
     , elapsedTimeRatio : Float
     }
     -> VertexProperties
-transitioningVertex { startVertex, endVertex, elapsedTimeRatio } =
+transitionVertex { startVertex, endVertex, elapsedTimeRatio } =
     { startVertex
         | position =
             startVertex.position
@@ -701,4 +732,7 @@ transitioningVertex { startVertex, endVertex, elapsedTimeRatio } =
                     (Vector2d.scaleBy elapsedTimeRatio
                         (Vector2d.from startVertex.position endVertex.position)
                     )
+        , radius =
+            startVertex.radius
+                + (elapsedTimeRatio * (endVertex.radius - startVertex.radius))
     }

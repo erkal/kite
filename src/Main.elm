@@ -720,7 +720,10 @@ update msg m =
                             let
                                 newSelectedEdges =
                                     GF.edgeIdsIntersectiongLineSegment
-                                        (LineSegment2d.from brushStart m.svgMousePosition)
+                                        (LineSegment2d.from
+                                            brushStart
+                                            m.svgMousePosition
+                                        )
                                         (current m)
                             in
                             { m
