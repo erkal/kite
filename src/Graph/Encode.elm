@@ -13,8 +13,8 @@ graph nodeLabel edgeLabel g =
 
 
 nodes : (n -> Value) -> List (Node n) -> Value
-nodes nodeLabel ns =
-    JE.list (node nodeLabel) ns
+nodes nodeLabel =
+    JE.list (node nodeLabel)
 
 
 node : (n -> Value) -> Node n -> Value
@@ -26,8 +26,8 @@ node nodeLabel { id, label } =
 
 
 edges : (e -> Value) -> List (Edge e) -> Value
-edges edgeLabel es =
-    JE.list (edge edgeLabel) es
+edges edgeLabel =
+    JE.list (edge edgeLabel)
 
 
 edge : (e -> Value) -> Edge e -> Value

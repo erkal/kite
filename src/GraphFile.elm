@@ -1,7 +1,7 @@
 module GraphFile exposing
     ( GraphFile
     , MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
-    , BagDict, BagId, BagProperties
+    , Bag, BagDict, BagId, BagProperties
     , default
     , updateVertices, addVertex, removeVertices
     , updateEdges, addEdge, removeEdges
@@ -10,6 +10,7 @@ module GraphFile exposing
     , addStarGraph
     , duplicateSubgraph
     , setCentroidX, setCentroidY, setVertexPositions
+    , getGraph
     , getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
     , getEdges
     , inducedEdges, inducedVertices
@@ -19,6 +20,7 @@ module GraphFile exposing
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
     , forceTick, transitionGraphFile
+    --, decode
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -29,7 +31,12 @@ This module also contains operations acting on graphs needed bei the Main module
 
 @docs GraphFile
 @docs MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
-@docs BagDict, BagId, BagProperties
+@docs Bag, BagDict, BagId, BagProperties
+
+
+# Decoder
+
+@docs decode
 
 
 # Constructor
@@ -50,6 +57,7 @@ This module also contains operations acting on graphs needed bei the Main module
 
 # Graph Queries
 
+@docs getGraph
 @docs getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
 @docs getEdges
 @docs inducedEdges, inducedVertices
@@ -87,6 +95,7 @@ import Graph.Extra
 import Graph.Force as Force exposing (Force, ForceGraph)
 import Graph.Generators
 import IntDict exposing (IntDict)
+import Json.Decode as JD exposing (Decoder, Value)
 import LineSegment2d exposing (LineSegment2d)
 import Point2d exposing (Point2d)
 import Set exposing (Set)
@@ -162,6 +171,30 @@ type alias BagProperties =
     , color : Color
     , hasConvexHull : Bool
     }
+
+
+
+-------------
+-- Decoder --
+-------------
+--decode :
+--    Decoder MyGraph
+--    -> Decoder EdgeProperties
+--    -> Decoder BagProperties
+--    -> Decoder GraphFile
+--decode myGraphDecoder bagDecoder =
+--    JD.map3
+--        (\myGraph eP bP ->
+--            GraphFile
+--                { graph = myGraph
+--                , bags = BagDict
+--                , defaultVertexProperties = VertexProperties
+--                , defaultEdgeProperties = EdgeProperties
+--                }
+--        )
+--        myGraphDecoder
+--        bagDecoder
+--        bPDecoder
 
 
 default : GraphFile
