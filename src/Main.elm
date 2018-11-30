@@ -1,7 +1,7 @@
 port module Main exposing (main)
 
 import BoundingBox2d exposing (BoundingBox2d)
-import Browser
+import Browser exposing (Document)
 import Browser.Dom as Dom
 import Browser.Events exposing (Visibility(..))
 import Circle2d exposing (Circle2d)
@@ -44,24 +44,8 @@ main : Program (Maybe Value) Model Msg
 main =
     Browser.document
         { init = init
-        , view = \m -> { title = "Kite", body = [ mainSvg m, view m ] }
-        , update =
-            \msg m ->
-                case msg of
-                    ClickOnSaveFile ->
-                        let
-                            newModel =
-                                update msg m
-                        in
-                        ( newModel
-                        , setStorage
-                            (JE.encode 4 (encodeGraphFiles newModel.files))
-                        )
-
-                    _ ->
-                        ( update msg m
-                        , Cmd.none
-                        )
+        , view = view
+        , update = update
         , subscriptions = subscriptions
         }
 
@@ -83,18 +67,6 @@ init maybeValue =
             initialModel Nothing
     , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
     )
-
-
-encodeGraphFiles : Files ( String, GraphFile ) -> Value
-encodeGraphFiles graphFiles =
-    let
-        encodeFileData ( _, graphFile ) =
-            JE.object
-                [ ( "description", JE.null )
-                , ( "graphFile", GF.encode graphFile )
-                ]
-    in
-    Files.encode encodeFileData graphFiles
 
 
 graphFilesDecoder : Decoder (Files ( String, GraphFile ))
@@ -121,6 +93,47 @@ mousePosition =
     JD.map2 MousePosition
         (JD.field "clientX" JD.int)
         (JD.field "clientY" JD.int)
+
+
+view : Model -> Document Msg
+view m =
+    { title = "Kite"
+    , body =
+        [ mainSvg m
+        , viewHelper m
+        ]
+    }
+
+
+encodeGraphFiles : Files ( String, GraphFile ) -> Value
+encodeGraphFiles graphFiles =
+    let
+        encodeFileData ( _, graphFile ) =
+            JE.object
+                [ ( "description", JE.null )
+                , ( "graphFile", GF.encode graphFile )
+                ]
+    in
+    Files.encode encodeFileData graphFiles
+
+
+update : Msg -> Model -> ( Model, Cmd msg )
+update msg m =
+    case msg of
+        ClickOnSaveFile ->
+            let
+                newModel =
+                    updateHelper msg m
+            in
+            ( newModel
+            , setStorage
+                (JE.encode 4 (encodeGraphFiles newModel.files))
+            )
+
+        _ ->
+            ( updateHelper msg m
+            , Cmd.none
+            )
 
 
 
@@ -299,7 +312,7 @@ type GravityState
 
 defaultGraphFiles : Files ( String, GraphFile )
 defaultGraphFiles =
-    Files.singleton "graph-0"
+    Files.singleton "my-first-graph"
         ( "Started with empty graph", GF.default )
 
 
@@ -580,8 +593,8 @@ withNewGravityCenter m =
             |> GF.updateVertices m.selectedVertices updateGravity
 
 
-update : Msg -> Model -> Model
-update msg m =
+updateHelper : Msg -> Model -> Model
+updateHelper msg m =
     case msg of
         NoOp ->
             m
@@ -1854,8 +1867,8 @@ edgeIdsToString es =
     "{ " ++ inside ++ " }"
 
 
-view : Model -> Html Msg
-view m =
+viewHelper : Model -> Html Msg
+viewHelper m =
     El.layoutWith
         { options =
             [ El.focusStyle
@@ -2247,7 +2260,7 @@ leftBarContentForFiles m =
                 [ Font.bold, Font.color Colors.white ]
 
             else
-                -- TODO
+                -- TODO: Show extending backgorund bar on transition animation
                 []
 
         item i name =
