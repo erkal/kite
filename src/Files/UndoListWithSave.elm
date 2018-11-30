@@ -2,7 +2,7 @@ module Files.UndoListWithSave exposing
     ( UndoListWithSave
     , fresh
     , undo, redo, new, setPresent, mapPresent
-    , savePresent, resetToSaved
+    , getSavedState, savePresent, resetToSaved
     , presentIsTheLastSaved
     , present, hasPast, lengthPast, hasFuture
     , goTo
@@ -32,7 +32,7 @@ The terminology of functions is adapted to [elm-community/undo-redo](https://pac
 
 # Saving Related Operations
 
-@docs savePresent, resetToSaved
+@docs getSavedState, savePresent, resetToSaved
 
 
 # Saving Related Queries
@@ -185,6 +185,11 @@ savePresent (UndoListWithSave { savedAt, savedState, uL }) =
 resetToSaved : UndoListWithSave a -> UndoListWithSave a
 resetToSaved (UndoListWithSave { savedState }) =
     fresh savedState
+
+
+getSavedState : UndoListWithSave a -> a
+getSavedState (UndoListWithSave { savedState }) =
+    savedState
 
 
 

@@ -1,5 +1,6 @@
 module Files exposing
     ( Files
+    , encode
     , singleton
     , new, delete, deleteFocused
     , getFile, indexHasTheFocus, indexWithTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
@@ -32,6 +33,16 @@ It behaves similar to most editors, namely:
 # Definition
 
 @docs Files
+
+
+# Encoder
+
+@docs encode
+
+
+# Decoder
+
+@docs decoder
 
 
 # Constructor
@@ -77,6 +88,8 @@ It behaves similar to most editors, namely:
 
 import Array exposing (Array)
 import Files.UndoListWithSave as ULWS exposing (UndoListWithSave)
+import Json.Decode as JD exposing (Decoder, Value)
+import Json.Encode as JE exposing (Value)
 
 
 {-| Main data structure. It keeps an array of files with the index of focused file.
@@ -130,6 +143,34 @@ mapArray i up arr =
 
 
 
+-------------
+-- Encoder --
+-------------
+
+
+encode : (a -> Value) -> Files a -> Value
+encode encodeFileData (Files f arr) =
+    JE.object
+        [ ( "indexOfTheFocusedFile", JE.int f )
+        , ( "arr", JE.array (encodeFile encodeFileData) arr )
+        ]
+
+
+encodeFile : (a -> Value) -> File a -> Value
+encodeFile encodeFileData (File name uLWS) =
+    JE.object
+        [ ( "name", JE.string name )
+        , ( "savedState", encodeFileData (ULWS.getSavedState uLWS) )
+        ]
+
+
+
+-------------
+-- Decoder --
+-------------
+--decoder : Decoder a -> Decoder (Files a )
+--decoder fileDecoder =
+--    42
 ---------------
 -- Internals --
 ---------------
