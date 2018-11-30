@@ -1,6 +1,7 @@
 module Files exposing
     ( Files
     , encode
+    , decoder
     , singleton
     , new, delete, deleteFocused
     , getFile, indexHasTheFocus, indexWithTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
@@ -168,9 +169,23 @@ encodeFile encodeFileData (File name uLWS) =
 -------------
 -- Decoder --
 -------------
---decoder : Decoder a -> Decoder (Files a )
---decoder fileDecoder =
---    42
+
+
+decoder : Decoder a -> Decoder (Files a)
+decoder fileDataDecoder =
+    JD.map2 Files
+        (JD.field "indexOfTheFocusedFile" JD.int)
+        (JD.field "arr" (JD.array (fileDecoder fileDataDecoder)))
+
+
+fileDecoder : Decoder a -> Decoder (File a)
+fileDecoder fileDataDecoder =
+    JD.map2 File
+        (JD.field "name" JD.string)
+        (JD.field "savedState" (JD.map ULWS.fresh fileDataDecoder))
+
+
+
 ---------------
 -- Internals --
 ---------------
