@@ -1,7 +1,9 @@
 module GraphFile exposing
     ( GraphFile
     , MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
-    , BagDict, BagId, BagProperties
+    , Bag, BagDict, BagId, BagProperties
+    , decoder
+    , encode
     , default
     , updateVertices, addVertex, removeVertices
     , updateEdges, addEdge, removeEdges
@@ -10,6 +12,7 @@ module GraphFile exposing
     , addStarGraph
     , duplicateSubgraph
     , setCentroidX, setCentroidY, setVertexPositions
+    , getGraph
     , getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
     , getEdges
     , inducedEdges, inducedVertices
@@ -19,6 +22,7 @@ module GraphFile exposing
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
     , forceTick, transitionGraphFile
+    --, decoder
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -29,7 +33,17 @@ This module also contains operations acting on graphs needed bei the Main module
 
 @docs GraphFile
 @docs MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
-@docs BagDict, BagId, BagProperties
+@docs Bag, BagDict, BagId, BagProperties
+
+
+# Decoder
+
+@docs decoder
+
+
+# Decoder
+
+@docs encode
 
 
 # Constructor
@@ -50,6 +64,7 @@ This module also contains operations acting on graphs needed bei the Main module
 
 # Graph Queries
 
+@docs getGraph
 @docs getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
 @docs getEdges
 @docs inducedEdges, inducedVertices
@@ -83,10 +98,15 @@ import Dict.Extra
 import Ease exposing (Easing)
 import Element exposing (Color)
 import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
+import Graph.Decode
+import Graph.Encode
 import Graph.Extra
 import Graph.Force as Force exposing (Force, ForceGraph)
 import Graph.Generators
 import IntDict exposing (IntDict)
+import Json.Decode as JD exposing (Decoder, Value)
+import Json.Decode.Pipeline as JDP
+import Json.Encode as JE exposing (Value)
 import LineSegment2d exposing (LineSegment2d)
 import Point2d exposing (Point2d)
 import Set exposing (Set)
@@ -162,6 +182,207 @@ type alias BagProperties =
     , color : Color
     , hasConvexHull : Bool
     }
+
+
+
+-------------
+-- Encoder --
+-------------
+
+
+encode : GraphFile -> Value
+encode gF =
+    JE.object
+        [ ( "graph", encodeMyGraph (getGraph gF) )
+        , ( "bags", encodeBags (getBags gF) )
+        , ( "defaultVertexProperties"
+          , encodeVertexProperties (getDefaultVertexProperties gF)
+          )
+        , ( "defaultEdgeProperties"
+          , encodeEdgeProperties (getDefaultEdgeProperties gF)
+          )
+        ]
+
+
+encodeMyGraph : MyGraph -> Value
+encodeMyGraph =
+    Graph.Encode.graph
+        encodeVertexProperties
+        encodeEdgeProperties
+
+
+encodeBags : List Bag -> Value
+encodeBags =
+    JE.list encodeBag
+
+
+encodeBag : Bag -> Value
+encodeBag b =
+    JE.object
+        [ ( "bagId", JE.int b.bagId )
+        , ( "bagProperties", encodeBagProperties b.bagProperties )
+        ]
+
+
+encodeBagProperties : BagProperties -> Value
+encodeBagProperties bP =
+    JE.object
+        [ ( "label", encodeMaybeString bP.label )
+        , ( "color", Colors.encode bP.color )
+        , ( "hasConvexHull", JE.bool bP.hasConvexHull )
+        ]
+
+
+encodeVertexProperties : VertexProperties -> Value
+encodeVertexProperties vP =
+    JE.object
+        [ ( "label", encodeMaybeString vP.label )
+        , ( "labelIsVisible", JE.bool vP.labelIsVisible )
+        , ( "position", encodePoint2d vP.position )
+        , ( "velocity", encodeVector2d vP.velocity )
+        , ( "manyBodyStrength", JE.float vP.manyBodyStrength )
+        , ( "gravityCenter", encodePoint2d vP.gravityCenter )
+        , ( "gravityStrength", JE.float vP.gravityStrength )
+        , ( "fixed", JE.bool vP.fixed )
+        , ( "color", Colors.encode vP.color )
+        , ( "radius", JE.float vP.radius )
+        , ( "inBags", JE.list JE.int (Set.toList vP.inBags) )
+        ]
+
+
+encodeEdgeProperties : EdgeProperties -> Value
+encodeEdgeProperties eP =
+    JE.object
+        [ ( "label", encodeMaybeString eP.label )
+        , ( "labelIsVisible", JE.bool eP.labelIsVisible )
+        , ( "distance", JE.float eP.distance )
+        , ( "strength", JE.float eP.strength )
+        , ( "thickness", JE.float eP.thickness )
+        , ( "color", Colors.encode eP.color )
+        ]
+
+
+encodeMaybeString : Maybe String -> Value
+encodeMaybeString maybeStr =
+    case maybeStr of
+        Just str ->
+            JE.string str
+
+        Nothing ->
+            JE.null
+
+
+encodePoint2d : Point2d -> Value
+encodePoint2d p =
+    JE.object
+        [ ( "xCoordinate", JE.float (Point2d.xCoordinate p) )
+        , ( "yCoordinate", JE.float (Point2d.yCoordinate p) )
+        ]
+
+
+encodeVector2d : Vector2d -> Value
+encodeVector2d v =
+    JE.object
+        [ ( "xComponent", JE.float (Vector2d.xComponent v) )
+        , ( "yComponent", JE.float (Vector2d.yComponent v) )
+        ]
+
+
+
+-------------
+-- Decoder --
+-------------
+
+
+decoder : Decoder GraphFile
+decoder =
+    JD.map4
+        (\a b c d ->
+            GraphFile
+                { graph = a
+                , bags = b
+                , defaultVertexProperties = c
+                , defaultEdgeProperties = d
+                }
+        )
+        (JD.field "graph" myGraphDecoder)
+        (JD.field "bags" bagsDecoder)
+        (JD.field "defaultVertexProperties" vertexPropertiesDecoder)
+        (JD.field "defaultEdgeProperties" edgePropertiesDecoder)
+
+
+myGraphDecoder : Decoder MyGraph
+myGraphDecoder =
+    Graph.Decode.graph
+        vertexPropertiesDecoder
+        edgePropertiesDecoder
+
+
+bagsDecoder : Decoder BagDict
+bagsDecoder =
+    JD.map Dict.fromList (JD.list bagDecoder)
+
+
+bagDecoder : Decoder ( BagId, BagProperties )
+bagDecoder =
+    JD.map2 Tuple.pair
+        (JD.field "bagId" JD.int)
+        (JD.field "bagProperties" bagPropertiesDecoder)
+
+
+bagPropertiesDecoder : Decoder BagProperties
+bagPropertiesDecoder =
+    JD.map3 BagProperties
+        (JD.field "label" (JD.nullable JD.string))
+        (JD.field "color" Colors.decoder)
+        (JD.field "hasConvexHull" JD.bool)
+
+
+vertexPropertiesDecoder : Decoder VertexProperties
+vertexPropertiesDecoder =
+    JD.succeed VertexProperties
+        |> JDP.required "label" (JD.nullable JD.string)
+        |> JDP.required "labelIsVisible" JD.bool
+        |> JDP.required "position" point2dDecoder
+        |> JDP.required "velocity" vector2dDecoder
+        |> JDP.required "manyBodyStrength" JD.float
+        |> JDP.required "gravityCenter" point2dDecoder
+        |> JDP.required "gravityStrength" JD.float
+        |> JDP.required "fixed" JD.bool
+        |> JDP.required "color" Colors.decoder
+        |> JDP.required "radius" JD.float
+        |> JDP.required "inBags" (JD.map Set.fromList (JD.list JD.int))
+
+
+edgePropertiesDecoder : Decoder EdgeProperties
+edgePropertiesDecoder =
+    JD.map6 EdgeProperties
+        (JD.field "label" (JD.nullable JD.string))
+        (JD.field "labelIsVisible" JD.bool)
+        (JD.field "distance" JD.float)
+        (JD.field "strength" JD.float)
+        (JD.field "thickness" JD.float)
+        (JD.field "color" Colors.decoder)
+
+
+point2dDecoder : Decoder Point2d
+point2dDecoder =
+    JD.map Point2d.fromCoordinates <|
+        JD.map2 Tuple.pair
+            (JD.field "xCoordinate" JD.float)
+            (JD.field "yCoordinate" JD.float)
+
+
+vector2dDecoder : Decoder Vector2d
+vector2dDecoder =
+    JD.map Vector2d.fromComponents <|
+        JD.map2 Tuple.pair
+            (JD.field "xComponent" JD.float)
+            (JD.field "yComponent" JD.float)
+
+
+
+--
 
 
 default : GraphFile

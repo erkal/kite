@@ -5,7 +5,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-96090937-1"></script>
     <script>
-    window.dataLayer = window.dataLayer || [];
+        window.dataLayer = window.dataLayer || [];
 
     function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
@@ -15,7 +15,7 @@
     <!--  -->
     <meta charset="UTF-8">
     <title>Kite</title>
-    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">    
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <style>
         body, html {
             overflow: hidden;
@@ -34,7 +34,12 @@
 
 <body>
     <script type="text/javascript">
-    var app = Elm.Main.init();
+    var storedState = localStorage.getItem('kite-save');
+    var startingState = storedState ? JSON.parse(storedState) : null;
+    var app = Elm.Main.init({ flags: startingState });
+    app.ports.setStorage.subscribe(function(str) {
+        localStorage.setItem('kite-save', str);
+    });
     </script>
 </body>
 
