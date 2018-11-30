@@ -227,46 +227,64 @@ encodeBag b =
 encodeBagProperties : BagProperties -> Value
 encodeBagProperties bP =
     JE.object
-        [ --label : Maybe String
-          --, color : Color
-          --,
-          ( "hasConvexHull", JE.bool bP.hasConvexHull )
+        [ ( "label", encodeMaybeString bP.label )
+        , ( "color", Colors.encode bP.color )
+        , ( "hasConvexHull", JE.bool bP.hasConvexHull )
         ]
 
 
 encodeVertexProperties : VertexProperties -> Value
 encodeVertexProperties vP =
     JE.object
-        [ --( "label", Maybe String )
-          --,
-          ( "labelIsVisible", JE.bool vP.labelIsVisible )
-
-        --, ( "position", Point2d )
-        --, ( "velocity", Vector2d )
+        [ ( "label", encodeMaybeString vP.label )
+        , ( "labelIsVisible", JE.bool vP.labelIsVisible )
+        , ( "position", encodePoint2d vP.position )
+        , ( "velocity", encodeVector2d vP.velocity )
         , ( "manyBodyStrength", JE.float vP.manyBodyStrength )
-
-        --, ( "gravityCenter", Point2d )
+        , ( "gravityCenter", encodePoint2d vP.gravityCenter )
         , ( "gravityStrength", JE.float vP.gravityStrength )
         , ( "fixed", JE.bool vP.fixed )
-
-        --, ( "color", Color )
+        , ( "color", Colors.encode vP.color )
         , ( "radius", JE.float vP.radius )
-
-        --, ( "inBags", Set BagId )
+        , ( "inBags", JE.list JE.int (Set.toList vP.inBags) )
         ]
 
 
 encodeEdgeProperties : EdgeProperties -> Value
 encodeEdgeProperties eP =
     JE.object
-        [ --("label" , Maybe String)
-          --,
-          ( "labelIsVisible", JE.bool eP.labelIsVisible )
+        [ ( "label", encodeMaybeString eP.label )
+        , ( "labelIsVisible", JE.bool eP.labelIsVisible )
         , ( "distance", JE.float eP.distance )
         , ( "strength", JE.float eP.strength )
         , ( "thickness", JE.float eP.thickness )
+        , ( "color", Colors.encode eP.color )
+        ]
 
-        --, ("color" , Color)
+
+encodeMaybeString : Maybe String -> Value
+encodeMaybeString maybeStr =
+    case maybeStr of
+        Just str ->
+            JE.string str
+
+        Nothing ->
+            JE.null
+
+
+encodePoint2d : Point2d -> Value
+encodePoint2d p =
+    JE.object
+        [ ( "xCoordinate", JE.float (Point2d.xCoordinate p) )
+        , ( "yCoordinate", JE.float (Point2d.yCoordinate p) )
+        ]
+
+
+encodeVector2d : Vector2d -> Value
+encodeVector2d v =
+    JE.object
+        [ ( "xComponent", JE.float (Vector2d.xComponent v) )
+        , ( "yComponent", JE.float (Vector2d.yComponent v) )
         ]
 
 
@@ -316,7 +334,7 @@ bagPropertiesDecoder : Decoder BagProperties
 bagPropertiesDecoder =
     JD.map3 BagProperties
         (JD.field "label" (JD.nullable JD.string))
-        (JD.field "color" {- TODO -} (JD.succeed Colors.white))
+        (JD.field "color" Colors.decoder)
         (JD.field "hasConvexHull" JD.bool)
 
 
@@ -325,15 +343,15 @@ vertexPropertiesDecoder =
     JD.succeed VertexProperties
         |> JDP.required "label" (JD.nullable JD.string)
         |> JDP.required "labelIsVisible" JD.bool
-        |> JDP.hardcoded {- TODO  "position" -} Point2d.origin
-        |> JDP.hardcoded {- TODO  "velocity" -} Vector2d.zero
+        |> JDP.required "position" point2dDecoder
+        |> JDP.required "velocity" vector2dDecoder
         |> JDP.required "manyBodyStrength" JD.float
-        |> JDP.hardcoded {- TODO  "gravityCenter" -} Point2d.origin
+        |> JDP.required "gravityCenter" point2dDecoder
         |> JDP.required "gravityStrength" JD.float
         |> JDP.required "fixed" JD.bool
-        |> JDP.hardcoded {- TODO  "color" -} Colors.white
+        |> JDP.required "color" Colors.decoder
         |> JDP.required "radius" JD.float
-        |> JDP.hardcoded {- TODO "inBags" -} Set.empty
+        |> JDP.required "inBags" (JD.map Set.fromList (JD.list JD.int))
 
 
 edgePropertiesDecoder : Decoder EdgeProperties
@@ -344,7 +362,23 @@ edgePropertiesDecoder =
         (JD.field "distance" JD.float)
         (JD.field "strength" JD.float)
         (JD.field "thickness" JD.float)
-        (JD.field "color" {- TODO -} (JD.succeed Colors.white))
+        (JD.field "color" Colors.decoder)
+
+
+point2dDecoder : Decoder Point2d
+point2dDecoder =
+    JD.map Point2d.fromCoordinates <|
+        JD.map2 Tuple.pair
+            (JD.field "xCoordinate" JD.float)
+            (JD.field "yCoordinate" JD.float)
+
+
+vector2dDecoder : Decoder Vector2d
+vector2dDecoder =
+    JD.map Vector2d.fromComponents <|
+        JD.map2 Tuple.pair
+            (JD.field "xComponent" JD.float)
+            (JD.field "yComponent" JD.float)
 
 
 
