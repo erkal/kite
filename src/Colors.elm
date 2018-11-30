@@ -81,10 +81,10 @@ encode color =
 decoder : Decoder Color
 decoder =
     JD.map4 El.rgba
-        JD.float
-        JD.float
-        JD.float
-        JD.float
+        (JD.field "red" JD.float)
+        (JD.field "green" JD.float)
+        (JD.field "blue" JD.float)
+        (JD.field "alpha" JD.float)
 
 
 

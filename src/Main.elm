@@ -1,4 +1,4 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser
@@ -24,7 +24,8 @@ import Html.Attributes as HA
 import Html.Events as HE
 import Icons exposing (icons)
 import IntDict exposing (IntDict)
-import Json.Decode as Decode exposing (Decoder, Value)
+import Json.Decode as JD exposing (Decoder, Value)
+import Json.Encode as JE
 import LineSegment2d exposing (LineSegment2d)
 import Point2d exposing (Point2d)
 import Polygon2d exposing (Polygon2d)
@@ -39,18 +40,74 @@ import Transition
 import Vector2d exposing (Vector2d)
 
 
-main : Program () Model Msg
+main : Program (Maybe Value) Model Msg
 main =
     Browser.document
-        { init =
-            always
-                ( initialModel GF.default
-                , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
-                )
+        { init = init
         , view = \m -> { title = "Kite", body = [ mainSvg m, view m ] }
-        , update = \msg m -> ( update msg m, Cmd.none )
+        , update =
+            \msg m ->
+                case msg of
+                    ClickOnSaveFile ->
+                        let
+                            newModel =
+                                update msg m
+                        in
+                        ( newModel
+                        , setStorage
+                            (JE.encode 4 (encodeGraphFiles newModel.files))
+                        )
+
+                    _ ->
+                        ( update msg m
+                        , Cmd.none
+                        )
         , subscriptions = subscriptions
         }
+
+
+port setStorage : String -> Cmd msg
+
+
+init : Maybe Value -> ( Model, Cmd Msg )
+init maybeValue =
+    ( case maybeValue of
+        Just value ->
+            initialModel
+                (JD.decodeValue graphFilesDecoder value
+                    --|> Debug.log ""
+                    |> Result.toMaybe
+                )
+
+        Nothing ->
+            initialModel Nothing
+    , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
+    )
+
+
+encodeGraphFiles : Files ( String, GraphFile ) -> Value
+encodeGraphFiles graphFiles =
+    let
+        encodeFileData ( _, graphFile ) =
+            JE.object
+                [ ( "description", JE.null )
+                , ( "graphFile", GF.encode graphFile )
+                ]
+    in
+    Files.encode encodeFileData graphFiles
+
+
+graphFilesDecoder : Decoder (Files ( String, GraphFile ))
+graphFilesDecoder =
+    let
+        fileDecoder =
+            JD.map2 Tuple.pair
+                (JD.field "description"
+                    (JD.succeed "Loaded the graph from local storage")
+                )
+                (JD.field "graphFile" GF.decoder)
+    in
+    Files.decoder fileDecoder
 
 
 getWindowSize viewPort =
@@ -61,9 +118,9 @@ getWindowSize viewPort =
 
 mousePosition : Decoder MousePosition
 mousePosition =
-    Decode.map2 MousePosition
-        (Decode.field "clientX" Decode.int)
-        (Decode.field "clientY" Decode.int)
+    JD.map2 MousePosition
+        (JD.field "clientX" JD.int)
+        (JD.field "clientY" JD.int)
 
 
 
@@ -240,13 +297,15 @@ type GravityState
     | GravityDragging
 
 
-initialModel : GraphFile -> Model
-initialModel graphFile =
-    { files =
-        Files.singleton "graph-0" ( "Started with empty graph", graphFile )
-            |> Files.new "graph-1" ( "Started with empty graph", graphFile )
-            |> Files.new "graph-2" ( "Started with empty graph", graphFile )
-            |> Files.new "graph-3" ( "Started with empty graph", graphFile )
+defaultGraphFiles : Files ( String, GraphFile )
+defaultGraphFiles =
+    Files.singleton "graph-0"
+        ( "Started with empty graph", GF.default )
+
+
+initialModel : Maybe (Files ( String, GraphFile )) -> Model
+initialModel maybeSavedFiles =
+    { files = maybeSavedFiles |> Maybe.withDefault defaultGraphFiles
 
     --
     , distractionFree = True
@@ -1644,10 +1703,10 @@ subscriptions : Model -> Sub Msg
 subscriptions m =
     Sub.batch
         [ Browser.Events.onResize (\w h -> WindowResize { width = w, height = h })
-        , Browser.Events.onMouseMove (Decode.map MouseMove mousePosition)
-        , Browser.Events.onMouseMove (Decode.map MouseMoveForUpdatingSvgPos mousePosition)
-        , Browser.Events.onMouseUp (Decode.map MouseUp mousePosition)
-        , Browser.Events.onKeyUp (Decode.map toKeyUpMsg keyDecoder)
+        , Browser.Events.onMouseMove (JD.map MouseMove mousePosition)
+        , Browser.Events.onMouseMove (JD.map MouseMoveForUpdatingSvgPos mousePosition)
+        , Browser.Events.onMouseUp (JD.map MouseUp mousePosition)
+        , Browser.Events.onKeyUp (JD.map toKeyUpMsg keyDecoder)
         , Browser.Events.onVisibilityChange PageVisibility
         , keyDown m
         , animationFrame m
@@ -1660,7 +1719,7 @@ keyDown m =
         Sub.none
 
     else
-        Browser.Events.onKeyDown (Decode.map toKeyDownMsg keyDecoder)
+        Browser.Events.onKeyDown (JD.map toKeyDownMsg keyDecoder)
 
 
 animationFrame : Model -> Sub Msg
@@ -1729,9 +1788,9 @@ type Key
     | Control String
 
 
-keyDecoder : Decode.Decoder Key
+keyDecoder : Decoder Key
 keyDecoder =
-    Decode.map toKey (Decode.field "key" Decode.string)
+    JD.map toKey (JD.field "key" JD.string)
 
 
 toKey : String -> Key
@@ -3708,7 +3767,7 @@ edgePreferences m =
 
 wheelDeltaY : Decoder Int
 wheelDeltaY =
-    Decode.field "deltaY" Decode.int
+    JD.field "deltaY" JD.int
 
 
 emptySvgElement =
@@ -3807,7 +3866,7 @@ mainSvg m =
         , SA.height (String.fromInt mainSvgHeight)
         , SA.viewBox (svgViewBoxFromPanAndZoom m.pan m.zoom)
         , SE.onMouseDown MouseDownOnMainSvg
-        , HE.on "wheel" (Decode.map WheelDeltaY wheelDeltaY)
+        , HE.on "wheel" (JD.map WheelDeltaY wheelDeltaY)
         ]
         [ maybeGravityLines m.selectedTool gFToShow
         , pageA4WithRuler m.zoom

@@ -7,13 +7,8 @@ import Json.Decode as JD exposing (Decoder, Value)
 graph : Decoder n -> Decoder e -> Decoder (Graph n e)
 graph nodeLabel edgeLabel =
     JD.map2 Graph.fromNodesAndEdges
-        (nodeList nodeLabel)
-        (edgeList edgeLabel)
-
-
-nodeList : Decoder n -> Decoder (List (Node n))
-nodeList nodeLabel =
-    JD.list (node nodeLabel)
+        (JD.field "nodes" (JD.list (node nodeLabel)))
+        (JD.field "edges" (JD.list (edge edgeLabel)))
 
 
 node : Decoder n -> Decoder (Node n)
@@ -21,11 +16,6 @@ node nodeLabel =
     JD.map2 Node
         (JD.field "id" JD.int)
         (JD.field "label" nodeLabel)
-
-
-edgeList : Decoder e -> Decoder (List (Edge e))
-edgeList edgeLabel =
-    JD.list (edge edgeLabel)
 
 
 edge : Decoder e -> Decoder (Edge e)
