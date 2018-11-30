@@ -2,6 +2,8 @@ module Colors exposing
     ( black
     , darkGray
     , darkText
+    , decoder
+    , encode
     , gray
     , highlightPink
     , icon
@@ -32,6 +34,8 @@ module Colors exposing
     )
 
 import Element as El exposing (Color, Element)
+import Json.Decode as JD exposing (Decoder, Value)
+import Json.Encode as JE exposing (Value)
 
 
 toString : Color -> String
@@ -46,6 +50,45 @@ toString color =
         ++ ("," ++ String.fromInt (round (o.blue * 255)))
         ++ ("," ++ String.fromFloat o.alpha)
         ++ ")"
+
+
+
+-------------
+-- Encoder --
+-------------
+
+
+encode : Color -> Value
+encode color =
+    let
+        o =
+            El.toRgb color
+    in
+    JE.object
+        [ ( "red", JE.float o.red )
+        , ( "green", JE.float o.green )
+        , ( "blue", JE.float o.blue )
+        , ( "alpha", JE.float o.alpha )
+        ]
+
+
+
+-------------
+-- Decoder --
+-------------
+
+
+decoder : Decoder Color
+decoder =
+    JD.map4 El.rgba
+        JD.float
+        JD.float
+        JD.float
+        JD.float
+
+
+
+--
 
 
 transition : Float -> Color -> Color -> Color
