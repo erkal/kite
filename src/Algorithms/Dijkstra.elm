@@ -1,47 +1,7 @@
-module Dijkstra exposing (run)
+module Dijkstra exposing (Input, run)
 
 import Algorithm
 import Dict exposing (Dict)
-
-
-type alias VertexId =
-    Int
-
-
-type VertexState
-    = StartVertex
-    | Explored { pred : VertexId }
-    | Finished { pred : VertexId }
-    | UnTouched
-
-
-{-| Each step will be a scene in the visualization.
--}
-type alias StepData =
-    { started : Bool
-    , stepDataVertexDict : StepDataVertexDict
-    }
-
-
-type alias StepDataVertexDict =
-    Dict VertexId
-        { vertexState : VertexState
-        , weightedNeighbours : WeightedNeighbours
-        }
-
-
-type alias WeightedNeighbours =
-    Dict VertexId Weight
-
-
-type alias Weight =
-    Int
-
-
-type alias Input =
-    { inputStart : VertexId
-    , inputGraph : Dict VertexId WeightedNeighbours
-    }
 
 
 run : Input -> List StepData
@@ -53,35 +13,65 @@ run input =
         }
 
 
-step : StepData -> Algorithm.StepResult StepData
-step ({ started, stepDataVertexDict } as sD) =
-    if not started then
-        sD
-            |> start
-            |> exploreNeihgboursOf (startVertex stepDataVertexDict)
-            |> Algorithm.Next
 
-    else
-        case anUntouchedVertex stepDataVertexDict of
-            Just id ->
-                sD
-                    |> exploreNeihgboursOf id
-                    |> Algorithm.Next
+-- Input
 
-            Nothing ->
-                Algorithm.End
+
+type alias Input =
+    { startVertex : VertexId
+    , graph : Dict VertexId WeightedNeighbours
+    }
+
+
+type alias VertexId =
+    Int
+
+
+type alias WeightedNeighbours =
+    Dict VertexId Weight
+
+
+type alias Weight =
+    Int
+
+
+
+-- StepData
+
+
+type alias StepData =
+    { startVertex : VertexId
+    , stepGraph : StepGraph
+    }
+
+
+type alias StepGraph =
+    Dict VertexId
+        { vertexState : VertexState
+        , weightedNeighbours : WeightedNeighbours
+        }
+
+
+type VertexState
+    = Explored { pred : Maybe VertexId }
+    | Finished { pred : Maybe VertexId }
+    | UnTouched
+
+
+
+-- init
 
 
 init : Input -> StepData
-init { inputStart, inputGraph } =
-    { started = False
-    , stepDataVertexDict =
-        inputGraph
+init { startVertex, graph } =
+    { startVertex = startVertex
+    , stepGraph =
+        graph
             |> Dict.map
                 (\id wN ->
                     { vertexState =
-                        if inputStart == id then
-                            StartVertex
+                        if startVertex == id then
+                            Explored { pred = Nothing }
 
                         else
                             UnTouched
@@ -92,13 +82,23 @@ init { inputStart, inputGraph } =
 
 
 
--- helper functions
+-- step
 
 
-start : StepData -> StepData
-start =
-    -- TODO
-    identity
+step : StepData -> Algorithm.StepResult StepData
+step ({ startVertex, stepGraph } as sD) =
+    case takeAnExploredVertex stepGraph of
+        Just id ->
+            sD
+                |> exploreNeihgboursOf id
+                |> Algorithm.Next
+
+        Nothing ->
+            Algorithm.End
+
+
+
+-- helpers
 
 
 exploreNeihgboursOf : VertexId -> StepData -> StepData
@@ -107,13 +107,7 @@ exploreNeihgboursOf id =
     identity
 
 
-anUntouchedVertex : StepDataVertexDict -> Maybe Int
-anUntouchedVertex _ =
+takeAnExploredVertex : StepGraph -> Maybe Int
+takeAnExploredVertex _ =
     -- TODO
     Nothing
-
-
-startVertex : StepDataVertexDict -> Int
-startVertex _ =
-    -- TODO
-    42

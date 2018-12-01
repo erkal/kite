@@ -6,6 +6,8 @@ type StepResult stepData
     | End
 
 
+{-| stepData must hold all information for the visualization of that step.
+-}
 run :
     { input : input
     , init : input -> stepData
