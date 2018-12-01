@@ -40,22 +40,13 @@ type alias Weight =
 
 
 type alias StepData =
-    { startVertex : VertexId
-    , stepGraph : StepGraph
-    }
-
-
-type alias StepGraph =
-    Dict VertexId
-        { vertexState : VertexState
-        , weightedNeighbours : WeightedNeighbours
-        }
+    Dict VertexId VertexState
 
 
 type VertexState
-    = Explored { pred : Maybe VertexId }
+    = UnTouched
+    | Explored { pred : Maybe VertexId }
     | Finished { pred : Maybe VertexId }
-    | UnTouched
 
 
 
@@ -64,21 +55,15 @@ type VertexState
 
 init : Input -> StepData
 init { startVertex, graph } =
-    { startVertex = startVertex
-    , stepGraph =
-        graph
-            |> Dict.map
-                (\id wN ->
-                    { vertexState =
-                        if startVertex == id then
-                            Explored { pred = Nothing }
+    let
+        initVertexState id _ =
+            if startVertex == id then
+                Explored { pred = Nothing }
 
-                        else
-                            UnTouched
-                    , weightedNeighbours = wN
-                    }
-                )
-    }
+            else
+                UnTouched
+    in
+    Dict.map initVertexState graph
 
 
 
@@ -86,12 +71,10 @@ init { startVertex, graph } =
 
 
 step : StepData -> Algorithm.StepResult StepData
-step ({ startVertex, stepGraph } as sD) =
-    case takeAnExploredVertex stepGraph of
+step lastStep =
+    case takeAnExploredVertex lastStep of
         Just id ->
-            sD
-                |> exploreNeihgboursOf id
-                |> Algorithm.Next
+            Algorithm.Next (handleVertex id lastStep)
 
         Nothing ->
             Algorithm.End
@@ -101,13 +84,21 @@ step ({ startVertex, stepGraph } as sD) =
 -- helpers
 
 
-exploreNeihgboursOf : VertexId -> StepData -> StepData
-exploreNeihgboursOf id =
+takeAnExploredVertex : StepData -> Maybe Int
+takeAnExploredVertex =
+    let
+        isExplored _ vertexState =
+            case vertexState of
+                Explored _ ->
+                    True
+
+                _ ->
+                    False
+    in
+    Dict.filter isExplored >> Dict.keys >> List.head
+
+
+handleVertex : VertexId -> StepData -> StepData
+handleVertex id =
     -- TODO
     identity
-
-
-takeAnExploredVertex : StepGraph -> Maybe Int
-takeAnExploredVertex _ =
-    -- TODO
-    Nothing
