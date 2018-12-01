@@ -9,20 +9,20 @@ type StepResult stepData
 {-| stepData must hold all information for the visualization of that step.
 -}
 run :
-    { input : input
-    , init : input -> stepData
-    , step : stepData -> StepResult stepData
+    { init : inputData -> stepData
+    , step : inputData -> stepData -> StepResult stepData
     }
+    -> inputData
     -> List stepData
-run { input, init, step } =
+run { init, step } inputData =
     let
         helper : stepData -> List stepData -> List stepData
         helper lastStepData past =
-            case step lastStepData of
+            case step inputData lastStepData of
                 Next nextStepData ->
                     helper nextStepData (lastStepData :: past)
 
                 End ->
                     lastStepData :: past
     in
-    helper (init input) []
+    helper (init inputData) []

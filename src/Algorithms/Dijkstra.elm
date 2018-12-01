@@ -1,23 +1,22 @@
-module Dijkstra exposing (Input, run)
+module Dijkstra exposing (InputData, run)
 
 import Algorithm
 import Dict exposing (Dict)
 
 
-run : Input -> List StepData
-run input =
+run : InputData -> List StepData
+run =
     Algorithm.run
-        { input = input
-        , init = init
+        { init = init
         , step = step
         }
 
 
 
--- Input
+-- InputData
 
 
-type alias Input =
+type alias InputData =
     { startVertex : VertexId
     , graph : Dict VertexId WeightedNeighbours
     }
@@ -45,20 +44,26 @@ type alias StepData =
 
 type VertexState
     = UnTouched
-    | Explored { pred : Maybe VertexId }
-    | Finished { pred : Maybe VertexId }
+    | Explored LastTouchData
+    | Finished LastTouchData
+
+
+type alias LastTouchData =
+    { currentBestDistance : Int
+    , pred : Maybe VertexId
+    }
 
 
 
 -- init
 
 
-init : Input -> StepData
+init : InputData -> StepData
 init { startVertex, graph } =
     let
         initVertexState id _ =
             if startVertex == id then
-                Explored { pred = Nothing }
+                Explored startVertexTouchData
 
             else
                 UnTouched
@@ -66,15 +71,23 @@ init { startVertex, graph } =
     Dict.map initVertexState graph
 
 
+startVertexTouchData : LastTouchData
+startVertexTouchData =
+    { currentBestDistance = 0
+    , pred = Nothing
+    }
+
+
 
 -- step
 
 
-step : StepData -> Algorithm.StepResult StepData
-step lastStep =
+step : InputData -> StepData -> Algorithm.StepResult StepData
+step inputData lastStep =
     case takeAnExploredVertex lastStep of
         Just id ->
-            Algorithm.Next (handleVertex id lastStep)
+            Algorithm.Next
+                (handleVertex inputData lastStep id)
 
         Nothing ->
             Algorithm.End
@@ -98,7 +111,7 @@ takeAnExploredVertex =
     Dict.filter isExplored >> Dict.keys >> List.head
 
 
-handleVertex : VertexId -> StepData -> StepData
-handleVertex id =
+handleVertex : InputData -> StepData -> VertexId -> StepData
+handleVertex inputData lastStep id =
     -- TODO
-    identity
+    lastStep
