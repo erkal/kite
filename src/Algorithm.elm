@@ -1,4 +1,11 @@
-module Algorithm exposing (StepResult(..), run)
+module Algorithm exposing (Algorithm, StepResult(..), basic, run)
+
+
+type Algorithm inputData stepData
+    = Algorithm
+        { init : inputData -> stepData
+        , step : inputData -> stepData -> StepResult stepData
+        }
 
 
 type StepResult stepData
@@ -6,15 +13,14 @@ type StepResult stepData
     | End
 
 
+basic initAndStep =
+    Algorithm initAndStep
+
+
 {-| stepData must hold all information for the visualization of that step.
 -}
-run :
-    { init : inputData -> stepData
-    , step : inputData -> stepData -> StepResult stepData
-    }
-    -> inputData
-    -> List stepData
-run { init, step } inputData =
+run : Algorithm inputData stepData -> inputData -> List stepData
+run (Algorithm { init, step }) inputData =
     let
         helper : stepData -> List stepData -> List stepData
         helper lastStepData past =

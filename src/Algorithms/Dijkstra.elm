@@ -1,12 +1,12 @@
-module Dijkstra exposing (InputData, run)
+module Algorithms.Dijkstra exposing (InputData, StepData, algorithm)
 
-import Algorithm
+import Algorithm exposing (Algorithm)
 import Dict exposing (Dict)
 
 
-run : InputData -> List StepData
-run =
-    Algorithm.run
+algorithm : Algorithm InputData StepData
+algorithm =
+    Algorithm.basic
         { init = init
         , step = step
         }
@@ -18,16 +18,12 @@ run =
 
 type alias InputData =
     { startVertex : VertexId
-    , graph : Dict VertexId WeightedNeighbours
+    , graph : Dict VertexId (Dict VertexId Weight)
     }
 
 
 type alias VertexId =
     Int
-
-
-type alias WeightedNeighbours =
-    Dict VertexId Weight
 
 
 type alias Weight =
@@ -39,19 +35,11 @@ type alias Weight =
 
 
 type alias StepData =
-    Dict VertexId VertexState
-
-
-type VertexState
-    = UnTouched
-    | Explored LastTouchData
-    | Finished LastTouchData
-
-
-type alias LastTouchData =
-    { currentBestDistance : Int
-    , pred : Maybe VertexId
-    }
+    Dict VertexId
+        { visited : Bool
+        , maybeDist : Maybe Int
+        , maybePred : Maybe VertexId
+        }
 
 
 
@@ -62,20 +50,17 @@ init : InputData -> StepData
 init { startVertex, graph } =
     let
         initVertexState id _ =
-            if startVertex == id then
-                Explored startVertexTouchData
+            { visited = False
+            , maybeDist =
+                if startVertex == id then
+                    Just 0
 
-            else
-                UnTouched
+                else
+                    Nothing
+            , maybePred = Nothing
+            }
     in
     Dict.map initVertexState graph
-
-
-startVertexTouchData : LastTouchData
-startVertexTouchData =
-    { currentBestDistance = 0
-    , pred = Nothing
-    }
 
 
 
@@ -84,10 +69,10 @@ startVertexTouchData =
 
 step : InputData -> StepData -> Algorithm.StepResult StepData
 step inputData lastStep =
-    case takeAnExploredVertex lastStep of
-        Just id ->
+    case unvisitedWithTheSmallestTDist lastStep of
+        Just idAndDist ->
             Algorithm.Next
-                (handleVertex inputData lastStep id)
+                (handleVertex inputData lastStep idAndDist)
 
         Nothing ->
             Algorithm.End
@@ -97,21 +82,64 @@ step inputData lastStep =
 -- helpers
 
 
-takeAnExploredVertex : StepData -> Maybe Int
-takeAnExploredVertex =
+unvisitedWithTheSmallestTDist : StepData -> Maybe ( VertexId, Int )
+unvisitedWithTheSmallestTDist =
     let
-        isExplored _ vertexState =
-            case vertexState of
-                Explored _ ->
-                    True
+        take ( id, v ) =
+            if not v.visited then
+                v.maybeDist |> Maybe.map (\dist -> ( id, dist ))
 
-                _ ->
-                    False
+            else
+                Nothing
     in
-    Dict.filter isExplored >> Dict.keys >> List.head
+    Dict.toList
+        >> List.filterMap take
+        >> List.sortBy Tuple.second
+        >> List.head
 
 
-handleVertex : InputData -> StepData -> VertexId -> StepData
-handleVertex inputData lastStep id =
-    -- TODO
-    lastStep
+updateDist id newDist newPred stepData =
+    let
+        up d =
+            { d
+                | maybeDist = Just newDist
+                , maybePred = Just newPred
+            }
+    in
+    stepData |> Dict.update id (Maybe.map up)
+
+
+handleVertex : InputData -> StepData -> ( VertexId, Int ) -> StepData
+handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
+    let
+        neighboursWithWeights =
+            Dict.get idOfHandled graph
+                |> Maybe.withDefault Dict.empty
+
+        updateNeighbour neighbourId w stepData =
+            let
+                up =
+                    stepData
+                        |> updateDist neighbourId
+                            (tDistOfHandled + w)
+                            idOfHandled
+            in
+            case Dict.get neighbourId stepData of
+                Just { maybeDist } ->
+                    case maybeDist of
+                        Just dist ->
+                            if tDistOfHandled + w < dist then
+                                up
+
+                            else
+                                stepData
+
+                        Nothing ->
+                            up
+
+                Nothing ->
+                    stepData
+    in
+    neighboursWithWeights
+        |> Dict.foldr updateNeighbour lastStep
+        |> Dict.update idOfHandled (Maybe.map (\d -> { d | visited = True }))
