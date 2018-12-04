@@ -4,7 +4,8 @@ module GraphFile exposing
     , Bag, BagDict, BagId, BagProperties
     , decoder
     , encode
-    , default
+    , default, defaultVertexProp, defaultEdgeProp
+    , setGraph
     , updateVertices, addVertex, removeVertices
     , updateEdges, addEdge, removeEdges
     , contractEdge, divideEdge
@@ -46,13 +47,14 @@ This module also contains operations acting on graphs needed bei the Main module
 @docs encode
 
 
-# Constructor
+# Constructors
 
-@docs default
+@docs default, defaultVertexProp, defaultEdgeProp
 
 
 # Graph Operations
 
+@docs setGraph
 @docs updateVertices, addVertex, removeVertices
 @docs updateEdges, addEdge, removeEdges
 @docs contractEdge, divideEdge
@@ -390,28 +392,36 @@ default =
     GraphFile
         { graph = Graph.empty
         , bags = Dict.empty
-        , defaultVertexProperties =
-            { label = Nothing
-            , labelIsVisible = True
-            , position = Point2d.origin
-            , velocity = Vector2d.zero
-            , gravityCenter = Point2d.fromCoordinates ( 300, 300 )
-            , gravityStrength = 0.05
-            , manyBodyStrength = -100
-            , color = Colors.lightGray
-            , radius = 5
-            , inBags = Set.empty
-            , fixed = False
-            }
-        , defaultEdgeProperties =
-            { label = Nothing
-            , labelIsVisible = True
-            , color = Colors.lightGray
-            , thickness = 3
-            , distance = 40
-            , strength = 0.7
-            }
+        , defaultVertexProperties = defaultVertexProp
+        , defaultEdgeProperties = defaultEdgeProp
         }
+
+
+defaultVertexProp : VertexProperties
+defaultVertexProp =
+    { label = Nothing
+    , labelIsVisible = True
+    , position = Point2d.origin
+    , velocity = Vector2d.zero
+    , gravityCenter = Point2d.fromCoordinates ( 300, 300 )
+    , gravityStrength = 0.05
+    , manyBodyStrength = -100
+    , color = Colors.lightGray
+    , radius = 5
+    , inBags = Set.empty
+    , fixed = False
+    }
+
+
+defaultEdgeProp : EdgeProperties
+defaultEdgeProp =
+    { label = Nothing
+    , labelIsVisible = True
+    , color = Colors.lightGray
+    , thickness = 3
+    , distance = 40
+    , strength = 0.7
+    }
 
 
 getGraph : GraphFile -> MyGraph

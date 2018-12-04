@@ -1,5 +1,6 @@
 port module Main exposing (main)
 
+import Algorithms.Dijkstra.API
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser exposing (Document)
 import Browser.Dom as Dom
@@ -526,6 +527,8 @@ type Msg
     | ClickOnSaveFile
     | ClickOnCloseFile Int
     | ClickOnFileItem Int
+      --
+    | ClickOnRunDijsktraButton
 
 
 reheatForce : Model -> Model
@@ -1707,6 +1710,23 @@ updateHelper msg m =
                         }
             }
 
+        ClickOnRunDijsktraButton ->
+            { m
+                | files =
+                    current m
+                        |> Algorithms.Dijkstra.API.run
+                        |> List.indexedMap Tuple.pair
+                        |> List.foldr
+                            (\( i, gF ) ->
+                                Files.new
+                                    ("step " ++ String.fromInt i)
+                                    ( "Generated as step " ++ String.fromInt i
+                                    , gF
+                                    )
+                            )
+                            m.files
+            }
+
 
 
 -- SUBSCRIPTIONS
@@ -2709,12 +2729,30 @@ leftBarContentForGraphGenerators m =
 
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
 leftBarContentForAlgorithmVisualizations m =
+    let
+        runButton : Msg -> Element Msg
+        runButton msg =
+            El.el
+                [ El.htmlAttribute (HA.title "Run!")
+                , El.alignRight
+                , Border.rounded 4
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                , El.pointer
+                , Events.onClick msg
+                ]
+                (El.html (Icons.draw14px Icons.icons.lightning))
+    in
     menu
-        { headerText = "Algorithm Visualizations (coming soon)"
+        { headerText = "Dijsktra's Shortest Path"
         , isOn = True
         , headerButtons = []
         , toggleMsg = NoOp
-        , contentItems = []
+        , contentItems =
+            [ El.row [ El.padding 10, El.spacing 5 ]
+                [ runButton ClickOnRunDijsktraButton
+                ]
+            ]
         }
 
 

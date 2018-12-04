@@ -1,7 +1,7 @@
 module Algorithms.Dijkstra exposing (InputData, StepData, algorithm)
 
 import Algorithm exposing (Algorithm)
-import Dict exposing (Dict)
+import IntDict exposing (IntDict)
 
 
 algorithm : Algorithm InputData StepData
@@ -18,7 +18,7 @@ algorithm =
 
 type alias InputData =
     { startVertex : VertexId
-    , graph : Dict VertexId (Dict VertexId Weight)
+    , graph : IntDict (IntDict Weight)
     }
 
 
@@ -35,7 +35,7 @@ type alias Weight =
 
 
 type alias StepData =
-    Dict VertexId
+    IntDict
         { visited : Bool
         , maybeDist : Maybe Int
         , maybePred : Maybe VertexId
@@ -60,7 +60,7 @@ init { startVertex, graph } =
             , maybePred = Nothing
             }
     in
-    Dict.map initVertexState graph
+    IntDict.map initVertexState graph
 
 
 
@@ -92,7 +92,7 @@ unvisitedWithTheSmallestTDist =
             else
                 Nothing
     in
-    Dict.toList
+    IntDict.toList
         >> List.filterMap take
         >> List.sortBy Tuple.second
         >> List.head
@@ -106,15 +106,15 @@ updateDist id newDist newPred stepData =
                 , maybePred = Just newPred
             }
     in
-    stepData |> Dict.update id (Maybe.map up)
+    stepData |> IntDict.update id (Maybe.map up)
 
 
 handleVertex : InputData -> StepData -> ( VertexId, Int ) -> StepData
 handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
     let
         neighboursWithWeights =
-            Dict.get idOfHandled graph
-                |> Maybe.withDefault Dict.empty
+            IntDict.get idOfHandled graph
+                |> Maybe.withDefault IntDict.empty
 
         updateNeighbour neighbourId w stepData =
             let
@@ -124,7 +124,7 @@ handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
                             (tDistOfHandled + w)
                             idOfHandled
             in
-            case Dict.get neighbourId stepData of
+            case IntDict.get neighbourId stepData of
                 Just { maybeDist } ->
                     case maybeDist of
                         Just dist ->
@@ -141,5 +141,5 @@ handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
                     stepData
     in
     neighboursWithWeights
-        |> Dict.foldr updateNeighbour lastStep
-        |> Dict.update idOfHandled (Maybe.map (\d -> { d | visited = True }))
+        |> IntDict.foldr updateNeighbour lastStep
+        |> IntDict.update idOfHandled (Maybe.map (\d -> { d | visited = True }))
