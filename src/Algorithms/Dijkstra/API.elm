@@ -18,19 +18,9 @@ run inputGraphFile =
 
 runHelper : MyGraph -> List MyGraph
 runHelper inputGraph =
-    let
-        extend stepData l =
-            case l of
-                h :: tail ->
-                    applyStepData stepData h :: h :: tail
-
-                [] ->
-                    -- This does not happen.
-                    []
-    in
     inputDataFromMyGraph inputGraph
         |> Algorithm.run Algorithms.Dijkstra.algorithm
-        |> List.foldr extend [ inputGraph ]
+        |> List.map (applyStepData inputGraph)
         |> List.reverse
 
 
@@ -65,9 +55,12 @@ inputDataFromMyGraph g =
     }
 
 
-applyStepData : StepData -> MyGraph -> MyGraph
-applyStepData stepData graph =
+applyStepData : MyGraph -> StepData -> MyGraph
+applyStepData inputGraph stepData =
     let
+        doubleRadius ({ label } as node) =
+            { node | label = { label | radius = 2 * label.radius } }
+
         setColor color ({ label } as node) =
             { node | label = { label | color = color } }
 
@@ -84,13 +77,13 @@ applyStepData stepData graph =
             { ctx
                 | node =
                     ctx.node
-                        |> setColor
-                            (if visited then
-                                Colors.black
+                        |> (if visited then
+                                setColor Colors.gray
+                                    >> doubleRadius
 
-                             else
-                                Colors.white
-                            )
+                            else
+                                identity
+                           )
                         |> setLabel
                             (case maybeDist of
                                 Just dist ->
@@ -106,4 +99,4 @@ applyStepData stepData graph =
 
         -- TODO : Make predecessor edges red.
     in
-    stepData |> IntDict.foldr applyVertexData graph
+    stepData |> IntDict.foldr applyVertexData inputGraph

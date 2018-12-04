@@ -228,31 +228,6 @@ type Animation
         }
 
 
-type TransitionState
-    = TransitionState
-        { elapsed : Float
-        , duration : Float
-        }
-
-
-defaultTransitionState : TransitionState
-defaultTransitionState =
-    TransitionState
-        { elapsed = 0
-        , duration = 1000
-        }
-
-
-updateTransitionState : Float -> TransitionState -> TransitionState
-updateTransitionState timeDelta (TransitionState tS) =
-    TransitionState { tS | elapsed = tS.elapsed + timeDelta }
-
-
-transitionHasFinished : TransitionState -> Bool
-transitionHasFinished (TransitionState { elapsed, duration }) =
-    elapsed > duration
-
-
 type Mode
     = GraphsFolder
     | ListsOfBagsVerticesAndEdges
@@ -1716,7 +1691,7 @@ updateHelper msg m =
                     current m
                         |> Algorithms.Dijkstra.API.run
                         |> List.indexedMap Tuple.pair
-                        |> List.foldr
+                        |> List.foldl
                             (\( i, gF ) ->
                                 Files.new
                                     ("step " ++ String.fromInt i)
@@ -4187,7 +4162,7 @@ viewEdges graphFile =
                                 [ SA.x (String.fromFloat (Point2d.xCoordinate lP))
                                 , SA.y (String.fromFloat (Point2d.yCoordinate lP))
                                 , SA.textAnchor "middle"
-                                , SA.fill (Colors.toString Colors.lightText)
+                                , SA.fill (Colors.toString label.color)
                                 ]
                                 [ S.text <|
                                     case label.label of
@@ -4259,7 +4234,7 @@ viewVertices graphFile =
                 vertexLabel =
                     if label.labelIsVisible then
                         S.text_
-                            [ SA.fill (Colors.toString Colors.lightText)
+                            [ SA.fill (Colors.toString color)
                             , SA.textAnchor "middle"
                             , SA.y "-10"
                             ]
