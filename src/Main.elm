@@ -38,6 +38,7 @@ import Svg.Keyed
 import Task
 import Time
 import Transition
+import Triangle2d exposing (Triangle2d)
 import Vector2d exposing (Vector2d)
 
 
@@ -4127,6 +4128,51 @@ maybeRectAroundSelectedVertices selectedTool selectedVertices graphFile =
 -- GRAPH VIEW
 
 
+arrow :
+    { lineSegment : LineSegment2d
+    , color : Color
+    , thickness : Float
+    , headWidth : Float
+    , headLength : Float
+    }
+    -> Html Msg
+arrow { lineSegment, color, thickness, headWidth, headLength } =
+    let
+        dir =
+            LineSegment2d.direction lineSegment
+                |> Maybe.withDefault (Direction2d.unsafe ( 1, 0 ))
+
+        angle =
+            Direction2d.toAngle dir
+
+        vecFromOriginToEndPoint =
+            LineSegment2d.endPoint lineSegment
+                |> Point2d.coordinates
+                |> Vector2d.fromComponents
+
+        arrowHead =
+            Triangle2d.fromVertices
+                ( Point2d.fromCoordinates ( 0, -headWidth / 2 )
+                , Point2d.fromCoordinates ( 0, headWidth / 2 )
+                , Point2d.fromCoordinates ( headLength, 0 )
+                )
+                |> Triangle2d.rotateAround Point2d.origin angle
+                |> Triangle2d.translateBy vecFromOriginToEndPoint
+                |> Triangle2d.translateIn dir -headLength
+    in
+    S.g []
+        [ Geometry.Svg.lineSegment2d
+            [ SA.stroke (Colors.toString color)
+            , SA.strokeWidth (String.fromFloat thickness)
+            ]
+            lineSegment
+        , Geometry.Svg.triangle2d
+            [ SA.fill (Colors.toString color)
+            ]
+            arrowHead
+        ]
+
+
 viewEdges : GraphFile -> Html Msg
 viewEdges graphFile =
     let
@@ -4193,11 +4239,13 @@ viewEdges graphFile =
                             , SA.strokeWidth (String.fromFloat (label.thickness + 6))
                             ]
                             edgeLine
-                        , Geometry.Svg.lineSegment2d
-                            [ SA.stroke (Colors.toString label.color)
-                            , SA.strokeWidth (String.fromFloat label.thickness)
-                            ]
-                            edgeLine
+                        , arrow
+                            { lineSegment = edgeLine
+                            , color = label.color
+                            , thickness = label.thickness
+                            , headWidth = 10
+                            , headLength = 10
+                            }
                         , edgeLabel
                         ]
                     )
@@ -4225,18 +4273,15 @@ viewVertices graphFile =
 
         viewVertex { id, label } =
             let
-                { position, color, radius, fixed } =
-                    label
-
                 ( x, y ) =
-                    Point2d.coordinates position
+                    Point2d.coordinates label.position
 
                 vertexLabel =
                     if label.labelIsVisible then
                         S.text_
-                            [ SA.fill (Colors.toString color)
+                            [ SA.fill (Colors.toString label.color)
                             , SA.textAnchor "middle"
-                            , SA.y "-10"
+                            , SA.y (String.fromFloat -(label.radius + 4))
                             ]
                             [ S.text <|
                                 case label.label of
@@ -4258,9 +4303,9 @@ viewVertices graphFile =
                 , SE.onMouseOver (MouseOverVertex id)
                 , SE.onMouseOut (MouseOutVertex id)
                 ]
-                [ Geometry.Svg.circle2d [ SA.fill (Colors.toString color) ]
-                    (Point2d.origin |> Circle2d.withRadius radius)
-                , pin fixed radius
+                [ Geometry.Svg.circle2d [ SA.fill (Colors.toString label.color) ]
+                    (Point2d.origin |> Circle2d.withRadius label.radius)
+                , pin label.fixed label.radius
                 , vertexLabel
                 ]
             )
