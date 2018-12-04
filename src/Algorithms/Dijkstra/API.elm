@@ -90,7 +90,7 @@ applyStepData inputGraph stepData =
                                     String.fromInt dist
 
                                 Nothing ->
-                                    "Inf"
+                                    "∞"
                             )
             }
 

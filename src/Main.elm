@@ -4140,7 +4140,7 @@ arrow { lineSegment, color, thickness, headWidth, headLength } =
     let
         dir =
             LineSegment2d.direction lineSegment
-                |> Maybe.withDefault (Direction2d.unsafe ( 1, 0 ))
+                |> Maybe.withDefault Direction2d.positiveX
 
         angle =
             Direction2d.toAngle dir
@@ -4165,7 +4165,12 @@ arrow { lineSegment, color, thickness, headWidth, headLength } =
             [ SA.stroke (Colors.toString color)
             , SA.strokeWidth (String.fromFloat thickness)
             ]
-            lineSegment
+            (LineSegment2d.from
+                (LineSegment2d.startPoint lineSegment)
+                (LineSegment2d.endPoint lineSegment
+                    |> Point2d.translateIn dir -headLength
+                )
+            )
         , Geometry.Svg.triangle2d
             [ SA.fill (Colors.toString color)
             ]
@@ -4197,8 +4202,18 @@ viewEdges graphFile =
             case ( GF.getVertexProperties from graphFile, GF.getVertexProperties to graphFile ) of
                 ( Just v, Just w ) ->
                     let
+                        dir =
+                            Direction2d.from v.position w.position
+                                |> Maybe.withDefault Direction2d.positiveX
+
+                        edgeStart =
+                            v.position |> Point2d.translateIn dir v.radius
+
+                        edgeEnd =
+                            w.position |> Point2d.translateIn dir -w.radius
+
                         edgeLine =
-                            LineSegment2d.from v.position w.position
+                            LineSegment2d.from edgeStart edgeEnd
 
                         lP =
                             labelPosition edgeLine
@@ -4243,7 +4258,7 @@ viewEdges graphFile =
                             { lineSegment = edgeLine
                             , color = label.color
                             , thickness = label.thickness
-                            , headWidth = 10
+                            , headWidth = 3 * label.thickness
                             , headLength = 10
                             }
                         , edgeLabel
