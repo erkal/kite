@@ -142,6 +142,7 @@ type alias EdgeId =
 
 type alias VertexProperties =
     { label : Maybe String
+    , labelSize : Int
     , labelIsVisible : Bool
     , position : Point2d
     , velocity : Vector2d
@@ -157,6 +158,7 @@ type alias VertexProperties =
 
 type alias EdgeProperties =
     { label : Maybe String
+    , labelSize : Int
     , labelIsVisible : Bool
     , distance : Float
     , strength : Float
@@ -239,6 +241,7 @@ encodeVertexProperties : VertexProperties -> Value
 encodeVertexProperties vP =
     JE.object
         [ ( "label", encodeMaybeString vP.label )
+        , ( "labelSize", JE.int vP.labelSize )
         , ( "labelIsVisible", JE.bool vP.labelIsVisible )
         , ( "position", encodePoint2d vP.position )
         , ( "velocity", encodeVector2d vP.velocity )
@@ -256,6 +259,7 @@ encodeEdgeProperties : EdgeProperties -> Value
 encodeEdgeProperties eP =
     JE.object
         [ ( "label", encodeMaybeString eP.label )
+        , ( "labelSize", JE.int eP.labelSize )
         , ( "labelIsVisible", JE.bool eP.labelIsVisible )
         , ( "distance", JE.float eP.distance )
         , ( "strength", JE.float eP.strength )
@@ -344,6 +348,7 @@ vertexPropertiesDecoder : Decoder VertexProperties
 vertexPropertiesDecoder =
     JD.succeed VertexProperties
         |> JDP.required "label" (JD.nullable JD.string)
+        |> JDP.required "labelSize" JD.int
         |> JDP.required "labelIsVisible" JD.bool
         |> JDP.required "position" point2dDecoder
         |> JDP.required "velocity" vector2dDecoder
@@ -358,8 +363,9 @@ vertexPropertiesDecoder =
 
 edgePropertiesDecoder : Decoder EdgeProperties
 edgePropertiesDecoder =
-    JD.map6 EdgeProperties
+    JD.map7 EdgeProperties
         (JD.field "label" (JD.nullable JD.string))
+        (JD.field "labelSize" JD.int)
         (JD.field "labelIsVisible" JD.bool)
         (JD.field "distance" JD.float)
         (JD.field "strength" JD.float)
@@ -400,6 +406,7 @@ default =
 defaultVertexProp : VertexProperties
 defaultVertexProp =
     { label = Nothing
+    , labelSize = 12
     , labelIsVisible = True
     , position = Point2d.origin
     , velocity = Vector2d.zero
@@ -416,6 +423,7 @@ defaultVertexProp =
 defaultEdgeProp : EdgeProperties
 defaultEdgeProp =
     { label = Nothing
+    , labelSize = 12
     , labelIsVisible = True
     , color = Colors.lightGray
     , thickness = 3
@@ -895,7 +903,15 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map .id
                     |> Set.fromList
                 )
-                (\vP -> { vP | radius = (1 - Ease.outQuint eTR) * vP.radius })
+                (\vP ->
+                    { vP
+                        | radius = (1 - Ease.outQuint eTR) * vP.radius
+                        , labelSize =
+                            round <|
+                                Ease.reverse Ease.inCubic eTR
+                                    * toFloat vP.labelSize
+                    }
+                )
 
         upVerticesInEndButNotInStart =
             Graph.Extra.updateNodes
@@ -903,7 +919,13 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map .id
                     |> Set.fromList
                 )
-                (\vP -> { vP | radius = Ease.inQuint eTR * vP.radius })
+                (\vP ->
+                    { vP
+                        | radius = Ease.inQuint eTR * vP.radius
+                        , labelSize =
+                            round <| Ease.inCubic eTR * toFloat vP.labelSize
+                    }
+                )
 
         upVerticesInIntersection =
             Graph.Extra.updateNodesBy
@@ -911,7 +933,7 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map (\{ id, label } -> ( id, label ))
                 )
                 (\endVertex startVertex ->
-                    transitionVertex (Ease.inOutCubic eTR)
+                    vertexTransition eTR
                         startVertex
                         endVertex
                 )
@@ -926,7 +948,13 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> Set.fromList
                 )
                 (\eP ->
-                    { eP | thickness = (1 - Ease.outQuint eTR) * eP.thickness }
+                    { eP
+                        | thickness = (1 - Ease.outQuint eTR) * eP.thickness
+                        , labelSize =
+                            round <|
+                                Ease.reverse Ease.inCubic eTR
+                                    * toFloat eP.labelSize
+                    }
                 )
 
         upEdgesInEndButNotInStart =
@@ -935,7 +963,13 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map (\{ from, to } -> ( from, to ))
                     |> Set.fromList
                 )
-                (\eP -> { eP | thickness = Ease.inQuint eTR * eP.thickness })
+                (\eP ->
+                    { eP
+                        | thickness = Ease.inQuint eTR * eP.thickness
+                        , labelSize =
+                            round <| Ease.inCubic eTR * toFloat eP.labelSize
+                    }
+                )
 
         upEdgesInIntersection =
             Graph.Extra.updateEdgesBy
@@ -943,7 +977,7 @@ transitionGraphFile elapsedTimeRatio { start, end } =
                     |> List.map (\{ from, to, label } -> ( ( from, to ), label ))
                 )
                 (\endEdge startEdge ->
-                    transitionEdge (Ease.inOutCubic eTR)
+                    edgeTransition eTR
                         startEdge
                         endEdge
                 )
@@ -961,29 +995,71 @@ transitionGraphFile elapsedTimeRatio { start, end } =
             )
 
 
-transitionVertex : Float -> VertexProperties -> VertexProperties -> VertexProperties
-transitionVertex k startVertex endVertex =
+vertexTransition : Float -> VertexProperties -> VertexProperties -> VertexProperties
+vertexTransition eTR startVertex endVertex =
     { startVertex
         | position =
             startVertex.position
                 |> Point2d.translateBy
-                    (Vector2d.scaleBy k
+                    (Vector2d.scaleBy (Ease.inOutCubic eTR)
                         (Vector2d.from startVertex.position endVertex.position)
                     )
         , radius =
             startVertex.radius
-                + (k * (endVertex.radius - startVertex.radius))
+                + (eTR * (endVertex.radius - startVertex.radius))
+        , label =
+            if eTR < 0.5 then
+                startVertex.label
+
+            else
+                endVertex.label
+        , labelSize =
+            if startVertex.label == endVertex.label then
+                round <|
+                    toFloat startVertex.labelSize
+                        + (eTR * toFloat (endVertex.labelSize - startVertex.labelSize))
+
+            else if eTR < 0.5 then
+                round <|
+                    toFloat startVertex.labelSize
+                        * Ease.reverse Ease.inCubic (2 * eTR)
+
+            else
+                round <|
+                    toFloat endVertex.labelSize
+                        * Ease.inCubic (2 * (eTR - 0.5))
         , color =
-            Colors.transition k startVertex.color endVertex.color
+            Colors.linearTransition eTR startVertex.color endVertex.color
     }
 
 
-transitionEdge : Float -> EdgeProperties -> EdgeProperties -> EdgeProperties
-transitionEdge k startEdge endEdge =
+edgeTransition : Float -> EdgeProperties -> EdgeProperties -> EdgeProperties
+edgeTransition eTR startEdge endEdge =
     { startEdge
         | thickness =
             startEdge.thickness
-                + (k * (endEdge.thickness - startEdge.thickness))
+                + (eTR * (endEdge.thickness - startEdge.thickness))
+        , label =
+            if eTR < 0.5 then
+                startEdge.label
+
+            else
+                endEdge.label
+        , labelSize =
+            if startEdge.label == endEdge.label then
+                round <|
+                    toFloat startEdge.labelSize
+                        + (eTR * toFloat (endEdge.labelSize - startEdge.labelSize))
+
+            else if eTR < 0.5 then
+                round <|
+                    toFloat startEdge.labelSize
+                        * Ease.reverse Ease.inCubic (2 * eTR)
+
+            else
+                round <|
+                    toFloat endEdge.labelSize
+                        * Ease.inCubic (2 * (eTR - 0.5))
         , color =
-            Colors.transition k startEdge.color endEdge.color
+            Colors.linearTransition eTR startEdge.color endEdge.color
     }

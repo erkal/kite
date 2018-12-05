@@ -4259,9 +4259,12 @@ viewEdges graphFile =
 
                         eL =
                             S.text_
-                                [ SA.x (String.fromFloat (Point2d.xCoordinate lP))
-                                , SA.y (String.fromFloat (Point2d.yCoordinate lP))
+                                [ SA.x
+                                    (String.fromFloat (Point2d.xCoordinate lP))
+                                , SA.y
+                                    (String.fromFloat (Point2d.yCoordinate lP))
                                 , SA.textAnchor "middle"
+                                , SA.fontSize (String.fromInt label.labelSize)
                                 , SA.fill (Colors.toString label.color)
                                 ]
                                 [ S.text <|
@@ -4279,6 +4282,14 @@ viewEdges graphFile =
 
                             else
                                 emptySvgElement
+
+                        invisibleBackGroundHandle =
+                            Geometry.Svg.lineSegment2d
+                                [ SA.stroke "red"
+                                , SA.strokeOpacity "0"
+                                , SA.strokeWidth (String.fromFloat (label.thickness + 6))
+                                ]
+                                edgeLine
                     in
                     ( edgeIdToString ( from, to )
                     , S.g
@@ -4287,12 +4298,7 @@ viewEdges graphFile =
                         , SE.onMouseOver (MouseOverEdge ( from, to ))
                         , SE.onMouseOut (MouseOutEdge ( from, to ))
                         ]
-                        [ Geometry.Svg.lineSegment2d
-                            [ SA.stroke "red"
-                            , SA.strokeOpacity "0"
-                            , SA.strokeWidth (String.fromFloat (label.thickness + 6))
-                            ]
-                            edgeLine
+                        [ invisibleBackGroundHandle
                         , arrow
                             { lineSegment = edgeLine
                             , color = label.color
@@ -4335,6 +4341,7 @@ viewVertices graphFile =
                         S.text_
                             [ SA.fill (Colors.toString label.color)
                             , SA.textAnchor "middle"
+                            , SA.fontSize (String.fromInt label.labelSize)
                             , SA.y (String.fromFloat -(label.radius + 4))
                             ]
                             [ S.text <|

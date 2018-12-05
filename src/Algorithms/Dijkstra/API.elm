@@ -99,7 +99,7 @@ applyStepData inputGraph stepData =
                 | node =
                     ctx.node
                         |> (if visited then
-                                setColor Colors.gray
+                                setColor Colors.highlightPink
                                     >> doubleRadius
 
                             else
@@ -126,8 +126,13 @@ applyStepData inputGraph stepData =
                         maybePred |> Maybe.map (\pred -> ( pred, id ))
                     )
                 |> Set.fromList
+
+        upEdge eP =
+            { eP
+                | color = Colors.highlightPink
+                , labelSize = eP.labelSize
+            }
     in
     stepData
         |> IntDict.foldr applyVertexData inputGraph
-        |> Graph.Extra.updateEdges predEdges
-            (\eP -> { eP | color = Colors.red })
+        |> Graph.Extra.updateEdges predEdges upEdge

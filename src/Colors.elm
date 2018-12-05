@@ -12,6 +12,7 @@ module Colors exposing
     , leftStripeIconSelected
     , lightGray
     , lightText
+    , linearTransition
     , linkBlue
     , mainSvgBackground
     , menuBackground
@@ -28,7 +29,6 @@ module Colors exposing
     , sliderThumb
     , svgLine
     , toString
-    , transition
     , vertexAndEdgeColors
     , white
     , yellow
@@ -92,8 +92,8 @@ decoder =
 --
 
 
-transition : Float -> Color -> Color -> Color
-transition k start end =
+linearTransition : Float -> Color -> Color -> Color
+linearTransition k start end =
     let
         ( s, e ) =
             ( El.toRgb start, El.toRgb end )
