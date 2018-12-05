@@ -1,10 +1,11 @@
-module Algorithms.Dijkstra exposing (InputData, StepData, algorithm)
+module Algorithms.Dijkstra exposing (InputData, StepData, VizData, algorithm)
 
 import Algorithm exposing (Algorithm)
 import IntDict exposing (IntDict)
+import Set exposing (Set)
 
 
-algorithm : Algorithm InputData StepData
+algorithm : Algorithm InputData StepData VizData
 algorithm =
     Algorithm.basic
         { init = init
@@ -13,7 +14,7 @@ algorithm =
 
 
 
--- InputData
+-- inputData
 
 
 type alias InputData =
@@ -31,7 +32,7 @@ type alias Weight =
 
 
 
--- StepData
+-- stepData
 
 
 type alias StepData =
@@ -43,10 +44,19 @@ type alias StepData =
 
 
 
+-- vizData
+
+
+type alias VizData =
+    { nextVertextoHandle : Maybe VertexId
+    }
+
+
+
 -- init
 
 
-init : InputData -> StepData
+init : InputData -> ( StepData, VizData )
 init { startVertex, graph } =
     let
         initVertexState id _ =
@@ -59,15 +69,18 @@ init { startVertex, graph } =
                     Nothing
             , maybePred = Nothing
             }
+
+        nextStepData =
+            IntDict.map initVertexState graph
     in
-    IntDict.map initVertexState graph
+    withVizData nextStepData
 
 
 
 -- step
 
 
-step : InputData -> StepData -> Algorithm.StepResult StepData
+step : InputData -> StepData -> Algorithm.StepResult StepData VizData
 step inputData lastStep =
     case unvisitedWithTheSmallestTDist lastStep of
         Just idAndDist ->
@@ -80,6 +93,16 @@ step inputData lastStep =
 
 
 -- helpers
+
+
+withVizData : StepData -> ( StepData, VizData )
+withVizData nextStepData =
+    ( nextStepData
+    , { nextVertextoHandle =
+            unvisitedWithTheSmallestTDist nextStepData
+                |> Maybe.map Tuple.first
+      }
+    )
 
 
 unvisitedWithTheSmallestTDist : StepData -> Maybe ( VertexId, Int )
@@ -109,7 +132,11 @@ updateDist id newDist newPred stepData =
     stepData |> IntDict.update id (Maybe.map up)
 
 
-handleVertex : InputData -> StepData -> ( VertexId, Int ) -> StepData
+handleVertex :
+    InputData
+    -> StepData
+    -> ( VertexId, Int )
+    -> ( StepData, VizData )
 handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
     let
         neighboursWithWeights =
@@ -139,7 +166,19 @@ handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
 
                 Nothing ->
                     stepData
+
+        nextStepData =
+            neighboursWithWeights
+                |> IntDict.foldr updateNeighbour lastStep
+                |> IntDict.update idOfHandled (Maybe.map (\d -> { d | visited = True }))
+
+        nextVizData =
+            { lastHandledVertex = idOfHandled
+            , lastHandledEdges =
+                neighboursWithWeights
+                    |> IntDict.keys
+                    |> List.map (\nId -> ( idOfHandled, nId ))
+                    |> Set.fromList
+            }
     in
-    neighboursWithWeights
-        |> IntDict.foldr updateNeighbour lastStep
-        |> IntDict.update idOfHandled (Maybe.map (\d -> { d | visited = True }))
+    withVizData nextStepData

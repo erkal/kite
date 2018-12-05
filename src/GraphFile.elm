@@ -2,9 +2,9 @@ module GraphFile exposing
     ( GraphFile
     , MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
     , Bag, BagDict, BagId, BagProperties
+    , default, defaultVertexProp, defaultEdgeProp
     , decoder
     , encode
-    , default, defaultVertexProp, defaultEdgeProp
     , setGraph
     , updateVertices, addVertex, removeVertices
     , updateEdges, addEdge, removeEdges
@@ -37,6 +37,11 @@ This module also contains operations acting on graphs needed bei the Main module
 @docs Bag, BagDict, BagId, BagProperties
 
 
+# Defaults
+
+@docs default, defaultVertexProp, defaultEdgeProp
+
+
 # Decoder
 
 @docs decoder
@@ -45,11 +50,6 @@ This module also contains operations acting on graphs needed bei the Main module
 # Decoder
 
 @docs encode
-
-
-# Constructors
-
-@docs default, defaultVertexProp, defaultEdgeProp
 
 
 # Graph Operations
@@ -143,6 +143,7 @@ type alias EdgeId =
 type alias VertexProperties =
     { label : Maybe String
     , labelSize : Float
+    , labelAbove : Bool
     , labelColor : Color
     , labelIsVisible : Bool
     , position : Point2d
@@ -189,6 +190,56 @@ type alias BagProperties =
     { label : Maybe String
     , color : Color
     , hasConvexHull : Bool
+    }
+
+
+
+--------------
+-- Defaults --
+--------------
+
+
+default : GraphFile
+default =
+    GraphFile
+        { graph = Graph.empty
+        , bags = Dict.empty
+        , defaultVertexProperties = defaultVertexProp
+        , defaultEdgeProperties = defaultEdgeProp
+        }
+
+
+defaultVertexProp : VertexProperties
+defaultVertexProp =
+    { label = Nothing
+    , labelSize = 12
+    , labelAbove = False
+    , labelColor = Colors.white
+    , labelIsVisible = True
+    , position = Point2d.origin
+    , velocity = Vector2d.zero
+    , gravityCenter = Point2d.fromCoordinates ( 300, 200 )
+    , gravityStrength = 0.05
+    , manyBodyStrength = -300
+    , color = Colors.darkGray
+    , radius = 8
+    , borderColor = Colors.mainSvgBackground
+    , borderWidth = 0
+    , inBags = Set.empty
+    , fixed = False
+    }
+
+
+defaultEdgeProp : EdgeProperties
+defaultEdgeProp =
+    { label = Nothing
+    , labelSize = 12
+    , labelColor = Colors.lightGray
+    , labelIsVisible = True
+    , color = Colors.darkGray
+    , thickness = 3
+    , distance = 50
+    , strength = 0.7
     }
 
 
@@ -246,6 +297,7 @@ encodeVertexProperties vP =
     JE.object
         [ ( "label", encodeMaybeString vP.label )
         , ( "labelSize", JE.float vP.labelSize )
+        , ( "labelAbove", JE.bool vP.labelAbove )
         , ( "labelColor", Colors.encode vP.labelColor )
         , ( "labelIsVisible", JE.bool vP.labelIsVisible )
         , ( "position", encodePoint2d vP.position )
@@ -357,6 +409,7 @@ vertexPropertiesDecoder =
     JD.succeed VertexProperties
         |> JDP.required "label" (JD.nullable JD.string)
         |> JDP.required "labelSize" JD.float
+        |> JDP.required "labelAbove" JD.bool
         |> JDP.required "labelColor" Colors.decoder
         |> JDP.required "labelIsVisible" JD.bool
         |> JDP.required "position" point2dDecoder
@@ -403,49 +456,6 @@ vector2dDecoder =
 
 
 --
-
-
-default : GraphFile
-default =
-    GraphFile
-        { graph = Graph.empty
-        , bags = Dict.empty
-        , defaultVertexProperties = defaultVertexProp
-        , defaultEdgeProperties = defaultEdgeProp
-        }
-
-
-defaultVertexProp : VertexProperties
-defaultVertexProp =
-    { label = Nothing
-    , labelSize = 12
-    , labelColor = Colors.lightGray
-    , labelIsVisible = True
-    , position = Point2d.origin
-    , velocity = Vector2d.zero
-    , gravityCenter = Point2d.fromCoordinates ( 300, 300 )
-    , gravityStrength = 0.05
-    , manyBodyStrength = -100
-    , color = Colors.lightGray
-    , radius = 10
-    , borderColor = Colors.mainSvgBackground
-    , borderWidth = 4
-    , inBags = Set.empty
-    , fixed = False
-    }
-
-
-defaultEdgeProp : EdgeProperties
-defaultEdgeProp =
-    { label = Nothing
-    , labelSize = 12
-    , labelColor = Colors.lightGray
-    , labelIsVisible = True
-    , color = Colors.lightGray
-    , thickness = 3
-    , distance = 40
-    , strength = 0.7
-    }
 
 
 getGraph : GraphFile -> MyGraph
@@ -527,8 +537,7 @@ updateEdges es up =
 
 getCentroid : Set VertexId -> GraphFile -> Maybe Point2d
 getCentroid vs (GraphFile { graph }) =
-    graph
-        |> Graph.nodes
+    Graph.nodes graph
         |> List.filterMap
             (\{ id, label } ->
                 if Set.member id vs then
@@ -548,8 +557,11 @@ setCentroidX vs newCentroidX user =
 
         shift =
             Vector2d.fromComponents ( newCentroidX - oldCentroidX, 0 )
+
+        shiftPos vP =
+            { vP | position = vP.position |> Point2d.translateBy shift }
     in
-    user |> updateVertices vs (\vP -> { vP | position = vP.position |> Point2d.translateBy shift })
+    user |> updateVertices vs shiftPos
 
 
 setCentroidY : Set VertexId -> Float -> GraphFile -> GraphFile
@@ -560,8 +572,20 @@ setCentroidY vs newCentroidY user =
 
         shift =
             Vector2d.fromComponents ( 0, newCentroidY - oldCentroidY )
+
+        shiftPos vP =
+            { vP | position = vP.position |> Point2d.translateBy shift }
     in
-    user |> updateVertices vs (\vP -> { vP | position = vP.position |> Point2d.translateBy shift })
+    user |> updateVertices vs shiftPos
+
+
+setLabelSize : Set VertexId -> Float -> GraphFile -> GraphFile
+setLabelSize vs newLabelSize user =
+    let
+        up vP =
+            { vP | labelSize = newLabelSize }
+    in
+    user |> updateVertices vs up
 
 
 getVerticesInBag : BagId -> GraphFile -> Set VertexId
