@@ -10,6 +10,7 @@ module Colors exposing
     , inputBackground
     , leftBarHeader
     , leftStripeIconSelected
+    , lightBlue
     , lightGray
     , lightText
     , linearTransition
@@ -146,6 +147,10 @@ sliderThumb =
 
 highlightPink =
     El.rgb255 255 47 146
+
+
+lightBlue =
+    El.rgb255 134 204 247
 
 
 selectBlue =

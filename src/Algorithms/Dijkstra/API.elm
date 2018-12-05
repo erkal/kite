@@ -99,7 +99,7 @@ applyStepData inputGraph stepData =
                 | node =
                     ctx.node
                         |> (if visited then
-                                setColor Colors.highlightPink
+                                setColor Colors.lightBlue
                                     >> doubleRadius
 
                             else
@@ -129,7 +129,7 @@ applyStepData inputGraph stepData =
 
         upEdge eP =
             { eP
-                | color = Colors.highlightPink
+                | color = Colors.lightBlue
                 , labelSize = eP.labelSize
             }
     in
