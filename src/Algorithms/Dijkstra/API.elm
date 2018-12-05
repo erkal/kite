@@ -1,7 +1,7 @@
 module Algorithms.Dijkstra.API exposing (run)
 
 import Algorithm
-import Algorithms.Dijkstra exposing (InputData, StepData)
+import Algorithms.Dijkstra exposing (InputData, StepData, VizData)
 import Colors
 import Dict exposing (Dict)
 import Graph
@@ -19,10 +19,8 @@ run inputGraphFile =
 
 runHelper : MyGraph -> List MyGraph
 runHelper inputGraph =
-    inputDataFromMyGraph inputGraph
-        |> Algorithm.run Algorithms.Dijkstra.algorithm
-        |> List.map (applyStepData inputGraph)
-        |> List.reverse
+    Algorithm.run Algorithms.Dijkstra.algorithm (fromMyGraph inputGraph)
+        |> List.map (toMyGraph inputGraph)
 
 
 {-| If the the edges are labeled by numbers that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1.
@@ -30,8 +28,8 @@ runHelper inputGraph =
 If there is vertex labeled with "start", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id.
 
 -}
-inputDataFromMyGraph : MyGraph -> InputData
-inputDataFromMyGraph g =
+fromMyGraph : MyGraph -> InputData
+fromMyGraph g =
     { startVertex =
         let
             maybeVertexWithLabelStart =
@@ -76,8 +74,8 @@ inputDataFromMyGraph g =
     }
 
 
-applyStepData : MyGraph -> StepData -> MyGraph
-applyStepData inputGraph stepData =
+toMyGraph : MyGraph -> ( StepData, VizData ) -> MyGraph
+toMyGraph inputGraph ( stepData, vizData ) =
     let
         markVisited ({ label } as node) =
             { node
@@ -97,6 +95,7 @@ applyStepData inputGraph stepData =
                 | label =
                     { label
                         | labelIsVisible = True
+                        , labelColor = Colors.black
                         , label = Just str
                     }
             }
@@ -133,13 +132,33 @@ applyStepData inputGraph stepData =
                     )
                 |> Set.fromList
 
-        upEdge eP =
-            { eP
-                | color = Colors.white
-                , labelColor = Colors.white
-                , thickness = 2 + eP.thickness
-            }
+        upPredEdges =
+            let
+                upPE eP =
+                    { eP
+                        | color = Colors.white
+                        , labelColor = Colors.white
+                        , thickness = 2 + eP.thickness
+                    }
+            in
+            Graph.Extra.updateEdges predEdges upPE
+
+        setColor color ({ label } as node) =
+            { node | label = { label | color = color } }
+
+        upNextVertextoHandle =
+            case vizData.nextVertextoHandle of
+                Just id ->
+                    let
+                        yellowize ctx =
+                            { ctx | node = ctx.node |> setColor Colors.yellow }
+                    in
+                    Graph.update id (Maybe.map yellowize)
+
+                Nothing ->
+                    identity
     in
     stepData
         |> IntDict.foldr applyVertexData inputGraph
-        |> Graph.Extra.updateEdges predEdges upEdge
+        |> upNextVertextoHandle
+        |> upPredEdges

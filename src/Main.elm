@@ -482,6 +482,8 @@ type Msg
     | InputVertexLabelVisibility Bool
     | InputVertexX String
     | InputVertexY String
+    | InputVertexLabelSize String
+    | InputVertexLabelAbove Bool
     | InputVertexRadius Float
     | InputVertexGravityStrength Float
     | InputVertexCharge Float
@@ -499,6 +501,8 @@ type Msg
     | ClickOnGenerateStarGraphButton
       --
     | ClickOnNewFile
+    | ClickOnRenameFile
+    | ClickOnDuplicateFile
     | ClickOnDeleteFile
     | ClickOnSaveFile
     | ClickOnCloseFile Int
@@ -1241,6 +1245,42 @@ updateHelper msg m =
                 |> setPresent newFile
                     "Changed the Y coordinate of some vertices"
 
+        InputVertexLabelSize str ->
+            let
+                updateLabelSize v =
+                    { v | labelSize = String.toFloat str |> Maybe.withDefault 12 }
+
+                newFile =
+                    if Set.isEmpty m.selectedVertices then
+                        current m
+                            |> GF.updateDefaultVertexProperties updateLabelSize
+
+                    else
+                        current m
+                            |> GF.updateVertices m.selectedVertices updateLabelSize
+            in
+            m
+                |> setPresent newFile
+                    "Changed label size of some vertices"
+
+        InputVertexLabelAbove b ->
+            let
+                updateLabelAbove v =
+                    { v | labelAbove = b }
+
+                newFile =
+                    if Set.isEmpty m.selectedVertices then
+                        current m
+                            |> GF.updateDefaultVertexProperties updateLabelAbove
+
+                    else
+                        current m
+                            |> GF.updateVertices m.selectedVertices updateLabelAbove
+            in
+            m
+                |> setPresent newFile
+                    "Changed label position of some vertices"
+
         InputVertexColor newColor ->
             let
                 updateColor v =
@@ -1677,6 +1717,18 @@ updateHelper msg m =
                     Files.new "graph"
                         ( "Started with empty graph", GF.default )
                         m.files
+            }
+
+        ClickOnRenameFile ->
+            { m
+                | files =
+                    m.files
+            }
+
+        ClickOnDuplicateFile ->
+            { m
+                | files =
+                    m.files
             }
 
         ClickOnDeleteFile ->
@@ -2270,7 +2322,6 @@ leftBarContentForFiles m =
                 [ Font.bold, Font.color Colors.white ]
 
             else
-                -- TODO: Show extending background bar on transition animation
                 []
 
         item i name =
@@ -2333,9 +2384,19 @@ leftBarContentForFiles m =
             , isOn = m.allFilesIsExpanded
             , headerButtons =
                 [ leftBarHeaderButton
+                    { title = "Rename File"
+                    , onClickMsg = ClickOnRenameFile
+                    , iconPath = Icons.icons.rename
+                    }
+                , leftBarHeaderButton
                     { title = "New File"
                     , onClickMsg = ClickOnNewFile
                     , iconPath = Icons.icons.plus
+                    }
+                , leftBarHeaderButton
+                    { title = "Duplicate File"
+                    , onClickMsg = ClickOnDuplicateFile
+                    , iconPath = Icons.icons.duplicate
                     }
                 , leftBarHeaderButton
                     { title = "Delete File"
@@ -3598,6 +3659,45 @@ vertexPreferences m =
                     , onChange = InputVertexY
                     }
                 ]
+            , El.row []
+                [ textInput
+                    { labelText = "Label Size"
+                    , labelWidth = 80
+                    , inputWidth = 30
+                    , text =
+                        if Set.isEmpty m.selectedVertices then
+                            current m
+                                |> GF.getDefaultVertexProperties
+                                |> .labelSize
+                                |> round
+                                |> String.fromInt
+
+                        else
+                            case current m |> GF.getCommonVertexProperty m.selectedVertices .labelSize of
+                                Just lS ->
+                                    String.fromInt (round lS)
+
+                                _ ->
+                                    ""
+                    , onChange = InputVertexLabelSize
+                    }
+                , checkbox
+                    { labelText = "Label Above"
+                    , labelWidth = 80
+                    , state =
+                        if Set.isEmpty m.selectedVertices then
+                            Just
+                                (current m
+                                    |> GF.getDefaultVertexProperties
+                                    |> .labelAbove
+                                )
+
+                        else
+                            current m
+                                |> GF.getCommonVertexProperty m.selectedVertices .labelAbove
+                    , onChange = InputVertexLabelAbove
+                    }
+                ]
             , sliderInput
                 { labelText = "Charge"
                 , labelWidth = 80
@@ -4342,7 +4442,13 @@ viewVertices graphFile =
                             [ SA.fill (Colors.toString label.labelColor)
                             , SA.textAnchor "middle"
                             , SA.fontSize (String.fromFloat label.labelSize)
-                            , SA.y (String.fromFloat -(label.radius + 4))
+                            , SA.y <|
+                                String.fromFloat <|
+                                    if label.labelAbove then
+                                        -(label.radius + 4)
+
+                                    else
+                                        0.4 * label.labelSize
                             ]
                             [ S.text <|
                                 case label.label of
