@@ -31,7 +31,7 @@ import LineSegment2d exposing (LineSegment2d)
 import Point2d exposing (Point2d)
 import Polygon2d exposing (Polygon2d)
 import Set exposing (Set)
-import Svg as S
+import Svg as S exposing (Svg)
 import Svg.Attributes as SA
 import Svg.Events as SE
 import Svg.Keyed
@@ -4264,8 +4264,8 @@ viewEdges graphFile =
                                 , SA.y
                                     (String.fromFloat (Point2d.yCoordinate lP))
                                 , SA.textAnchor "middle"
-                                , SA.fontSize (String.fromInt label.labelSize)
-                                , SA.fill (Colors.toString label.color)
+                                , SA.fontSize (String.fromFloat label.labelSize)
+                                , SA.fill (Colors.toString label.labelColor)
                                 ]
                                 [ S.text <|
                                     case label.label of
@@ -4339,9 +4339,9 @@ viewVertices graphFile =
                 vertexLabel =
                     if label.labelIsVisible then
                         S.text_
-                            [ SA.fill (Colors.toString label.color)
+                            [ SA.fill (Colors.toString label.labelColor)
                             , SA.textAnchor "middle"
-                            , SA.fontSize (String.fromInt label.labelSize)
+                            , SA.fontSize (String.fromFloat label.labelSize)
                             , SA.y (String.fromFloat -(label.radius + 4))
                             ]
                             [ S.text <|
@@ -4355,6 +4355,18 @@ viewVertices graphFile =
 
                     else
                         emptySvgElement
+
+                circleSvg : Color -> Float -> Svg msg
+                circleSvg c r =
+                    Geometry.Svg.circle2d
+                        [ SA.fill (Colors.toString c) ]
+                        (Point2d.origin |> Circle2d.withRadius r)
+
+                backGroundCircleForBorder =
+                    circleSvg label.borderColor label.radius
+
+                innerCircle =
+                    circleSvg label.color (label.radius - label.borderWidth)
             in
             ( String.fromInt id
             , S.g
@@ -4364,8 +4376,8 @@ viewVertices graphFile =
                 , SE.onMouseOver (MouseOverVertex id)
                 , SE.onMouseOut (MouseOutVertex id)
                 ]
-                [ Geometry.Svg.circle2d [ SA.fill (Colors.toString label.color) ]
-                    (Point2d.origin |> Circle2d.withRadius label.radius)
+                [ backGroundCircleForBorder
+                , innerCircle
                 , pin label.fixed label.radius
                 , vertexLabel
                 ]

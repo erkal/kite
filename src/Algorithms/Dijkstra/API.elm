@@ -79,11 +79,15 @@ inputDataFromMyGraph g =
 applyStepData : MyGraph -> StepData -> MyGraph
 applyStepData inputGraph stepData =
     let
-        doubleRadius ({ label } as node) =
-            { node | label = { label | radius = 2 * label.radius } }
-
-        setColor color ({ label } as node) =
-            { node | label = { label | color = color } }
+        markVisited ({ label } as node) =
+            { node
+                | label =
+                    { label
+                        | borderWidth = 4
+                        , borderColor = Colors.highlightPink
+                        , labelColor = Colors.highlightPink
+                    }
+            }
 
         setLabel str ({ label } as node) =
             { node
@@ -99,8 +103,7 @@ applyStepData inputGraph stepData =
                 | node =
                     ctx.node
                         |> (if visited then
-                                setColor Colors.lightBlue
-                                    >> doubleRadius
+                                markVisited
 
                             else
                                 identity
@@ -129,7 +132,8 @@ applyStepData inputGraph stepData =
 
         upEdge eP =
             { eP
-                | color = Colors.lightBlue
+                | color = Colors.highlightPink
+                , labelColor = Colors.highlightPink
                 , labelSize = eP.labelSize
             }
     in
