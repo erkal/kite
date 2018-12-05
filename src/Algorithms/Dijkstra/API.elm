@@ -137,7 +137,6 @@ applyStepData inputGraph stepData =
             { eP
                 | color = Colors.white
                 , labelColor = Colors.white
-                , labelSize = 2 + eP.labelSize
                 , thickness = 2 + eP.thickness
             }
     in

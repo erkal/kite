@@ -425,7 +425,7 @@ defaultVertexProp =
     , velocity = Vector2d.zero
     , gravityCenter = Point2d.fromCoordinates ( 300, 300 )
     , gravityStrength = 0.05
-    , manyBodyStrength = -200
+    , manyBodyStrength = -300
     , color = Colors.darkGray
     , radius = 10
     , borderColor = Colors.mainSvgBackground
@@ -443,7 +443,7 @@ defaultEdgeProp =
     , labelIsVisible = True
     , color = Colors.darkGray
     , thickness = 3
-    , distance = 40
+    , distance = 100
     , strength = 0.7
     }
 
