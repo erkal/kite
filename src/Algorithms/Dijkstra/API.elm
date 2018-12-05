@@ -83,9 +83,12 @@ applyStepData inputGraph stepData =
             { node
                 | label =
                     { label
-                        | borderWidth = 4
-                        , borderColor = Colors.highlightPink
-                        , labelColor = Colors.highlightPink
+                        | color = Colors.white
+
+                        --    borderWidth = 4
+                        --, borderColor = Colors.white
+                        , labelColor = Colors.white
+                        , radius = 4 + label.radius
                     }
             }
 
@@ -132,9 +135,10 @@ applyStepData inputGraph stepData =
 
         upEdge eP =
             { eP
-                | color = Colors.highlightPink
-                , labelColor = Colors.highlightPink
-                , labelSize = eP.labelSize
+                | color = Colors.white
+                , labelColor = Colors.white
+                , labelSize = 2 + eP.labelSize
+                , thickness = 2 + eP.thickness
             }
     in
     stepData
