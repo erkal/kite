@@ -143,17 +143,23 @@ toMyGraph inputGraph stepData =
             in
             Graph.Extra.updateEdges predEdges upPE
 
-        setColor color ({ label } as node) =
-            { node | label = { label | color = color } }
-
         upNextVertextoHandle =
             case Algorithms.Dijkstra.nextVertexToHandle stepData of
                 Just id ->
                     let
-                        yellowize ctx =
-                            { ctx | node = ctx.node |> setColor Colors.yellow }
+                        upNode ({ label } as node) =
+                            { node
+                                | label =
+                                    { label
+                                        | color = Colors.yellow
+                                        , radius = 4 + label.radius
+                                    }
+                            }
+
+                        upCtx ctx =
+                            { ctx | node = ctx.node |> upNode }
                     in
-                    Graph.update id (Maybe.map yellowize)
+                    Graph.update id (Maybe.map upCtx)
 
                 Nothing ->
                     identity
