@@ -2270,7 +2270,7 @@ leftBarContentForFiles m =
                 [ Font.bold, Font.color Colors.white ]
 
             else
-                -- TODO: Show extending backgorund bar on transition animation
+                -- TODO: Show extending background bar on transition animation
                 []
 
         item i name =

@@ -5,8 +5,10 @@ import Algorithms.Dijkstra exposing (InputData, StepData)
 import Colors
 import Dict exposing (Dict)
 import Graph
+import Graph.Extra
 import GraphFile as GF exposing (GraphFile, MyGraph)
 import IntDict exposing (IntDict)
+import Set exposing (Set)
 
 
 run : GraphFile -> List GraphFile
@@ -116,6 +118,16 @@ applyStepData inputGraph stepData =
         applyVertexData id vData =
             Graph.update id (Maybe.map (up vData))
 
-        -- TODO : Make predecessor edges red.
+        predEdges =
+            stepData
+                |> IntDict.toList
+                |> List.filterMap
+                    (\( id, { maybePred } ) ->
+                        maybePred |> Maybe.map (\pred -> ( pred, id ))
+                    )
+                |> Set.fromList
     in
-    stepData |> IntDict.foldr applyVertexData inputGraph
+    stepData
+        |> IntDict.foldr applyVertexData inputGraph
+        |> Graph.Extra.updateEdges predEdges
+            (\eP -> { eP | color = Colors.red })
