@@ -1,7 +1,7 @@
 module Algorithms.Dijkstra.API exposing (run)
 
 import Algorithm
-import Algorithms.Dijkstra exposing (InputData, StepData, VizData)
+import Algorithms.Dijkstra exposing (InputData, StepData)
 import Colors
 import Dict exposing (Dict)
 import Graph
@@ -74,8 +74,8 @@ fromMyGraph g =
     }
 
 
-toMyGraph : MyGraph -> ( StepData, VizData ) -> MyGraph
-toMyGraph inputGraph ( stepData, vizData ) =
+toMyGraph : MyGraph -> StepData -> MyGraph
+toMyGraph inputGraph stepData =
     let
         markVisited ({ label } as node) =
             { node
@@ -147,7 +147,7 @@ toMyGraph inputGraph ( stepData, vizData ) =
             { node | label = { label | color = color } }
 
         upNextVertextoHandle =
-            case vizData.nextVertextoHandle of
+            case Algorithms.Dijkstra.nextVertexToHandle stepData of
                 Just id ->
                     let
                         yellowize ctx =

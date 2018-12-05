@@ -1,11 +1,11 @@
-module Algorithms.Dijkstra exposing (InputData, StepData, VizData, algorithm)
+module Algorithms.Dijkstra exposing (InputData, StepData, algorithm, nextVertexToHandle)
 
 import Algorithm exposing (Algorithm)
 import IntDict exposing (IntDict)
 import Set exposing (Set)
 
 
-algorithm : Algorithm InputData StepData VizData
+algorithm : Algorithm InputData StepData
 algorithm =
     Algorithm.basic
         { init = init
@@ -44,19 +44,10 @@ type alias StepData =
 
 
 
--- vizData
-
-
-type alias VizData =
-    { nextVertextoHandle : Maybe VertexId
-    }
-
-
-
 -- init
 
 
-init : InputData -> ( StepData, VizData )
+init : InputData -> StepData
 init { startVertex, graph } =
     let
         initVertexState id _ =
@@ -73,14 +64,14 @@ init { startVertex, graph } =
         nextStepData =
             IntDict.map initVertexState graph
     in
-    withVizData nextStepData
+    nextStepData
 
 
 
 -- step
 
 
-step : InputData -> StepData -> Algorithm.StepResult StepData VizData
+step : InputData -> StepData -> Algorithm.StepResult StepData
 step inputData lastStep =
     case unvisitedWithTheSmallestTDist lastStep of
         Just idAndDist ->
@@ -92,17 +83,16 @@ step inputData lastStep =
 
 
 
+-- queries
+
+
+nextVertexToHandle : StepData -> Maybe VertexId
+nextVertexToHandle =
+    unvisitedWithTheSmallestTDist >> Maybe.map Tuple.first
+
+
+
 -- helpers
-
-
-withVizData : StepData -> ( StepData, VizData )
-withVizData nextStepData =
-    ( nextStepData
-    , { nextVertextoHandle =
-            unvisitedWithTheSmallestTDist nextStepData
-                |> Maybe.map Tuple.first
-      }
-    )
 
 
 unvisitedWithTheSmallestTDist : StepData -> Maybe ( VertexId, Int )
@@ -136,7 +126,7 @@ handleVertex :
     InputData
     -> StepData
     -> ( VertexId, Int )
-    -> ( StepData, VizData )
+    -> StepData
 handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
     let
         neighboursWithWeights =
@@ -171,14 +161,5 @@ handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
             neighboursWithWeights
                 |> IntDict.foldr updateNeighbour lastStep
                 |> IntDict.update idOfHandled (Maybe.map (\d -> { d | visited = True }))
-
-        nextVizData =
-            { lastHandledVertex = idOfHandled
-            , lastHandledEdges =
-                neighboursWithWeights
-                    |> IntDict.keys
-                    |> List.map (\nId -> ( idOfHandled, nId ))
-                    |> Set.fromList
-            }
     in
-    withVizData nextStepData
+    nextStepData
