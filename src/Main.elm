@@ -507,6 +507,7 @@ type Msg
     | ClickOnSaveFile
     | ClickOnCloseFile Int
     | ClickOnFileItem Int
+    | InputRenameFile String
       --
     | ClickOnRunDijsktraButton
 
@@ -1751,6 +1752,9 @@ updateHelper msg m =
                         }
             }
 
+        InputRenameFile str ->
+            { m | files = Files.rename str m.files }
+
         ClickOnRunDijsktraButton ->
             { m
                 | files =
@@ -2383,10 +2387,12 @@ leftBarContentForFiles m =
             { headerText = "All Files"
             , isOn = m.allFilesIsExpanded
             , headerButtons =
-                [ leftBarHeaderButton
-                    { title = "Rename File"
-                    , onClickMsg = ClickOnRenameFile
-                    , iconPath = Icons.icons.rename
+                [ textInput
+                    { labelText = ""
+                    , labelWidth = 0
+                    , inputWidth = 80
+                    , text = Files.getName m.files
+                    , onChange = InputRenameFile
                     }
                 , leftBarHeaderButton
                     { title = "New File"

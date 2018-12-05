@@ -6,11 +6,13 @@ module Files exposing
     , new, delete, deleteFocused
     , getFile, indexHasTheFocus, indexWithTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
     , reallyClose
+    , getName
     , present
     , hasFuture, hasPast
     , lengthPast
     , uLToList
     , mapPresent
+    , rename
     , save, saveAs
     , undo, redo, goTo
     , focus, set, saveAll, fileNames
@@ -68,6 +70,7 @@ It behaves similar to most editors, namely:
 
 # Querying Focused
 
+@docs getName
 @docs present
 @docs hasFuture, hasPast
 @docs lengthPast
@@ -77,6 +80,7 @@ It behaves similar to most editors, namely:
 # Updating Focused
 
 @docs mapPresent
+@docs rename
 @docs save, saveAs
 @docs undo, redo, goTo
 
@@ -223,9 +227,14 @@ getFocusedULWSProperty get default ((Files i _) as files) =
     getULWSProperty get default i files
 
 
-getName : File a -> Name
-getName (File name _) =
+getFileName : File a -> Name
+getFileName (File name _) =
     name
+
+
+renameFile : Name -> File a -> File a
+renameFile newName (File name arr) =
+    File newName arr
 
 
 applyToFocused : (Int -> Files a -> b) -> Files a -> b
@@ -298,6 +307,19 @@ set newState =
 mapPresent : (a -> a) -> Files a -> Files a
 mapPresent up =
     mapFocusedULWS (ULWS.mapPresent up)
+
+
+getName : Files a -> Name
+getName (Files i arr) =
+    arr
+        |> Array.get i
+        |> Maybe.map getFileName
+        |> Maybe.withDefault "-"
+
+
+rename : Name -> Files a -> Files a
+rename newName =
+    mapFocused (renameFile newName)
 
 
 deleteFocused : Files a -> Files a
@@ -387,7 +409,7 @@ getFile =
 
 fileNames : Files a -> List Name
 fileNames (Files _ arr) =
-    List.map getName (Array.toList arr)
+    List.map getFileName (Array.toList arr)
 
 
 closeAll : Files a -> Files a
