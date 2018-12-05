@@ -12,6 +12,7 @@ module Colors exposing
     , leftStripeIconSelected
     , lightGray
     , lightText
+    , linkBlue
     , mainSvgBackground
     , menuBackground
     , menuBorder
@@ -105,6 +106,14 @@ transition k start end =
         (tr s.green e.green)
         (tr s.blue e.blue)
         (tr s.alpha e.alpha)
+
+
+
+--
+
+
+linkBlue =
+    El.rgb255 18 133 206
 
 
 rectAroundSelectedVertices =

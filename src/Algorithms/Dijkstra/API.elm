@@ -11,8 +11,7 @@ import IntDict exposing (IntDict)
 
 run : GraphFile -> List GraphFile
 run inputGraphFile =
-    GF.getGraph inputGraphFile
-        |> runHelper
+    runHelper (GF.getGraph inputGraphFile)
         |> List.map (\g -> GF.setGraph g inputGraphFile)
 
 
@@ -24,11 +23,31 @@ runHelper inputGraph =
         |> List.reverse
 
 
-{-| Parses edge labels to ints and stores them as edge weights. If it cannot parse, then it assigns the default edge weight to the edge, which is 1.
+{-| If the the edges are labeled by numbers that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1.
+
+If there is vertex labeled with "start", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id.
+
 -}
 inputDataFromMyGraph : MyGraph -> InputData
 inputDataFromMyGraph g =
-    { startVertex = {- TODO: If there is a vertex labeled by "start" then start with it -} 1
+    { startVertex =
+        let
+            maybeVertexWithLabelStart =
+                Graph.nodes g
+                    |> List.filter (\{ label } -> label.label == Just "start")
+                    |> List.head
+        in
+        case maybeVertexWithLabelStart of
+            Just { id } ->
+                id
+
+            Nothing ->
+                case Graph.nodeIdRange g of
+                    Just ( minId, _ ) ->
+                        minId
+
+                    Nothing ->
+                        1
     , graph =
         let
             extract { from, to, label } =

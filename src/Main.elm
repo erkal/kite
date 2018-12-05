@@ -298,7 +298,7 @@ initialModel maybeSavedFiles =
     { files = maybeSavedFiles |> Maybe.withDefault defaultGraphFiles
 
     --
-    , distractionFree = True
+    , distractionFree = False
 
     --
     , focusIsOnSomeTextInput = False
@@ -333,7 +333,7 @@ initialModel maybeSavedFiles =
     , bagColorPickerIsExpanded = False
 
     --
-    , selectedMode = GraphsFolder
+    , selectedMode = AlgorithmVisualizations
 
     --
     , tableOfVerticesIsOn = True
@@ -688,16 +688,21 @@ updateHelper msg m =
             { m | selectedMode = selectedMode }
 
         ClickOnUndoButton ->
-            reheatForce
-                { m | files = Files.undo m.files }
+            { m
+                | files = Files.undo m.files
+                , animation = NoAnimation
+                , vaderIsOn = False
+            }
 
         ClickOnRedoButton ->
-            reheatForce
-                { m | files = Files.redo m.files }
+            { m
+                | files = Files.redo m.files
+                , animation = NoAnimation
+                , vaderIsOn = False
+            }
 
         ClickOnHistoryItem i ->
-            reheatForce
-                { m | files = Files.goTo i m.files }
+            { m | files = Files.goTo i m.files }
 
         ClickOnResetZoomAndPanButton ->
             { m
@@ -1000,6 +1005,8 @@ updateHelper msg m =
                             }
                                 |> reheatForce
                                 |> setAlphaTarget 0.3
+                                |> setPresent (current m)
+                                    "Started dragging subgraph"
 
                     else
                         let
@@ -1021,6 +1028,8 @@ updateHelper msg m =
                         }
                             |> reheatForce
                             |> setAlphaTarget 0.3
+                            |> setPresent (current m)
+                                "Started dragging subgraph"
 
                 _ ->
                     m
@@ -1104,6 +1113,8 @@ updateHelper msg m =
                             }
                                 |> reheatForce
                                 |> setAlphaTarget 0.3
+                                |> setPresent (current m)
+                                    "Started dragging subgraph"
 
                     else
                         let
@@ -1125,6 +1136,8 @@ updateHelper msg m =
                         }
                             |> reheatForce
                             |> setAlphaTarget 0.3
+                            |> setPresent (current m)
+                                "Started dragging subgraph"
 
                 _ ->
                     m
@@ -1695,12 +1708,13 @@ updateHelper msg m =
                         |> List.foldl
                             (\( i, gF ) ->
                                 Files.new
-                                    ("step " ++ String.fromInt i)
-                                    ( "Generated as step " ++ String.fromInt i
+                                    ("Dijsktra step-" ++ String.fromInt i)
+                                    ( "Generated as step " ++ String.fromInt i ++ " of Dijsktra's Algorithm."
                                     , gF
                                     )
                             )
                             m.files
+                , selectedMode = GraphsFolder
             }
 
 
@@ -2669,7 +2683,7 @@ leftBarContentForGraphGenerators m =
                 , El.pointer
                 , Events.onClick msg
                 ]
-                (El.html (Icons.draw14px Icons.icons.lightning))
+                (El.html (Icons.draw24px Icons.icons.lightning))
     in
     El.column [ El.width El.fill ]
         [ menu
@@ -2717,7 +2731,7 @@ leftBarContentForAlgorithmVisualizations m =
                 , El.pointer
                 , Events.onClick msg
                 ]
-                (El.html (Icons.draw14px Icons.icons.lightning))
+                (El.html (Icons.draw24px Icons.icons.lightning))
     in
     menu
         { headerText = "Dijsktra's Shortest Path"
@@ -2725,8 +2739,33 @@ leftBarContentForAlgorithmVisualizations m =
         , headerButtons = []
         , toggleMsg = NoOp
         , contentItems =
-            [ El.row [ El.padding 10, El.spacing 5 ]
-                [ runButton ClickOnRunDijsktraButton
+            [ El.textColumn [ El.width El.fill, El.padding 24, El.spacing 10 ]
+                [ El.paragraph []
+                    [ El.text
+                        "When you hit the lightning button, "
+                    , El.el
+                        [ El.alignLeft
+                        ]
+                        (runButton ClickOnRunDijsktraButton)
+                    , El.newTabLink
+                        [ Font.underline
+                        , Font.italic
+
+                        --, Font.color Colors.linkBlue
+                        ]
+                        { url =
+                            "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm"
+                        , label =
+                            El.text "Dijkstra's Shortest Path Algorithm"
+                        }
+                    , El.text
+                        " is going to run on the current graph."
+                    ]
+                , El.paragraph []
+                    [ El.text "If an edge is labeled by a number, that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1." ]
+                , El.paragraph []
+                    [ El.text "If there is vertex labeled with \"start\", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id."
+                    ]
                 ]
             ]
         }
@@ -4259,7 +4298,7 @@ viewEdges graphFile =
                             , color = label.color
                             , thickness = label.thickness
                             , headWidth = 3 * label.thickness
-                            , headLength = 10
+                            , headLength = 3 * label.thickness
                             }
                         , edgeLabel
                         ]
