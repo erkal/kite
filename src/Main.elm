@@ -1,7 +1,8 @@
 port module Main exposing (main)
 
+import Algorithms.Dijkstra.API
 import BoundingBox2d exposing (BoundingBox2d)
-import Browser
+import Browser exposing (Document)
 import Browser.Dom as Dom
 import Browser.Events exposing (Visibility(..))
 import Circle2d exposing (Circle2d)
@@ -37,6 +38,7 @@ import Svg.Keyed
 import Task
 import Time
 import Transition
+import Triangle2d exposing (Triangle2d)
 import Vector2d exposing (Vector2d)
 
 
@@ -44,24 +46,8 @@ main : Program (Maybe Value) Model Msg
 main =
     Browser.document
         { init = init
-        , view = \m -> { title = "Kite", body = [ mainSvg m, view m ] }
-        , update =
-            \msg m ->
-                case msg of
-                    ClickOnSaveFile ->
-                        let
-                            newModel =
-                                update msg m
-                        in
-                        ( newModel
-                        , setStorage
-                            (JE.encode 4 (encodeGraphFiles newModel.files))
-                        )
-
-                    _ ->
-                        ( update msg m
-                        , Cmd.none
-                        )
+        , view = view
+        , update = update
         , subscriptions = subscriptions
         }
 
@@ -83,18 +69,6 @@ init maybeValue =
             initialModel Nothing
     , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
     )
-
-
-encodeGraphFiles : Files ( String, GraphFile ) -> Value
-encodeGraphFiles graphFiles =
-    let
-        encodeFileData ( _, graphFile ) =
-            JE.object
-                [ ( "description", JE.null )
-                , ( "graphFile", GF.encode graphFile )
-                ]
-    in
-    Files.encode encodeFileData graphFiles
 
 
 graphFilesDecoder : Decoder (Files ( String, GraphFile ))
@@ -121,6 +95,47 @@ mousePosition =
     JD.map2 MousePosition
         (JD.field "clientX" JD.int)
         (JD.field "clientY" JD.int)
+
+
+view : Model -> Document Msg
+view m =
+    { title = "Kite"
+    , body =
+        [ mainSvg m
+        , viewHelper m
+        ]
+    }
+
+
+encodeGraphFiles : Files ( String, GraphFile ) -> Value
+encodeGraphFiles graphFiles =
+    let
+        encodeFileData ( _, graphFile ) =
+            JE.object
+                [ ( "description", JE.null )
+                , ( "graphFile", GF.encode graphFile )
+                ]
+    in
+    Files.encode encodeFileData graphFiles
+
+
+update : Msg -> Model -> ( Model, Cmd msg )
+update msg m =
+    case msg of
+        ClickOnSaveFile ->
+            let
+                newModel =
+                    updateHelper msg m
+            in
+            ( newModel
+            , setStorage
+                (JE.encode 4 (encodeGraphFiles newModel.files))
+            )
+
+        _ ->
+            ( updateHelper msg m
+            , Cmd.none
+            )
 
 
 
@@ -214,31 +229,6 @@ type Animation
         }
 
 
-type TransitionState
-    = TransitionState
-        { elapsed : Float
-        , duration : Float
-        }
-
-
-defaultTransitionState : TransitionState
-defaultTransitionState =
-    TransitionState
-        { elapsed = 0
-        , duration = 1000
-        }
-
-
-updateTransitionState : Float -> TransitionState -> TransitionState
-updateTransitionState timeDelta (TransitionState tS) =
-    TransitionState { tS | elapsed = tS.elapsed + timeDelta }
-
-
-transitionHasFinished : TransitionState -> Bool
-transitionHasFinished (TransitionState { elapsed, duration }) =
-    elapsed > duration
-
-
 type Mode
     = GraphsFolder
     | ListsOfBagsVerticesAndEdges
@@ -299,7 +289,7 @@ type GravityState
 
 defaultGraphFiles : Files ( String, GraphFile )
 defaultGraphFiles =
-    Files.singleton "graph-0"
+    Files.singleton "my-first-graph"
         ( "Started with empty graph", GF.default )
 
 
@@ -308,7 +298,7 @@ initialModel maybeSavedFiles =
     { files = maybeSavedFiles |> Maybe.withDefault defaultGraphFiles
 
     --
-    , distractionFree = True
+    , distractionFree = False
 
     --
     , focusIsOnSomeTextInput = False
@@ -343,7 +333,7 @@ initialModel maybeSavedFiles =
     , bagColorPickerIsExpanded = False
 
     --
-    , selectedMode = GraphsFolder
+    , selectedMode = AlgorithmVisualizations
 
     --
     , tableOfVerticesIsOn = True
@@ -513,6 +503,8 @@ type Msg
     | ClickOnSaveFile
     | ClickOnCloseFile Int
     | ClickOnFileItem Int
+      --
+    | ClickOnRunDijsktraButton
 
 
 reheatForce : Model -> Model
@@ -580,8 +572,8 @@ withNewGravityCenter m =
             |> GF.updateVertices m.selectedVertices updateGravity
 
 
-update : Msg -> Model -> Model
-update msg m =
+updateHelper : Msg -> Model -> Model
+updateHelper msg m =
     case msg of
         NoOp ->
             m
@@ -696,16 +688,21 @@ update msg m =
             { m | selectedMode = selectedMode }
 
         ClickOnUndoButton ->
-            reheatForce
-                { m | files = Files.undo m.files }
+            { m
+                | files = Files.undo m.files
+                , animation = NoAnimation
+                , vaderIsOn = False
+            }
 
         ClickOnRedoButton ->
-            reheatForce
-                { m | files = Files.redo m.files }
+            { m
+                | files = Files.redo m.files
+                , animation = NoAnimation
+                , vaderIsOn = False
+            }
 
         ClickOnHistoryItem i ->
-            reheatForce
-                { m | files = Files.goTo i m.files }
+            { m | files = Files.goTo i m.files }
 
         ClickOnResetZoomAndPanButton ->
             { m
@@ -1008,6 +1005,8 @@ update msg m =
                             }
                                 |> reheatForce
                                 |> setAlphaTarget 0.3
+                                |> setPresent (current m)
+                                    "Started dragging subgraph"
 
                     else
                         let
@@ -1029,6 +1028,8 @@ update msg m =
                         }
                             |> reheatForce
                             |> setAlphaTarget 0.3
+                            |> setPresent (current m)
+                                "Started dragging subgraph"
 
                 _ ->
                     m
@@ -1112,6 +1113,8 @@ update msg m =
                             }
                                 |> reheatForce
                                 |> setAlphaTarget 0.3
+                                |> setPresent (current m)
+                                    "Started dragging subgraph"
 
                     else
                         let
@@ -1133,6 +1136,8 @@ update msg m =
                         }
                             |> reheatForce
                             |> setAlphaTarget 0.3
+                            |> setPresent (current m)
+                                "Started dragging subgraph"
 
                 _ ->
                     m
@@ -1694,6 +1699,24 @@ update msg m =
                         }
             }
 
+        ClickOnRunDijsktraButton ->
+            { m
+                | files =
+                    current m
+                        |> Algorithms.Dijkstra.API.run
+                        |> List.indexedMap Tuple.pair
+                        |> List.foldl
+                            (\( i, gF ) ->
+                                Files.new
+                                    ("Dijsktra step-" ++ String.fromInt i)
+                                    ( "Generated as step " ++ String.fromInt i ++ " of Dijsktra's Algorithm."
+                                    , gF
+                                    )
+                            )
+                            m.files
+                , selectedMode = GraphsFolder
+            }
+
 
 
 -- SUBSCRIPTIONS
@@ -1854,8 +1877,8 @@ edgeIdsToString es =
     "{ " ++ inside ++ " }"
 
 
-view : Model -> Html Msg
-view m =
+viewHelper : Model -> Html Msg
+viewHelper m =
     El.layoutWith
         { options =
             [ El.focusStyle
@@ -2247,7 +2270,7 @@ leftBarContentForFiles m =
                 [ Font.bold, Font.color Colors.white ]
 
             else
-                -- TODO
+                -- TODO: Show extending background bar on transition animation
                 []
 
         item i name =
@@ -2660,7 +2683,7 @@ leftBarContentForGraphGenerators m =
                 , El.pointer
                 , Events.onClick msg
                 ]
-                (El.html (Icons.draw14px Icons.icons.lightning))
+                (El.html (Icons.draw24px Icons.icons.lightning))
     in
     El.column [ El.width El.fill ]
         [ menu
@@ -2696,12 +2719,55 @@ leftBarContentForGraphGenerators m =
 
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
 leftBarContentForAlgorithmVisualizations m =
+    let
+        runButton : Msg -> Element Msg
+        runButton msg =
+            El.el
+                [ El.htmlAttribute (HA.title "Run!")
+                , El.alignRight
+                , Border.rounded 4
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                , El.pointer
+                , Events.onClick msg
+                ]
+                (El.html (Icons.draw24px Icons.icons.lightning))
+    in
     menu
-        { headerText = "Algorithm Visualizations (coming soon)"
+        { headerText = "Dijsktra's Shortest Path"
         , isOn = True
         , headerButtons = []
         , toggleMsg = NoOp
-        , contentItems = []
+        , contentItems =
+            [ El.textColumn [ El.width El.fill, El.padding 24, El.spacing 10 ]
+                [ El.paragraph []
+                    [ El.text
+                        "When you hit the lightning button, "
+                    , El.el
+                        [ El.alignLeft
+                        ]
+                        (runButton ClickOnRunDijsktraButton)
+                    , El.newTabLink
+                        [ Font.underline
+                        , Font.italic
+
+                        --, Font.color Colors.linkBlue
+                        ]
+                        { url =
+                            "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm"
+                        , label =
+                            El.text "Dijkstra's Shortest Path Algorithm"
+                        }
+                    , El.text
+                        " is going to run on the current graph."
+                    ]
+                , El.paragraph []
+                    [ El.text "If an edge is labeled by a number, that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1." ]
+                , El.paragraph []
+                    [ El.text "If there is vertex labeled with \"start\", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id."
+                    ]
+                ]
+            ]
         }
 
 
@@ -4101,6 +4167,56 @@ maybeRectAroundSelectedVertices selectedTool selectedVertices graphFile =
 -- GRAPH VIEW
 
 
+arrow :
+    { lineSegment : LineSegment2d
+    , color : Color
+    , thickness : Float
+    , headWidth : Float
+    , headLength : Float
+    }
+    -> Html Msg
+arrow { lineSegment, color, thickness, headWidth, headLength } =
+    let
+        dir =
+            LineSegment2d.direction lineSegment
+                |> Maybe.withDefault Direction2d.positiveX
+
+        angle =
+            Direction2d.toAngle dir
+
+        vecFromOriginToEndPoint =
+            LineSegment2d.endPoint lineSegment
+                |> Point2d.coordinates
+                |> Vector2d.fromComponents
+
+        arrowHead =
+            Triangle2d.fromVertices
+                ( Point2d.fromCoordinates ( 0, -headWidth / 2 )
+                , Point2d.fromCoordinates ( 0, headWidth / 2 )
+                , Point2d.fromCoordinates ( headLength, 0 )
+                )
+                |> Triangle2d.rotateAround Point2d.origin angle
+                |> Triangle2d.translateBy vecFromOriginToEndPoint
+                |> Triangle2d.translateIn dir -headLength
+    in
+    S.g []
+        [ Geometry.Svg.lineSegment2d
+            [ SA.stroke (Colors.toString color)
+            , SA.strokeWidth (String.fromFloat thickness)
+            ]
+            (LineSegment2d.from
+                (LineSegment2d.startPoint lineSegment)
+                (LineSegment2d.endPoint lineSegment
+                    |> Point2d.translateIn dir -headLength
+                )
+            )
+        , Geometry.Svg.triangle2d
+            [ SA.fill (Colors.toString color)
+            ]
+            arrowHead
+        ]
+
+
 viewEdges : GraphFile -> Html Msg
 viewEdges graphFile =
     let
@@ -4125,18 +4241,31 @@ viewEdges graphFile =
             case ( GF.getVertexProperties from graphFile, GF.getVertexProperties to graphFile ) of
                 ( Just v, Just w ) ->
                     let
+                        dir =
+                            Direction2d.from v.position w.position
+                                |> Maybe.withDefault Direction2d.positiveX
+
+                        edgeStart =
+                            v.position |> Point2d.translateIn dir v.radius
+
+                        edgeEnd =
+                            w.position |> Point2d.translateIn dir -w.radius
+
                         edgeLine =
-                            LineSegment2d.from v.position w.position
+                            LineSegment2d.from edgeStart edgeEnd
 
                         lP =
                             labelPosition edgeLine
 
                         eL =
                             S.text_
-                                [ SA.x (String.fromFloat (Point2d.xCoordinate lP))
-                                , SA.y (String.fromFloat (Point2d.yCoordinate lP))
+                                [ SA.x
+                                    (String.fromFloat (Point2d.xCoordinate lP))
+                                , SA.y
+                                    (String.fromFloat (Point2d.yCoordinate lP))
                                 , SA.textAnchor "middle"
-                                , SA.fill (Colors.toString Colors.lightText)
+                                , SA.fontSize (String.fromInt label.labelSize)
+                                , SA.fill (Colors.toString label.color)
                                 ]
                                 [ S.text <|
                                     case label.label of
@@ -4153,6 +4282,14 @@ viewEdges graphFile =
 
                             else
                                 emptySvgElement
+
+                        invisibleBackGroundHandle =
+                            Geometry.Svg.lineSegment2d
+                                [ SA.stroke "red"
+                                , SA.strokeOpacity "0"
+                                , SA.strokeWidth (String.fromFloat (label.thickness + 6))
+                                ]
+                                edgeLine
                     in
                     ( edgeIdToString ( from, to )
                     , S.g
@@ -4161,17 +4298,14 @@ viewEdges graphFile =
                         , SE.onMouseOver (MouseOverEdge ( from, to ))
                         , SE.onMouseOut (MouseOutEdge ( from, to ))
                         ]
-                        [ Geometry.Svg.lineSegment2d
-                            [ SA.stroke "red"
-                            , SA.strokeOpacity "0"
-                            , SA.strokeWidth (String.fromFloat (label.thickness + 6))
-                            ]
-                            edgeLine
-                        , Geometry.Svg.lineSegment2d
-                            [ SA.stroke (Colors.toString label.color)
-                            , SA.strokeWidth (String.fromFloat label.thickness)
-                            ]
-                            edgeLine
+                        [ invisibleBackGroundHandle
+                        , arrow
+                            { lineSegment = edgeLine
+                            , color = label.color
+                            , thickness = label.thickness
+                            , headWidth = 3 * label.thickness
+                            , headLength = 3 * label.thickness
+                            }
                         , edgeLabel
                         ]
                     )
@@ -4199,18 +4333,16 @@ viewVertices graphFile =
 
         viewVertex { id, label } =
             let
-                { position, color, radius, fixed } =
-                    label
-
                 ( x, y ) =
-                    Point2d.coordinates position
+                    Point2d.coordinates label.position
 
                 vertexLabel =
                     if label.labelIsVisible then
                         S.text_
-                            [ SA.fill (Colors.toString Colors.lightText)
+                            [ SA.fill (Colors.toString label.color)
                             , SA.textAnchor "middle"
-                            , SA.y "-10"
+                            , SA.fontSize (String.fromInt label.labelSize)
+                            , SA.y (String.fromFloat -(label.radius + 4))
                             ]
                             [ S.text <|
                                 case label.label of
@@ -4232,9 +4364,9 @@ viewVertices graphFile =
                 , SE.onMouseOver (MouseOverVertex id)
                 , SE.onMouseOut (MouseOutVertex id)
                 ]
-                [ Geometry.Svg.circle2d [ SA.fill (Colors.toString color) ]
-                    (Point2d.origin |> Circle2d.withRadius radius)
-                , pin fixed radius
+                [ Geometry.Svg.circle2d [ SA.fill (Colors.toString label.color) ]
+                    (Point2d.origin |> Circle2d.withRadius label.radius)
+                , pin label.fixed label.radius
                 , vertexLabel
                 ]
             )

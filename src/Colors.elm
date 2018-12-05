@@ -10,8 +10,11 @@ module Colors exposing
     , inputBackground
     , leftBarHeader
     , leftStripeIconSelected
+    , lightBlue
     , lightGray
     , lightText
+    , linearTransition
+    , linkBlue
     , mainSvgBackground
     , menuBackground
     , menuBorder
@@ -27,7 +30,6 @@ module Colors exposing
     , sliderThumb
     , svgLine
     , toString
-    , transition
     , vertexAndEdgeColors
     , white
     , yellow
@@ -91,8 +93,8 @@ decoder =
 --
 
 
-transition : Float -> Color -> Color -> Color
-transition k start end =
+linearTransition : Float -> Color -> Color -> Color
+linearTransition k start end =
     let
         ( s, e ) =
             ( El.toRgb start, El.toRgb end )
@@ -105,6 +107,14 @@ transition k start end =
         (tr s.green e.green)
         (tr s.blue e.blue)
         (tr s.alpha e.alpha)
+
+
+
+--
+
+
+linkBlue =
+    El.rgb255 18 133 206
 
 
 rectAroundSelectedVertices =
@@ -137,6 +147,10 @@ sliderThumb =
 
 highlightPink =
     El.rgb255 255 47 146
+
+
+lightBlue =
+    El.rgb255 134 204 247
 
 
 selectBlue =
