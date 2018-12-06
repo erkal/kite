@@ -223,8 +223,8 @@ type Animation
     = NoAnimation
     | ForceAnimation Force.State
     | TransitionAnimation
-        { fromGraphAt : Int
-        , toGraphAt : Int
+        { startGraph : GraphFile
+        , endGraph : GraphFile
         , transitionState : Transition.State
         }
 
@@ -501,12 +501,11 @@ type Msg
     | ClickOnGenerateStarGraphButton
       --
     | ClickOnNewFile
-    | ClickOnRenameFile
     | ClickOnDuplicateFile
     | ClickOnDeleteFile
     | ClickOnSaveFile
-    | ClickOnCloseFile Int
-    | ClickOnFileItem Int
+    | ClickOnCloseFile
+    | ClickOnFileItem String
     | InputRenameFile String
       --
     | ClickOnRunDijsktraButton
@@ -539,19 +538,14 @@ stopAnimation m =
     { m | animation = NoAnimation }
 
 
-current : Model -> GraphFile
-current m =
-    Tuple.second (Files.present ( "", GF.default ) m.files)
+present : Model -> GraphFile
+present m =
+    Tuple.second (Files.present m.files)
 
 
-graphFileAt : Int -> Model -> GraphFile
-graphFileAt i m =
-    Tuple.second (Files.getFile ( "", GF.default ) i m.files)
-
-
-setPresent : GraphFile -> String -> Model -> Model
-setPresent newFile description m =
-    { m | files = m.files |> Files.set ( description, newFile ) }
+new : GraphFile -> String -> Model -> Model
+new newFile description m =
+    { m | files = m.files |> Files.new ( description, newFile ) }
 
 
 setPresentWithoutrecording : GraphFile -> Model -> Model
@@ -569,11 +563,11 @@ withNewGravityCenter m =
             { v | gravityCenter = m.svgMousePosition }
     in
     if Set.isEmpty m.selectedVertices then
-        current m
+        present m
             |> GF.updateDefaultVertexProperties updateGravity
 
     else
-        current m
+        present m
             |> GF.updateVertices m.selectedVertices updateGravity
 
 
@@ -592,7 +586,7 @@ updateHelper msg m =
                     else
                         let
                             ( newForceState, newFile_ ) =
-                                GF.forceTick forceState (current m)
+                                GF.forceTick forceState (present m)
 
                             newFile =
                                 case m.selectedTool of
@@ -707,7 +701,7 @@ updateHelper msg m =
             }
 
         ClickOnHistoryItem i ->
-            { m | files = Files.goTo i m.files }
+            { m | files = Files.goToInHistory i m.files }
 
         ClickOnResetZoomAndPanButton ->
             { m
@@ -770,11 +764,11 @@ updateHelper msg m =
                                 newSelectedVertices =
                                     GF.vertexIdsInBoundingBox
                                         (BoundingBox2d.from brushStart m.svgMousePosition)
-                                        (current m)
+                                        (present m)
                             in
                             { m
                                 | selectedVertices = newSelectedVertices
-                                , selectedEdges = current m |> GF.inducedEdges newSelectedVertices
+                                , selectedEdges = present m |> GF.inducedEdges newSelectedVertices
                             }
 
                         LineSelector ->
@@ -785,7 +779,7 @@ updateHelper msg m =
                                             brushStart
                                             m.svgMousePosition
                                         )
-                                        (current m)
+                                        (present m)
                             in
                             { m
                                 | selectedEdges = newSelectedEdges
@@ -803,7 +797,7 @@ updateHelper msg m =
                                 |> List.map (Tuple.mapSecond (Point2d.translateBy delta))
 
                         newFile =
-                            current m
+                            present m
                                 |> GF.setVertexPositions newVertexPositions
                     in
                     m |> setPresentWithoutrecording newFile
@@ -826,8 +820,7 @@ updateHelper msg m =
                 Gravity GravityDragging ->
                     m
                         |> reheatForce
-                        |> setPresentWithoutrecording
-                            (withNewGravityCenter m)
+                        |> setPresentWithoutrecording (withNewGravityCenter m)
 
                 _ ->
                     m
@@ -874,7 +867,7 @@ updateHelper msg m =
                         | selectedTool = Select SelectIdle
                     }
                         |> setAlphaTarget 0
-                        |> setPresent (current m)
+                        |> new (present m)
                             "Moved some vertices"
 
                 Hand (Panning _) ->
@@ -882,7 +875,7 @@ updateHelper msg m =
 
                 Gravity GravityDragging ->
                     { m | selectedTool = Gravity GravityIdle }
-                        |> setPresent (withNewGravityCenter m)
+                        |> new (withNewGravityCenter m)
                             "Changed gravity center of some vertices"
 
                 _ ->
@@ -893,14 +886,13 @@ updateHelper msg m =
                 Draw DrawIdle ->
                     let
                         ( newFile, sourceId ) =
-                            current m |> GF.addVertex m.svgMousePosition
+                            present m |> GF.addVertex m.svgMousePosition
                     in
                     { m
                         | selectedTool = Draw (BrushingNewEdgeWithSourceId sourceId)
                     }
                         |> stopAnimation
-                        |> setPresent newFile
-                            ("Added vertex " ++ vertexIdToString sourceId)
+                        |> new newFile "Added a vertex"
 
                 Select SelectIdle ->
                     { m | selectedTool = Select (BrushingForSelection { brushStart = m.svgMousePosition }) }
@@ -913,7 +905,7 @@ updateHelper msg m =
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     let
                         ( graphWithAddedVertex, newId ) =
-                            current m
+                            present m
                                 |> GF.addVertex m.svgMousePosition
 
                         newFile =
@@ -922,12 +914,7 @@ updateHelper msg m =
                     in
                     { m | selectedTool = Draw DrawIdle }
                         |> reheatForce
-                        |> setPresent newFile
-                            ("Added vertex "
-                                ++ vertexIdToString newId
-                                ++ " and edge "
-                                ++ edgeIdToString ( sourceId, newId )
-                            )
+                        |> new newFile "Added a vertex and an edge."
 
                 _ ->
                     m
@@ -948,7 +935,7 @@ updateHelper msg m =
                 Gravity GravityIdle ->
                     { m | selectedTool = Gravity GravityDragging }
                         |> reheatForce
-                        |> setPresent (withNewGravityCenter m)
+                        |> new (withNewGravityCenter m)
                             "Changed gravity center of some vertices"
 
                 _ ->
@@ -976,7 +963,7 @@ updateHelper msg m =
                         if m.altIsDown then
                             let
                                 ( newFile, newSelectedVertices, newSelectedEdges ) =
-                                    current m
+                                    present m
                                         |> GF.duplicateSubgraph m.selectedVertices m.selectedEdges
                             in
                             { m
@@ -994,7 +981,7 @@ updateHelper msg m =
                             }
                                 |> setAlphaTarget 0.3
                                 |> stopAnimation
-                                |> setPresent newFile "Duplicated a subgraph"
+                                |> new newFile "Duplicated a subgraph"
 
                         else
                             { m
@@ -1003,15 +990,14 @@ updateHelper msg m =
                                         (DraggingSelection
                                             { brushStart = m.svgMousePosition
                                             , vertexPositionsAtStart =
-                                                current m
+                                                present m
                                                     |> GF.getVertexIdsWithPositions m.selectedVertices
                                             }
                                         )
                             }
                                 |> reheatForce
                                 |> setAlphaTarget 0.3
-                                |> setPresent (current m)
-                                    "Started dragging subgraph"
+                                |> new (present m) "Started dragging subgraph"
 
                     else
                         let
@@ -1026,15 +1012,14 @@ updateHelper msg m =
                                     (DraggingSelection
                                         { brushStart = m.svgMousePosition
                                         , vertexPositionsAtStart =
-                                            current m
+                                            present m
                                                 |> GF.getVertexIdsWithPositions newSelectedVertices
                                         }
                                     )
                         }
                             |> reheatForce
                             |> setAlphaTarget 0.3
-                            |> setPresent (current m)
-                                "Started dragging subgraph"
+                            |> new (present m) "Started dragging subgraph"
 
                 _ ->
                     m
@@ -1049,15 +1034,11 @@ updateHelper msg m =
                     else
                         let
                             newFile =
-                                current m
-                                    |> GF.addEdge ( sourceId, targetId )
+                                present m |> GF.addEdge ( sourceId, targetId )
                         in
                         { m | selectedTool = Draw DrawIdle }
                             |> reheatForce
-                            |> setPresent newFile
-                                ("Added edge "
-                                    ++ edgeIdToString ( sourceId, targetId )
-                                )
+                            |> new newFile "Added an edge"
 
                 _ ->
                     m
@@ -1067,7 +1048,7 @@ updateHelper msg m =
                 Draw DrawIdle ->
                     let
                         ( newFile, newId ) =
-                            current m
+                            present m
                                 |> GF.divideEdge m.svgMousePosition ( s, t )
                     in
                     { m
@@ -1075,19 +1056,14 @@ updateHelper msg m =
                         , selectedTool = Draw (BrushingNewEdgeWithSourceId newId)
                     }
                         |> stopAnimation
-                        |> setPresent newFile
-                            ("Divided Edge "
-                                ++ edgeIdToString ( s, t )
-                                ++ " by vertex "
-                                ++ vertexIdToString newId
-                            )
+                        |> new newFile "Divided an edge"
 
                 Select SelectIdle ->
                     if Set.member ( s, t ) m.selectedEdges then
                         if m.altIsDown then
                             let
                                 ( newFile, newSelectedVertices, newSelectedEdges ) =
-                                    current m
+                                    present m
                                         |> GF.duplicateSubgraph m.selectedVertices m.selectedEdges
                             in
                             { m
@@ -1102,7 +1078,7 @@ updateHelper msg m =
                                         )
                             }
                                 |> stopAnimation
-                                |> setPresent newFile "Duplicated a subgraph"
+                                |> new newFile "Duplicated a subgraph"
 
                         else
                             { m
@@ -1111,15 +1087,14 @@ updateHelper msg m =
                                         (DraggingSelection
                                             { brushStart = m.svgMousePosition
                                             , vertexPositionsAtStart =
-                                                current m
+                                                present m
                                                     |> GF.getVertexIdsWithPositions m.selectedVertices
                                             }
                                         )
                             }
                                 |> reheatForce
                                 |> setAlphaTarget 0.3
-                                |> setPresent (current m)
-                                    "Started dragging subgraph"
+                                |> new (present m) "Started dragging subgraph"
 
                     else
                         let
@@ -1134,15 +1109,14 @@ updateHelper msg m =
                                     (DraggingSelection
                                         { brushStart = m.svgMousePosition
                                         , vertexPositionsAtStart =
-                                            current m
+                                            present m
                                                 |> GF.getVertexIdsWithPositions newSelectedVertices
                                         }
                                     )
                         }
                             |> reheatForce
                             |> setAlphaTarget 0.3
-                            |> setPresent (current m)
-                                "Started dragging subgraph"
+                            |> new (present m) "Started dragging subgraph"
 
                 _ ->
                     m
@@ -1152,7 +1126,7 @@ updateHelper msg m =
                 Draw (BrushingNewEdgeWithSourceId sourceId) ->
                     let
                         ( newFile_, newId ) =
-                            current m
+                            present m
                                 |> GF.divideEdge m.svgMousePosition ( s, t )
 
                         newFile =
@@ -1163,14 +1137,7 @@ updateHelper msg m =
                         , selectedTool = Draw DrawIdle
                     }
                         |> reheatForce
-                        |> setPresent newFile
-                            ("Divided Edge "
-                                ++ edgeIdToString ( s, t )
-                                ++ " by adding vertex "
-                                ++ vertexIdToString newId
-                                ++ " and added edge "
-                                ++ edgeIdToString ( sourceId, newId )
-                            )
+                        |> new newFile "Divided an Edge by the endpoint of another edge"
 
                 _ ->
                     m
@@ -1194,11 +1161,9 @@ updateHelper msg m =
                     }
 
                 newFile =
-                    current m |> GF.updateBag bagId updateLabel
+                    present m |> GF.updateBag bagId updateLabel
             in
-            m
-                |> setPresent newFile
-                    "Changed the label of the bag"
+            m |> new newFile "Changed the label of the bag"
 
         InputBagConvexHull bagId b ->
             let
@@ -1206,11 +1171,9 @@ updateHelper msg m =
                     { bag | hasConvexHull = b }
 
                 newFile =
-                    current m |> GF.updateBag bagId updateCH
+                    present m |> GF.updateBag bagId updateCH
             in
-            m
-                |> setPresent newFile
-                    "Toggled convex hull of a bag"
+            m |> new newFile "Toggled convex hull of a bag"
 
         InputBagColor bagId color ->
             let
@@ -1218,33 +1181,27 @@ updateHelper msg m =
                     { bag | color = color }
 
                 newFile =
-                    current m |> GF.updateBag bagId updateColor
+                    present m |> GF.updateBag bagId updateColor
             in
-            m
-                |> setPresent newFile
-                    "Changed color of a bag"
+            m |> new newFile "Changed color of a bag"
 
         InputVertexX str ->
             let
                 newFile =
-                    current m
+                    present m
                         |> GF.setCentroidX m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
-            m
-                |> setPresent newFile
-                    "Changed the X coordinate of vertices"
+            m |> new newFile "Changed the X coordinate of vertices"
 
         InputVertexY str ->
             let
                 newFile =
-                    current m
+                    present m
                         |> GF.setCentroidY m.selectedVertices
                             (str |> String.toFloat |> Maybe.withDefault 0)
             in
-            m
-                |> setPresent newFile
-                    "Changed the Y coordinate of some vertices"
+            m |> new newFile "Changed the Y coordinate of some vertices"
 
         InputVertexLabelSize str ->
             let
@@ -1253,16 +1210,14 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.updateDefaultVertexProperties updateLabelSize
 
                     else
-                        current m
+                        present m
                             |> GF.updateVertices m.selectedVertices updateLabelSize
             in
-            m
-                |> setPresent newFile
-                    "Changed label size of some vertices"
+            m |> new newFile "Changed label size of some vertices"
 
         InputVertexLabelAbove b ->
             let
@@ -1271,37 +1226,28 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.updateDefaultVertexProperties updateLabelAbove
 
                     else
-                        current m
+                        present m
                             |> GF.updateVertices m.selectedVertices updateLabelAbove
             in
-            m
-                |> setPresent newFile
-                    "Changed label position of some vertices"
+            m |> new newFile "Changed label position of some vertices"
 
         InputVertexColor newColor ->
             let
                 updateColor v =
                     { v | color = newColor }
 
-                ( newFile, description ) =
+                newFile =
                     if Set.isEmpty m.selectedVertices then
-                        ( current m
-                            |> GF.updateDefaultVertexProperties updateColor
-                        , "Changed the color of some vertices"
-                        )
+                        present m |> GF.updateDefaultVertexProperties updateColor
 
                     else
-                        ( current m
-                            |> GF.updateVertices m.selectedVertices updateColor
-                        , "Changed the default vertex color"
-                        )
+                        present m |> GF.updateVertices m.selectedVertices updateColor
             in
-            m
-                |> setPresent newFile description
+            m |> new newFile "Changed label position of some vertices"
 
         InputVertexRadius num ->
             let
@@ -1310,16 +1256,14 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.updateDefaultVertexProperties updateRadius
 
                     else
-                        current m
+                        present m
                             |> GF.updateVertices m.selectedVertices updateRadius
             in
-            m
-                |> setPresent newFile
-                    "Changed the radius of some vertices"
+            m |> new newFile "Changed the radius of some vertices"
 
         InputVertexGravityStrength num ->
             let
@@ -1328,17 +1272,16 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.updateDefaultVertexProperties updateGravityStrength
 
                     else
-                        current m
+                        present m
                             |> GF.updateVertices m.selectedVertices updateGravityStrength
             in
             m
                 |> reheatForce
-                |> setPresent newFile
-                    "Changed gravity strength of some vertices"
+                |> new newFile "Changed gravity strength of some vertices"
 
         InputVertexCharge num ->
             let
@@ -1347,17 +1290,16 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.updateDefaultVertexProperties updateManyBodyStrength
 
                     else
-                        current m
+                        present m
                             |> GF.updateVertices m.selectedVertices updateManyBodyStrength
             in
             m
                 |> reheatForce
-                |> setPresent newFile
-                    "Changed the strength of some vertices"
+                |> new newFile "Changed the strength of some vertices"
 
         InputVertexLabel str ->
             let
@@ -1373,16 +1315,14 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.updateDefaultVertexProperties updateLabel
 
                     else
-                        current m
+                        present m
                             |> GF.updateVertices m.selectedVertices updateLabel
             in
-            m
-                |> setPresent newFile
-                    "Changed the label of some vertices"
+            m |> new newFile "Changed the label of some vertices"
 
         InputVertexFixed b ->
             let
@@ -1391,26 +1331,16 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.updateDefaultVertexProperties updateFixed
 
                     else
-                        current m
+                        present m
                             |> GF.updateVertices m.selectedVertices updateFixed
-
-                descriptionStart =
-                    if b then
-                        "Fixed vertices "
-
-                    else
-                        "Released vertices "
             in
             m
                 |> reheatForce
-                |> setPresent newFile
-                    (descriptionStart
-                        ++ vertexIdsToString (Set.toList m.selectedVertices)
-                    )
+                |> new newFile "changed fixed property of some vertices"
 
         InputVertexLabelVisibility b ->
             let
@@ -1419,16 +1349,14 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.updateDefaultVertexProperties updateLabelVisibility
 
                     else
-                        current m
+                        present m
                             |> GF.updateVertices m.selectedVertices updateLabelVisibility
             in
-            m
-                |> setPresent newFile
-                    "Toggled the labels of some edges"
+            m |> new newFile "Toggled the labels of some edges"
 
         InputEdgeLabelVisibility b ->
             let
@@ -1437,16 +1365,14 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedEdges then
-                        current m
+                        present m
                             |> GF.updateDefaultEdgeProperties updateLabelVisibility
 
                     else
-                        current m
+                        present m
                             |> GF.updateEdges m.selectedEdges updateLabelVisibility
             in
-            m
-                |> setPresent newFile
-                    "Toggled the labels of some edges"
+            m |> new newFile "Toggled the labels of some edges"
 
         InputEdgeLabel str ->
             let
@@ -1462,16 +1388,14 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedEdges then
-                        current m
+                        present m
                             |> GF.updateDefaultEdgeProperties updateLabel
 
                     else
-                        current m
+                        present m
                             |> GF.updateEdges m.selectedEdges updateLabel
             in
-            m
-                |> setPresent newFile
-                    "Changed the label of some edges"
+            m |> new newFile "Changed the label of some edges"
 
         InputEdgeColor newColor ->
             let
@@ -1480,16 +1404,14 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedEdges then
-                        current m
+                        present m
                             |> GF.updateDefaultEdgeProperties updateColor
 
                     else
-                        current m
+                        present m
                             |> GF.updateEdges m.selectedEdges updateColor
             in
-            m
-                |> setPresent newFile
-                    "Changed the color of some vertices"
+            m |> new newFile "Changed the color of some vertices"
 
         InputEdgeThickness num ->
             let
@@ -1498,16 +1420,14 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedEdges then
-                        current m
+                        present m
                             |> GF.updateDefaultEdgeProperties updateThickness
 
                     else
-                        current m
+                        present m
                             |> GF.updateEdges m.selectedEdges updateThickness
             in
-            m
-                |> setPresent newFile
-                    "Changed the thickness of some edges"
+            m |> new newFile "Changed the thickness of some edges"
 
         InputEdgeDistance num ->
             let
@@ -1516,17 +1436,16 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedEdges then
-                        current m
+                        present m
                             |> GF.updateDefaultEdgeProperties updateDistance
 
                     else
-                        current m
+                        present m
                             |> GF.updateEdges m.selectedEdges updateDistance
             in
             m
                 |> reheatForce
-                |> setPresent newFile
-                    "Changed the distance of some edges"
+                |> new newFile "Changed the distance of some edges"
 
         InputEdgeStrength num ->
             let
@@ -1535,17 +1454,16 @@ updateHelper msg m =
 
                 newFile =
                     if Set.isEmpty m.selectedEdges then
-                        current m
+                        present m
                             |> GF.updateDefaultEdgeProperties updateStrength
 
                     else
-                        current m
+                        present m
                             |> GF.updateEdges m.selectedEdges updateStrength
             in
             m
                 |> reheatForce
-                |> setPresent newFile
-                    "Changed the strength of some edges "
+                |> new newFile "Changed the strength of some edges "
 
         ToggleOpenedFiles ->
             { m | openedFilesIsExpanded = not m.openedFilesIsExpanded }
@@ -1577,7 +1495,7 @@ updateHelper msg m =
         ClickOnVertexTrash ->
             let
                 newFile =
-                    current m |> GF.removeVertices m.selectedVertices
+                    present m |> GF.removeVertices m.selectedVertices
             in
             { m
                 | selectedVertices = Set.empty
@@ -1586,34 +1504,29 @@ updateHelper msg m =
                 , highlightedEdges = Set.empty
             }
                 |> reheatForce
-                |> setPresent newFile
-                    ("Removed vertices "
-                        ++ vertexIdsToString (Set.toList m.selectedVertices)
-                    )
+                |> new newFile "Removed some vertices"
 
         ClickOnBagPlus ->
             let
                 ( newFile, idOfTheNewBag ) =
-                    current m |> GF.addBag m.selectedVertices
+                    present m |> GF.addBag m.selectedVertices
             in
             { m
                 | maybeSelectedBag = Just idOfTheNewBag
                 , bagsIsOn = True
             }
-                |> setPresent newFile
-                    ("Added bag " ++ bagIdToString idOfTheNewBag)
+                |> new newFile "Added a bag"
 
         ClickOnBagTrash ->
             case m.maybeSelectedBag of
                 Just bagId ->
                     let
                         newFile =
-                            current m |> GF.removeBag bagId
+                            present m |> GF.removeBag bagId
                     in
                     { m | maybeSelectedBag = Nothing }
                         |> reheatForce
-                        |> setPresent newFile
-                            ("Removed bag " ++ bagIdToString bagId)
+                        |> new newFile "Removed a bag"
 
                 Nothing ->
                     m
@@ -1621,32 +1534,28 @@ updateHelper msg m =
         ClickOnEdgeTrash ->
             let
                 newFile =
-                    current m |> GF.removeEdges m.selectedEdges
+                    present m |> GF.removeEdges m.selectedEdges
             in
             { m
                 | highlightedEdges = Set.empty
                 , selectedEdges = Set.empty
             }
                 |> reheatForce
-                |> setPresent newFile
-                    ("Removed edges "
-                        ++ edgeIdsToString (Set.toList m.selectedEdges)
-                    )
+                |> new newFile "Removed some edges"
 
         ClickOnEdgeContract ->
             case Set.toList m.selectedEdges of
                 [ selectedEdge ] ->
                     let
                         newFile =
-                            current m |> GF.contractEdge selectedEdge
+                            present m |> GF.contractEdge selectedEdge
                     in
                     { m
                         | highlightedEdges = Set.empty
                         , selectedEdges = Set.empty
                     }
                         |> reheatForce
-                        |> setPresent newFile
-                            ("Contracted edge" ++ edgeIdToString selectedEdge)
+                        |> new newFile "Contracted an edge"
 
                 _ ->
                     m
@@ -1678,7 +1587,10 @@ updateHelper msg m =
             }
 
         MouseOverBagItem bagId ->
-            { m | highlightedVertices = current m |> GF.getVerticesInBag bagId }
+            { m
+                | highlightedVertices =
+                    present m |> GF.getVerticesInBag bagId
+            }
 
         MouseOutBagItem _ ->
             { m | highlightedVertices = Set.empty }
@@ -1693,7 +1605,7 @@ updateHelper msg m =
 
                     else
                         ( Just bagId
-                        , current m |> GF.getVerticesInBag bagId
+                        , present m |> GF.getVerticesInBag bagId
                         )
             in
             { m
@@ -1705,46 +1617,44 @@ updateHelper msg m =
         ClickOnGenerateStarGraphButton ->
             let
                 newFile =
-                    current m
+                    present m
                         |> GF.addStarGraph { numberOfLeaves = 20 }
             in
             m
-                |> setPresent newFile
-                    "Added a generated graph "
+                |> new newFile "Added a generated graph "
 
         ClickOnNewFile ->
             { m
                 | files =
-                    Files.new "no-name"
+                    Files.newFile "New Graph"
                         ( "Started with empty graph", GF.default )
                         m.files
-            }
-
-        ClickOnRenameFile ->
-            { m
-                | files =
-                    m.files
             }
 
         ClickOnDuplicateFile ->
             { m | files = Files.duplicate m.files }
 
         ClickOnDeleteFile ->
-            { m | files = Files.deleteFocused m.files }
+            { m | files = Files.delete m.files }
 
         ClickOnSaveFile ->
             { m | files = Files.save m.files }
 
-        ClickOnCloseFile i ->
-            { m | files = Files.reallyClose i m.files }
+        ClickOnCloseFile ->
+            -- TODO: show the button only on the focused file
+            { m | files = Files.close m.files }
 
-        ClickOnFileItem i ->
+        ClickOnFileItem name ->
+            let
+                newFiles =
+                    Files.focus name m.files
+            in
             { m
-                | files = Files.focus i m.files
+                | files = newFiles
                 , animation =
                     TransitionAnimation
-                        { fromGraphAt = Files.indexWithTheFocus m.files
-                        , toGraphAt = i
+                        { startGraph = present m
+                        , endGraph = Files.present newFiles |> Tuple.second
                         , transitionState = Transition.initialState
                         }
             }
@@ -1755,14 +1665,16 @@ updateHelper msg m =
         ClickOnRunDijsktraButton ->
             { m
                 | files =
-                    current m
+                    present m
                         |> Algorithms.Dijkstra.API.run
                         |> List.indexedMap Tuple.pair
                         |> List.foldl
                             (\( i, gF ) ->
-                                Files.new
+                                Files.newFile
                                     ("Dijsktra step-" ++ String.fromInt i)
-                                    ( "Generated as step " ++ String.fromInt i ++ " of Dijsktra's Algorithm."
+                                    ( "Generated as step "
+                                        ++ String.fromInt i
+                                        ++ " of Dijsktra's Algorithm."
                                     , gF
                                     )
                             )
@@ -1778,12 +1690,18 @@ updateHelper msg m =
 subscriptions : Model -> Sub Msg
 subscriptions m =
     Sub.batch
-        [ Browser.Events.onResize (\w h -> WindowResize { width = w, height = h })
-        , Browser.Events.onMouseMove (JD.map MouseMove mousePosition)
-        , Browser.Events.onMouseMove (JD.map MouseMoveForUpdatingSvgPos mousePosition)
-        , Browser.Events.onMouseUp (JD.map MouseUp mousePosition)
-        , Browser.Events.onKeyUp (JD.map toKeyUpMsg keyDecoder)
-        , Browser.Events.onVisibilityChange PageVisibility
+        [ Browser.Events.onResize
+            (\w h -> WindowResize { width = w, height = h })
+        , Browser.Events.onMouseMove
+            (JD.map MouseMove mousePosition)
+        , Browser.Events.onMouseMove
+            (JD.map MouseMoveForUpdatingSvgPos mousePosition)
+        , Browser.Events.onMouseUp
+            (JD.map MouseUp mousePosition)
+        , Browser.Events.onKeyUp
+            (JD.map toKeyUpMsg keyDecoder)
+        , Browser.Events.onVisibilityChange
+            PageVisibility
         , keyDown m
         , animationFrame m
         ]
@@ -2312,59 +2230,72 @@ commonCellProperties =
 leftBarContentForFiles : Model -> Element Msg
 leftBarContentForFiles m =
     let
-        commonItemAttr i =
+        vizData =
+            Files.vizData m.files
+
+        --
+        unfocusedAttr vizDatum =
             [ El.width El.fill
             , El.paddingXY 8 8
+            , El.height (El.px 30)
             , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
             , Border.color Colors.menuBorder
-            , Events.onClick (ClickOnFileItem i)
+            , Events.onClick (ClickOnFileItem vizDatum.name)
             ]
 
-        specialAttr i =
-            if Files.indexHasTheFocus i m.files then
-                [ Font.bold, Font.color Colors.white ]
+        focusedAttr vizDatum =
+            unfocusedAttr vizDatum ++ [ Font.bold, Font.color Colors.white ]
+
+        attr vizDatum =
+            if vizDatum.isTheFocused then
+                focusedAttr vizDatum
 
             else
-                []
+                unfocusedAttr vizDatum
 
-        item i name =
-            El.row
-                (commonItemAttr i ++ specialAttr i)
-                [ El.text name ]
+        --
+        allFilesItem vizDatum =
+            El.row (attr vizDatum)
+                [ El.text vizDatum.name ]
 
-        openedItem i name =
-            El.row
-                (commonItemAttr i ++ specialAttr i)
+        allFilesContent =
+            El.column [ El.width El.fill ]
+                (List.map allFilesItem vizData)
+
+        --
+        openedItem vizDatum =
+            El.row (attr vizDatum)
                 [ El.row [ El.spacing 6 ]
-                    [ El.text name
-                    , El.el [] <|
-                        if Files.indexHasChangedAfterLastSave i m.files then
+                    [ El.el [] <|
+                        if vizDatum.edited then
                             El.html (Icons.draw14px Icons.icons.editedPen)
 
                         else
                             El.none
+                    , El.text vizDatum.name
                     ]
-                , menuHeaderButton
-                    { title = "Close"
-                    , onClickMsg = ClickOnCloseFile i
-                    , iconPath = Icons.icons.closeFile
-                    }
-                ]
+                , if vizDatum.isTheFocused then
+                    El.el [ El.alignRight ] <|
+                        menuHeaderButton
+                            { title = "Close"
+                            , onClickMsg = ClickOnCloseFile
+                            , iconPath = Icons.icons.closeFile
+                            }
 
-        allFilesContent =
-            El.column [ El.width El.fill ]
-                (Files.fileNames m.files |> List.indexedMap item)
+                  else
+                    El.none
+                ]
 
         openedFilesContent =
             El.column [ El.width El.fill ]
-                (Files.fileNames m.files
-                    |> List.indexedMap
-                        (\i name ->
-                            if Files.indexHasPast i m.files then
-                                openedItem i name
+                (vizData
+                    |> List.filterMap
+                        (\vizDatum ->
+                            if vizDatum.isOpened then
+                                Just (openedItem vizDatum)
 
                             else
-                                El.none
+                                Nothing
                         )
                 )
     in
@@ -2434,7 +2365,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 [ El.width El.fill
                 , El.height El.fill
                 ]
-                { data = GF.getVertices (current m)
+                { data = GF.getVertices (present m)
                 , columns =
                     [ { header = columnHeader "id"
                       , width = El.px 20
@@ -2581,7 +2512,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                 [ El.width El.fill
                 , El.height El.fill
                 ]
-                { data = GF.getEdges (current m)
+                { data = GF.getEdges (present m)
                 , columns =
                     [ { header = columnHeader "edge id"
                       , width = El.px 50
@@ -3305,7 +3236,7 @@ history m =
 
         itemList =
             m.files
-                |> Files.uLToList
+                |> Files.uLWSVizData
                 |> List.indexedMap item
                 |> List.reverse
 
@@ -3423,7 +3354,7 @@ bags m =
                 , Border.widthEach { bottom = 1, left = 0, right = 0, top = 0 }
                 , Border.color Colors.menuBorder
                 ]
-                { data = GF.getBags (current m)
+                { data = GF.getBags (present m)
                 , columns =
                     [ { header = columnHeader "id"
                       , width = El.px 20
@@ -3454,7 +3385,7 @@ bags m =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
                                     El.text
-                                        (current m
+                                        (present m
                                             |> GF.getVerticesInBag bagId
                                             |> Set.toList
                                             |> vertexIdsToString
@@ -3506,7 +3437,7 @@ bags m =
                             , labelWidth = 80
                             , inputWidth = 60
                             , text =
-                                current m
+                                present m
                                     |> GF.getBagProperties idOfTheSelectedBag
                                     |> Maybe.map .label
                                     |> Maybe.withDefault Nothing
@@ -3520,7 +3451,7 @@ bags m =
                             , labelWidth = 80
                             , isExpanded = m.bagColorPickerIsExpanded
                             , selectedColor =
-                                current m
+                                present m
                                     |> GF.getBagProperties idOfTheSelectedBag
                                     |> Maybe.map .color
                             , msgOnColorClick = InputBagColor idOfTheSelectedBag
@@ -3531,7 +3462,7 @@ bags m =
                             { labelText = "Convex Hull"
                             , labelWidth = 80
                             , state =
-                                current m
+                                present m
                                     |> GF.getBagProperties idOfTheSelectedBag
                                     |> Maybe.map .hasConvexHull
                             , onChange = InputBagConvexHull idOfTheSelectedBag
@@ -3589,13 +3520,13 @@ vertexPreferences m =
                     , inputWidth = 60
                     , text =
                         if Set.isEmpty m.selectedVertices then
-                            current m
+                            present m
                                 |> GF.getDefaultVertexProperties
                                 |> .label
                                 |> Maybe.withDefault ""
 
                         else
-                            case current m |> GF.getCommonVertexProperty m.selectedVertices .label of
+                            case present m |> GF.getCommonVertexProperty m.selectedVertices .label of
                                 Just (Just l) ->
                                     l
 
@@ -3609,13 +3540,13 @@ vertexPreferences m =
                     , state =
                         if Set.isEmpty m.selectedVertices then
                             Just
-                                (current m
+                                (present m
                                     |> GF.getDefaultVertexProperties
                                     |> .labelIsVisible
                                 )
 
                         else
-                            current m
+                            present m
                                 |> GF.getCommonVertexProperty m.selectedVertices .labelIsVisible
                     , onChange =
                         InputVertexLabelVisibility
@@ -3628,13 +3559,13 @@ vertexPreferences m =
                     , state =
                         if Set.isEmpty m.selectedVertices then
                             Just
-                                (current m
+                                (present m
                                     |> GF.getDefaultVertexProperties
                                     |> .fixed
                                 )
 
                         else
-                            current m
+                            present m
                                 |> GF.getCommonVertexProperty m.selectedVertices .fixed
                     , onChange = InputVertexFixed
                     }
@@ -3643,7 +3574,7 @@ vertexPreferences m =
                     , labelWidth = 20
                     , inputWidth = 40
                     , text =
-                        current m
+                        present m
                             |> GF.getCentroid m.selectedVertices
                             |> Maybe.map Point2d.xCoordinate
                             |> Maybe.map round
@@ -3656,7 +3587,7 @@ vertexPreferences m =
                     , labelWidth = 20
                     , inputWidth = 40
                     , text =
-                        current m
+                        present m
                             |> GF.getCentroid m.selectedVertices
                             |> Maybe.map Point2d.yCoordinate
                             |> Maybe.map round
@@ -3672,14 +3603,14 @@ vertexPreferences m =
                     , inputWidth = 30
                     , text =
                         if Set.isEmpty m.selectedVertices then
-                            current m
+                            present m
                                 |> GF.getDefaultVertexProperties
                                 |> .labelSize
                                 |> round
                                 |> String.fromInt
 
                         else
-                            case current m |> GF.getCommonVertexProperty m.selectedVertices .labelSize of
+                            case present m |> GF.getCommonVertexProperty m.selectedVertices .labelSize of
                                 Just lS ->
                                     String.fromInt (round lS)
 
@@ -3693,13 +3624,13 @@ vertexPreferences m =
                     , state =
                         if Set.isEmpty m.selectedVertices then
                             Just
-                                (current m
+                                (present m
                                     |> GF.getDefaultVertexProperties
                                     |> .labelAbove
                                 )
 
                         else
-                            current m
+                            present m
                                 |> GF.getCommonVertexProperty m.selectedVertices .labelAbove
                     , onChange = InputVertexLabelAbove
                     }
@@ -3711,7 +3642,7 @@ vertexPreferences m =
                     -1
                         * (let
                             defaultVertexManyBodyStrength =
-                                current m
+                                present m
                                     |> GF.getDefaultVertexProperties
                                     |> .manyBodyStrength
                            in
@@ -3719,7 +3650,7 @@ vertexPreferences m =
                             defaultVertexManyBodyStrength
 
                            else
-                            current m
+                            present m
                                 |> GF.getCommonVertexProperty m.selectedVertices .manyBodyStrength
                                 |> Maybe.withDefault defaultVertexManyBodyStrength
                           )
@@ -3733,12 +3664,12 @@ vertexPreferences m =
                 , labelWidth = 80
                 , value =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.getDefaultVertexProperties
                             |> .radius
 
                     else
-                        case current m |> GF.getCommonVertexProperty m.selectedVertices .radius of
+                        case present m |> GF.getCommonVertexProperty m.selectedVertices .radius of
                             Just r ->
                                 r
 
@@ -3756,13 +3687,13 @@ vertexPreferences m =
                 , selectedColor =
                     if Set.isEmpty m.selectedVertices then
                         Just
-                            (current m
+                            (present m
                                 |> GF.getDefaultVertexProperties
                                 |> .color
                             )
 
                     else
-                        current m
+                        present m
                             |> GF.getCommonVertexProperty m.selectedVertices .color
                 , msgOnColorClick = InputVertexColor
                 , msgOnExpanderClick = ClickOnVertexColorPicker
@@ -3773,12 +3704,12 @@ vertexPreferences m =
                 , labelWidth = 80
                 , value =
                     if Set.isEmpty m.selectedVertices then
-                        current m
+                        present m
                             |> GF.getDefaultVertexProperties
                             |> .gravityStrength
 
                     else
-                        case current m |> GF.getCommonVertexProperty m.selectedVertices .gravityStrength of
+                        case present m |> GF.getCommonVertexProperty m.selectedVertices .gravityStrength of
                             Just gS ->
                                 gS
 
@@ -3820,13 +3751,13 @@ edgePreferences m =
                     , inputWidth = 60
                     , text =
                         if Set.isEmpty m.selectedEdges then
-                            current m
+                            present m
                                 |> GF.getDefaultEdgeProperties
                                 |> .label
                                 |> Maybe.withDefault ""
 
                         else
-                            case current m |> GF.getCommonEdgeProperty m.selectedEdges .label of
+                            case present m |> GF.getCommonEdgeProperty m.selectedEdges .label of
                                 Just (Just l) ->
                                     l
 
@@ -3840,13 +3771,13 @@ edgePreferences m =
                     , state =
                         if Set.isEmpty m.selectedEdges then
                             Just
-                                (current m
+                                (present m
                                     |> GF.getDefaultEdgeProperties
                                     |> .labelIsVisible
                                 )
 
                         else
-                            current m
+                            present m
                                 |> GF.getCommonEdgeProperty m.selectedEdges .labelIsVisible
                     , onChange =
                         InputEdgeLabelVisibility
@@ -3857,14 +3788,12 @@ edgePreferences m =
                 , labelWidth = 80
                 , value =
                     if Set.isEmpty m.selectedEdges then
-                        current
-                            m
+                        present m
                             |> GF.getDefaultEdgeProperties
                             |> .thickness
 
                     else
-                        current
-                            m
+                        present m
                             |> GF.getCommonEdgeProperty m.selectedEdges .thickness
                             |> Maybe.withDefault 3
                 , min = 1
@@ -3877,14 +3806,12 @@ edgePreferences m =
                 , labelWidth = 80
                 , value =
                     if Set.isEmpty m.selectedEdges then
-                        current
-                            m
+                        present m
                             |> GF.getDefaultEdgeProperties
                             |> .distance
 
                     else
-                        current
-                            m
+                        present m
                             |> GF.getCommonEdgeProperty m.selectedEdges .distance
                             |> Maybe.withDefault 40
                 , min = 10
@@ -3897,12 +3824,12 @@ edgePreferences m =
                 , labelWidth = 80
                 , value =
                     if Set.isEmpty m.selectedEdges then
-                        current m
+                        present m
                             |> GF.getDefaultEdgeProperties
                             |> .strength
 
                     else
-                        current m
+                        present m
                             |> GF.getCommonEdgeProperty m.selectedEdges .strength
                             |> Maybe.withDefault 0.7
                 , min = 0
@@ -3917,13 +3844,13 @@ edgePreferences m =
                 , selectedColor =
                     if Set.isEmpty m.selectedEdges then
                         Just
-                            (current m
+                            (present m
                                 |> GF.getDefaultEdgeProperties
                                 |> .color
                             )
 
                     else
-                        current m
+                        present m
                             |> GF.getCommonEdgeProperty m.selectedEdges .color
                 , msgOnColorClick = InputEdgeColor
                 , msgOnExpanderClick = ClickOnEdgeColorPicker
@@ -4020,15 +3947,15 @@ mainSvg m =
 
         gFToShow =
             case m.animation of
-                TransitionAnimation { fromGraphAt, toGraphAt, transitionState } ->
+                TransitionAnimation { startGraph, endGraph, transitionState } ->
                     GF.transitionGraphFile
                         (Transition.elapsedTimeRatio transitionState)
-                        { start = graphFileAt fromGraphAt m
-                        , end = graphFileAt toGraphAt m
+                        { start = startGraph
+                        , end = endGraph
                         }
 
                 _ ->
-                    current m
+                    present m
     in
     S.svg
         [ HA.style "background-color" (Colors.toString Colors.mainSvgBackground)

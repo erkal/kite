@@ -6,7 +6,7 @@ module Files.UndoListWithSave exposing
     , presentIsTheLastSaved
     , present, hasPast, lengthPast, hasFuture
     , goTo
-    , toList
+    , vizData
     )
 
 {-| UndoList Data Structure keeping also track of the last saved state.
@@ -52,7 +52,7 @@ The terminology of functions is adapted to [elm-community/undo-redo](https://pac
 
 # Conversions
 
-@docs toList
+@docs vizData
 
 -}
 
@@ -261,6 +261,6 @@ goTo i =
 -----------------
 
 
-toList : UndoListWithSave a -> List a
-toList (UndoListWithSave { uL }) =
+vizData : UndoListWithSave a -> List a
+vizData (UndoListWithSave { uL }) =
     uL |> UL.toList

@@ -1,36 +1,26 @@
 module Files exposing
     ( Files
-    , encode
-    , decoder
-    , singleton
-    , new, delete, deleteFocused
-    , getFile, indexHasTheFocus, indexWithTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
-    , reallyClose
-    , getName
-    , present
-    , hasFuture, hasPast
-    , lengthPast
-    , uLToList
-    , mapPresent
-    , rename
-    , save, duplicate
-    , undo, redo, goTo
-    , focus, set, saveAll, fileNames
+    , encode, decoder
+    , singleton, newFile
+    , focus
+    , undo, redo, goToInHistory, new, mapPresent, save, delete, rename, duplicate, close
+    , present, getName, hasFuture, hasPast, lengthPast, uLWSVizData
+    , vizData
     )
 
-{-| Represent an ordered nonempty array of files, allowing efficent saving and undo-redo operations on each file. It also keeps track of a focused file.
-An example usage can be seen in the source of [this app](https://erkal.github.io/kite/).
+{-| Represent an ordered nonempty list of files, each with unique names, keeping track of a focused file. It allows undo-redo operations on each file.
+An example usage can be found in the source code of
+[Kite](https://erkal.github.io/kite/).
 
 It behaves similar to most editors, namely:
 
-  - If a new file is added (via `new`), it immediately gets the focus.
+  - If a new file is added, it immediately gets the focus.
   - If a file is closed, the past and the future of the file gets lost, in the sense that undo and redo will not work directly after the file is refocused.
-  - `close`, and `reallyClose` gives you the oportunity to ask the user if she really wants to close the file, in the case that there are unsaved changes.
 
 **Main restrictions:**
 
   - There is no folder structure.
-  - There is no concept of "opening a file". Instead, use `indexHasPast`.
+  - There is no concept of "opening a file". Instead, `vizData` function exports a boolean field named `hasPast`.
 
 
 # Definition
@@ -38,120 +28,59 @@ It behaves similar to most editors, namely:
 @docs Files
 
 
-# Encoder
+# Encoding and Decoding
 
-@docs encode
-
-
-# Decoder
-
-@docs decoder
+@docs encode, decoder
 
 
-# Constructor
+# Constructors
 
-@docs singleton
-
-
-# Adding and Deleting Files
-
-@docs new, delete, deleteFocused
+@docs singleton, newFile
 
 
-# Querying by Index
+# Setting the Focus
 
-@docs getFile, indexHasTheFocus, indexWithTheFocus, indexHasFuture, indexHasPast, indexHasChangedAfterLastSave
-
-
-# Updating by Index
-
-@docs reallyClose
+@docs focus
 
 
-# Querying Focused
+# Operations on the Focused File
 
-@docs getName
-@docs present
-@docs hasFuture, hasPast
-@docs lengthPast
-@docs uLToList
+@docs undo, redo, goToInHistory, new, mapPresent, save, delete, rename, duplicate, close
 
 
-# Updating Focused
+# Queries to the Focused File
 
-@docs mapPresent
-@docs rename
-@docs save, duplicate
-@docs undo, redo, goTo
+@docs present, getName, hasFuture, hasPast, lengthPast, uLWSVizData
 
 
-# Operations and Queries on all Files
+# Exporting for View
 
-@docs focus, set, saveAll, fileNames
+@docs vizData
 
 -}
 
-import Array exposing (Array)
 import Files.UndoListWithSave as ULWS exposing (UndoListWithSave)
 import Json.Decode as JD exposing (Decoder, Value)
 import Json.Encode as JE exposing (Value)
+import Set exposing (Set)
 
 
-{-| Main data structure. It keeps an array of files with the index of focused file.
+{-| Main data structure.
 -}
-type
-    Files a
-    -- TODO: Do this with
-    --= Files
-    --    { before : List (File a)
-    --    , focused : File a
-    --    , after : List (File a)
-    --    }
-    = Files Int (Array (File a))
+type Files data
+    = Files
+        { before : List (File data)
+        , focused : File data
+        , after : List (File data)
+        }
 
 
-type File a
-    = File Name (UndoListWithSave a)
+type File data
+    = File Name (UndoListWithSave data)
 
 
 type alias Name =
     String
-
-
-
----------------------
--- Array Internals --
----------------------
-
-
-insertAt : Int -> a -> Array a -> Array a
-insertAt i a arr =
-    let
-        l =
-            Array.toList arr
-    in
-    Array.fromList
-        (List.take i l ++ [ a ] ++ List.drop i l)
-
-
-removeAt : Int -> Array a -> Array a
-removeAt i arr =
-    let
-        l =
-            Array.toList arr
-    in
-    Array.fromList
-        (List.take i l ++ List.drop (i + 1) l)
-
-
-mapArray : Int -> (a -> a) -> Array a -> Array a
-mapArray i up arr =
-    case Array.get i arr of
-        Just file ->
-            Array.set i (up file) arr
-
-        Nothing ->
-            arr
 
 
 
@@ -160,19 +89,20 @@ mapArray i up arr =
 -------------
 
 
-encode : (a -> Value) -> Files a -> Value
-encode encodeFileData (Files f arr) =
+encode : (data -> Value) -> Files data -> Value
+encode encodeFileData (Files { before, focused, after }) =
     JE.object
-        [ ( "indexOfTheFocusedFile", JE.int f )
-        , ( "arr", JE.array (encodeFile encodeFileData) arr )
+        [ ( "before", JE.list (encodeFile encodeFileData) before )
+        , ( "focused", encodeFile encodeFileData focused )
+        , ( "after", JE.list (encodeFile encodeFileData) after )
         ]
 
 
-encodeFile : (a -> Value) -> File a -> Value
+encodeFile : (data -> Value) -> File data -> Value
 encodeFile encodeFileData (File name uLWS) =
     JE.object
         [ ( "name", JE.string name )
-        , ( "savedState", encodeFileData (ULWS.getSavedState uLWS) )
+        , ( "savedData", encodeFileData (ULWS.getSavedState uLWS) )
         ]
 
 
@@ -182,18 +112,226 @@ encodeFile encodeFileData (File name uLWS) =
 -------------
 
 
-decoder : Decoder a -> Decoder (Files a)
-decoder fileDataDecoder =
-    JD.map2 Files
-        (JD.field "indexOfTheFocusedFile" JD.int)
-        (JD.field "arr" (JD.array (fileDecoder fileDataDecoder)))
+decoder : Decoder data -> Decoder (Files data)
+decoder dataDecoder =
+    JD.map3 (\b f a_ -> Files { before = b, focused = f, after = a_ })
+        (JD.field "before" (JD.list (fileDecoder dataDecoder)))
+        (JD.field "focused" (fileDecoder dataDecoder))
+        (JD.field "after" (JD.list (fileDecoder dataDecoder)))
 
 
-fileDecoder : Decoder a -> Decoder (File a)
-fileDecoder fileDataDecoder =
+fileDecoder : Decoder data -> Decoder (File data)
+fileDecoder dataDecoder =
     JD.map2 File
         (JD.field "name" JD.string)
-        (JD.field "savedState" (JD.map ULWS.fresh fileDataDecoder))
+        (JD.field "savedData" (JD.map ULWS.fresh dataDecoder))
+
+
+
+------------------
+-- Constructors --
+------------------
+
+
+{-| This is the only constructor.
+-}
+singleton : Name -> data -> Files data
+singleton name data =
+    Files
+        { before = []
+        , focused = File name (ULWS.fresh data)
+        , after = []
+        }
+
+
+{-| Adds a new file just after the focused, the new file gets the focus.
+-}
+newFile : Name -> data -> Files data -> Files data
+newFile name d ((Files { before, focused, after }) as files) =
+    -- TODO: Check if the name already exists, and if so, add a prefix.
+    Files
+        { before = focused :: before
+        , focused = File (newNameFrom name files) (ULWS.fresh d)
+        , after = after
+        }
+
+
+
+-----------------------
+-- Setting the Focus --
+-----------------------
+
+
+{-| Given a name which is not the name of the focused file, returns files with the file with the given name focused.
+-}
+focus : Name -> Files data -> Files data
+focus name ((Files { before, focused, after }) as files) =
+    let
+        hasTheNameToPick : File a -> Bool
+        hasTheNameToPick (File name_ uLWS) =
+            name_ == name
+    in
+    case pick hasTheNameToPick before of
+        Just ( oldBeforeAfterNewFocused, newFocused, newBefore ) ->
+            Files
+                { before = newBefore
+                , focused = newFocused
+                , after =
+                    oldBeforeAfterNewFocused ++ (focused :: after)
+                }
+
+        Nothing ->
+            case pick hasTheNameToPick after of
+                Just ( oldAfterBeforeNewFocused, newFocused, newAfter ) ->
+                    Files
+                        { before =
+                            oldAfterBeforeNewFocused ++ (focused :: before)
+                        , focused = newFocused
+                        , after = newAfter
+                        }
+
+                Nothing ->
+                    files
+
+
+
+------------------------------------
+-- Operations on the Focused File --
+------------------------------------
+
+
+undo : Files data -> Files data
+undo =
+    mapULWS ULWS.undo
+
+
+redo : Files data -> Files data
+redo =
+    mapULWS ULWS.redo
+
+
+goToInHistory : Int -> Files data -> Files data
+goToInHistory i =
+    mapULWS (ULWS.goTo i)
+
+
+new : data -> Files data -> Files data
+new newState =
+    mapULWS (ULWS.new newState)
+
+
+mapPresent : (data -> data) -> Files data -> Files data
+mapPresent up =
+    mapULWS (ULWS.mapPresent up)
+
+
+save : Files data -> Files data
+save =
+    mapULWS ULWS.savePresent
+
+
+{-| Deletes the focused file. It doesn't do anything if it is the last item in the list.
+-}
+delete : Files data -> Files data
+delete ((Files { before, focused, after }) as files) =
+    case before of
+        f :: fs ->
+            Files
+                { before = fs
+                , focused = f
+                , after = after
+                }
+
+        [] ->
+            files
+
+
+rename : Name -> Files data -> Files data
+rename newName files =
+    map
+        (\(File name arr) -> File (newNameFrom newName files) arr)
+        files
+
+
+duplicate : Files data -> Files data
+duplicate files =
+    newFile
+        (newNameFrom (getName files ++ " copy") files)
+        (present files)
+        files
+
+
+close : Files data -> Files data
+close =
+    mapULWS ULWS.resetToSaved
+
+
+
+---------------------------------
+-- Queries to the Focused File --
+---------------------------------
+
+
+{-| The present data of the focused File.
+-}
+present : Files data -> data
+present =
+    queryULWS ULWS.present
+
+
+{-| The present data of the focused File.
+-}
+getName : Files data -> Name
+getName (Files { focused }) =
+    (\(File name _) -> name) focused
+
+
+hasFuture : Files data -> Bool
+hasFuture =
+    queryULWS ULWS.hasFuture
+
+
+hasPast : Files data -> Bool
+hasPast =
+    queryULWS ULWS.hasPast
+
+
+lengthPast : Files data -> Int
+lengthPast =
+    queryULWS ULWS.lengthPast
+
+
+uLWSVizData : Files data -> List data
+uLWSVizData =
+    queryULWS ULWS.vizData
+
+
+
+------------------------
+-- Exporting for View --
+------------------------
+
+
+type alias VizDatum =
+    { name : Name
+    , isTheFocused : Bool
+    , edited : Bool
+    , isOpened : Bool
+    }
+
+
+vizData : Files a -> List VizDatum
+vizData (Files { before, focused, after }) =
+    let
+        datum isTheFocused (File name uLWS) =
+            { name = name
+            , isTheFocused = isTheFocused
+            , edited = not (ULWS.presentIsTheLastSaved uLWS)
+            , isOpened = ULWS.hasPast uLWS
+            }
+    in
+    List.reverse (List.map (datum False) before)
+        ++ (datum True focused :: List.map (datum False) after)
 
 
 
@@ -202,280 +340,66 @@ fileDecoder fileDataDecoder =
 ---------------
 
 
-mapFocused : (File a -> File a) -> Files a -> Files a
-mapFocused up (Files i arr) =
-    Files i
-        (mapArray i up arr)
+queryULWS q (Files { focused }) =
+    (\(File name uLWS) -> q uLWS) focused
 
 
-mapULWS :
-    (UndoListWithSave a -> UndoListWithSave a)
-    -> File a
-    -> File a
-mapULWS up (File name uLWS) =
-    File name
-        (up uLWS)
+mapULWS up =
+    map (\(File name uLWS) -> File name (up uLWS))
 
 
-getULWSProperty :
-    (UndoListWithSave a -> b)
-    -> b
-    -> Int
-    -> Files a
-    -> b
-getULWSProperty get default i (Files _ arr) =
-    Array.get i arr
-        |> Maybe.map (\(File _ uLWS) -> get uLWS)
-        |> Maybe.withDefault default
-
-
-getFocusedULWSProperty : (UndoListWithSave a -> b) -> b -> Files a -> b
-getFocusedULWSProperty get default ((Files i _) as files) =
-    getULWSProperty get default i files
-
-
-getFileName : File a -> Name
-getFileName (File name _) =
-    name
-
-
-renameFile : Name -> File a -> File a
-renameFile newName (File name arr) =
-    File newName arr
-
-
-applyToFocused : (Int -> Files a -> b) -> Files a -> b
-applyToFocused f ((Files i _) as files) =
-    f i files
-
-
-mapFocusedULWS =
-    mapULWS >> mapFocused
-
-
-
------------------
--- Constructor --
------------------
-
-
-{-| This is the only constructor.
--}
-singleton : Name -> a -> Files a
-singleton name d =
-    let
-        file =
-            File name (ULWS.fresh d)
-
-        arr =
-            Array.push file Array.empty
-    in
-    Files 0 arr
-
-
-new : Name -> a -> Files a -> Files a
-new name d ((Files i arr) as files) =
-    let
-        file =
-            File name (ULWS.fresh d)
-
-        newArr =
-            insertAt (i + 1) file arr
-    in
-    Files (i + 1) newArr
-
-
-{-| This doesn't do anything if it is the last item in the list.
--}
-delete : Int -> Files a -> Files a
-delete i ((Files _ arr) as files) =
-    let
-        n =
-            Array.length arr
-    in
-    if n == 1 || i >= n then
-        files
-
-    else
-        Files (max 0 (i - 1)) (removeAt i arr)
-
-
-
-------------------
--- Focused File --
-------------------
-
-
-set : a -> Files a -> Files a
-set newState =
-    mapFocusedULWS (ULWS.new newState)
-
-
-mapPresent : (a -> a) -> Files a -> Files a
-mapPresent up =
-    mapFocusedULWS (ULWS.mapPresent up)
-
-
-getName : Files a -> Name
-getName (Files i arr) =
-    arr
-        |> Array.get i
-        |> Maybe.map getFileName
-        |> Maybe.withDefault "-"
-
-
-rename : Name -> Files a -> Files a
-rename newName =
-    mapFocused (renameFile newName)
-
-
-deleteFocused : Files a -> Files a
-deleteFocused ((Files i _) as files) =
-    delete i files
-
-
-save : Files a -> Files a
-save =
-    mapFocusedULWS ULWS.savePresent
-
-
-duplicate : Files a -> Files a
-duplicate =
-    --TODO
-    --new "ds"
-    identity
-
-
-saveAll : Files a -> Files a
-saveAll =
-    -- TODO
-    identity
-
-
-undo : Files a -> Files a
-undo =
-    mapFocusedULWS ULWS.undo
-
-
-redo : Files a -> Files a
-redo =
-    mapFocusedULWS ULWS.redo
-
-
-hasPast : Files a -> Bool
-hasPast =
-    applyToFocused indexHasPast
-
-
-hasFuture : Files a -> Bool
-hasFuture =
-    applyToFocused indexHasFuture
-
-
-{-| The present a of the focused File.
--}
-present : a -> Files a -> a
-present =
-    getFocusedULWSProperty ULWS.present
-
-
-goTo : Int -> Files a -> Files a
-goTo i =
-    mapFocusedULWS (ULWS.goTo i)
-
-
-{-| The length of the past of the focused File. Returns 0 if no file is focused.
--}
-lengthPast : Files a -> Int
-lengthPast =
-    getFocusedULWSProperty ULWS.lengthPast 0
-
-
-uLToList : Files a -> List a
-uLToList =
-    getFocusedULWSProperty ULWS.toList []
-
-
-
--------------------------------------------------------
--- Getter (only for using for transition animations) --
--------------------------------------------------------
-
-
-{-| Returns the first argument as default if the index given as second parameter is out of bounds.
--}
-getFile : a -> Int -> Files a -> a
-getFile =
-    getULWSProperty ULWS.present
-
-
-
----------------------------------------
--- Queries (only to use in **view**) --
----------------------------------------
-
-
-fileNames : Files a -> List Name
-fileNames (Files _ arr) =
-    List.map getFileName (Array.toList arr)
-
-
-closeAll : Files a -> Files a
-closeAll =
-    -- TODO
-    identity
-
-
-indexHasTheFocus : Int -> Files a -> Bool
-indexHasTheFocus j (Files i _) =
-    j == i
-
-
-indexWithTheFocus : Files a -> Int
-indexWithTheFocus (Files i _) =
-    i
-
-
-indexHasChangedAfterLastSave : Int -> Files a -> Bool
-indexHasChangedAfterLastSave =
-    getULWSProperty (ULWS.presentIsTheLastSaved >> not)
-        False
-
-
-{-| returns True if the file in the given index has a past.
--}
-indexHasPast : Int -> Files a -> Bool
-indexHasPast =
-    getULWSProperty ULWS.hasPast False
-
-
-{-| returns True if the file in the given index has a future.
--}
-indexHasFuture : Int -> Files a -> Bool
-indexHasFuture =
-    getULWSProperty ULWS.hasFuture False
-
-
-{-| `focus i` focuses the file with index **i** given that **i** is smaller than the number of files. If **i** is out of bounds, than it makes the focus get lost. This serves as a warning because, usually, the GUI should not allow such a high value for `i`.
-The indexing of files starts with 0.
--}
-focus : Int -> Files a -> Files a
-focus i ((Files _ arr) as files) =
-    if i < Array.length arr then
-        Files i arr
-
-    else
-        files
-
-
-close : Int -> Files a -> Files a
-close i =
-    -- TODO
-    identity
-
-
-reallyClose : Int -> Files a -> Files a
-reallyClose i (Files _ arr) =
+map up (Files { before, focused, after }) =
     Files
-        (max 0 (i - 1))
-        (mapArray i (mapULWS ULWS.resetToSaved) arr)
+        { before = before
+        , focused = up focused
+        , after = after
+        }
+
+
+newNameFrom : Name -> Files a -> Name
+newNameFrom name (Files { before, focused, after }) =
+    let
+        allFiles =
+            before ++ (focused :: after)
+
+        allNames =
+            allFiles
+                |> List.map (\(File n _) -> n)
+                |> Set.fromList
+
+        try i =
+            let
+                nameToTry =
+                    name ++ " " ++ String.fromInt i
+            in
+            if Set.member nameToTry allNames then
+                try (i + 1)
+
+            else
+                nameToTry
+    in
+    if Set.member name allNames then
+        try 1
+
+    else
+        name
+
+
+{-| Pick an element satisfiying the check and returns also the elements to the left and to the right
+-}
+pick : (a -> Bool) -> List a -> Maybe ( List a, a, List a )
+pick check l =
+    let
+        helper checked unchecked =
+            case unchecked of
+                x :: xs ->
+                    if check x then
+                        Just ( checked, x, xs )
+
+                    else
+                        helper (x :: checked) xs
+
+                [] ->
+                    Nothing
+    in
+    helper [] l
