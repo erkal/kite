@@ -1641,7 +1641,6 @@ updateHelper msg m =
             { m | files = Files.save m.files }
 
         ClickOnCloseFile ->
-            -- TODO: show the button only on the focused file
             { m | files = Files.close m.files }
 
         ClickOnFileItem name ->
@@ -2695,13 +2694,14 @@ leftBarContentForGraphGenerators m =
                         [ Font.bold ]
                         (El.text "Star Graph")
                     ]
-                , textInput
-                    { labelText = "Number of Leaves"
-                    , labelWidth = 100
-                    , inputWidth = 40
-                    , text = "TODO"
-                    , onChange = always NoOp
-                    }
+
+                --, textInput
+                --    { labelText = "Number of Leaves"
+                --    , labelWidth = 100
+                --    , inputWidth = 40
+                --    , text = "TODO"
+                --    , onChange = always NoOp
+                --    }
                 ]
             }
         , menu

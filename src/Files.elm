@@ -148,7 +148,6 @@ singleton name data =
 -}
 newFile : Name -> data -> Files data -> Files data
 newFile name d ((Files { before, focused, after }) as files) =
-    -- TODO: Check if the name already exists, and if so, add a prefix.
     Files
         { before = focused :: before
         , focused = File (newNameFrom name files) (ULWS.fresh d)
