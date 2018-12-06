@@ -13,7 +13,7 @@ module Files exposing
     , uLToList
     , mapPresent
     , rename
-    , save, saveAs
+    , save, duplicate
     , undo, redo, goTo
     , focus, set, saveAll, fileNames
     )
@@ -81,7 +81,7 @@ It behaves similar to most editors, namely:
 
 @docs mapPresent
 @docs rename
-@docs save, saveAs
+@docs save, duplicate
 @docs undo, redo, goTo
 
 
@@ -99,7 +99,14 @@ import Json.Encode as JE exposing (Value)
 
 {-| Main data structure. It keeps an array of files with the index of focused file.
 -}
-type Files a
+type
+    Files a
+    -- TODO: Do this with
+    --= Files
+    --    { before : List (File a)
+    --    , focused : File a
+    --    , after : List (File a)
+    --    }
     = Files Int (Array (File a))
 
 
@@ -332,9 +339,10 @@ save =
     mapFocusedULWS ULWS.savePresent
 
 
-saveAs : Name -> Files a -> Files a
-saveAs name =
-    -- TODO
+duplicate : Files a -> Files a
+duplicate =
+    --TODO
+    --new "ds"
     identity
 
 

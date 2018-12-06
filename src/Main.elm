@@ -1715,7 +1715,7 @@ updateHelper msg m =
         ClickOnNewFile ->
             { m
                 | files =
-                    Files.new "graph"
+                    Files.new "no-name"
                         ( "Started with empty graph", GF.default )
                         m.files
             }
@@ -1727,10 +1727,7 @@ updateHelper msg m =
             }
 
         ClickOnDuplicateFile ->
-            { m
-                | files =
-                    m.files
-            }
+            { m | files = Files.duplicate m.files }
 
         ClickOnDeleteFile ->
             { m | files = Files.deleteFocused m.files }
@@ -2210,12 +2207,12 @@ leftBar m =
 menu :
     { headerText : String
     , isOn : Bool
-    , headerButtons : List (Element Msg)
+    , headerItems : List (Element Msg)
     , toggleMsg : Msg
     , contentItems : List (Element Msg)
     }
     -> Element Msg
-menu { headerText, isOn, headerButtons, toggleMsg, contentItems } =
+menu { headerText, isOn, headerItems, toggleMsg, contentItems } =
     let
         onOffButton =
             El.el
@@ -2242,7 +2239,10 @@ menu { headerText, isOn, headerButtons, toggleMsg, contentItems } =
                 , Font.bold
                 ]
             <|
-                (onOffButton :: El.text headerText :: headerButtons)
+                [ onOffButton
+                , El.text headerText
+                , El.row [ El.spacing 6, El.alignRight ] headerItems
+                ]
 
         content =
             if isOn then
@@ -2260,17 +2260,16 @@ menu { headerText, isOn, headerButtons, toggleMsg, contentItems } =
         [ header, content ]
 
 
-leftBarHeaderButton :
+menuHeaderButton :
     { title : String
     , onClickMsg : Msg
     , iconPath : String
     }
     -> Element Msg
-leftBarHeaderButton { title, onClickMsg, iconPath } =
+menuHeaderButton { title, onClickMsg, iconPath } =
     El.el
         [ El.htmlAttribute (HA.title title)
         , Events.onClick onClickMsg
-        , El.alignRight
         , Border.rounded 2
         , El.mouseDown [ Background.color Colors.selectedItem ]
         , El.mouseOver [ Background.color Colors.mouseOveredItem ]
@@ -2345,7 +2344,7 @@ leftBarContentForFiles m =
                         else
                             El.none
                     ]
-                , leftBarHeaderButton
+                , menuHeaderButton
                     { title = "Close"
                     , onClickMsg = ClickOnCloseFile i
                     , iconPath = Icons.icons.closeFile
@@ -2373,8 +2372,8 @@ leftBarContentForFiles m =
         [ menu
             { headerText = "Opened Files"
             , isOn = m.openedFilesIsExpanded
-            , headerButtons =
-                [ leftBarHeaderButton
+            , headerItems =
+                [ menuHeaderButton
                     { title = "Save File"
                     , onClickMsg = ClickOnSaveFile
                     , iconPath = Icons.icons.save
@@ -2386,7 +2385,7 @@ leftBarContentForFiles m =
         , menu
             { headerText = "All Files"
             , isOn = m.allFilesIsExpanded
-            , headerButtons =
+            , headerItems =
                 [ textInput
                     { labelText = ""
                     , labelWidth = 0
@@ -2394,17 +2393,17 @@ leftBarContentForFiles m =
                     , text = Files.getName m.files
                     , onChange = InputRenameFile
                     }
-                , leftBarHeaderButton
+                , menuHeaderButton
                     { title = "New File"
                     , onClickMsg = ClickOnNewFile
                     , iconPath = Icons.icons.plus
                     }
-                , leftBarHeaderButton
+                , menuHeaderButton
                     { title = "Duplicate File"
                     , onClickMsg = ClickOnDuplicateFile
                     , iconPath = Icons.icons.duplicate
                     }
-                , leftBarHeaderButton
+                , menuHeaderButton
                     { title = "Delete File"
                     , onClickMsg = ClickOnDeleteFile
                     , iconPath = Icons.icons.trash
@@ -2688,8 +2687,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
         [ menu
             { headerText = "Vertices"
             , isOn = m.tableOfVerticesIsOn
-            , headerButtons =
-                [ leftBarHeaderButton
+            , headerItems =
+                [ menuHeaderButton
                     { title = "Remove Selected Vertices"
                     , onClickMsg = ClickOnVertexTrash
                     , iconPath = Icons.icons.trash
@@ -2701,8 +2700,8 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
         , menu
             { headerText = "Edges"
             , isOn = m.tableOfEdgesIsOn
-            , headerButtons =
-                [ leftBarHeaderButton
+            , headerItems =
+                [ menuHeaderButton
                     { title = "Remove Selected Edges"
                     , onClickMsg = ClickOnEdgeTrash
                     , iconPath = Icons.icons.trash
@@ -2719,7 +2718,7 @@ leftBarContentForGraphOperations m =
     menu
         { headerText = "Graph Operations (coming soon)"
         , isOn = True
-        , headerButtons = []
+        , headerItems = []
         , toggleMsg = NoOp
         , contentItems = []
         }
@@ -2730,7 +2729,7 @@ leftBarContentForGraphQueries m =
     menu
         { headerText = "Graph Queries (coming soon)"
         , isOn = True
-        , headerButtons = []
+        , headerItems = []
         , toggleMsg = NoOp
         , contentItems = []
         }
@@ -2756,7 +2755,7 @@ leftBarContentForGraphGenerators m =
         [ menu
             { headerText = "Basic Graphs"
             , isOn = True
-            , headerButtons = []
+            , headerItems = []
             , toggleMsg = NoOp
             , contentItems =
                 [ El.row [ El.padding 10, El.spacing 5 ]
@@ -2777,7 +2776,7 @@ leftBarContentForGraphGenerators m =
         , menu
             { headerText = "Random Graphs (coming soon)"
             , isOn = False
-            , headerButtons = []
+            , headerItems = []
             , toggleMsg = NoOp
             , contentItems = []
             }
@@ -2803,7 +2802,7 @@ leftBarContentForAlgorithmVisualizations m =
     menu
         { headerText = "Dijsktra's Shortest Path"
         , isOn = True
-        , headerButtons = []
+        , headerItems = []
         , toggleMsg = NoOp
         , contentItems =
             [ El.textColumn [ El.width El.fill, El.padding 24, El.spacing 10 ]
@@ -2843,7 +2842,7 @@ leftBarContentForGamesOnGraphs m =
     menu
         { headerText = "Games on Graphs (coming soon)"
         , isOn = True
-        , headerButtons = []
+        , headerItems = []
         , toggleMsg = NoOp
         , contentItems = []
         }
@@ -2854,7 +2853,7 @@ leftBarContentForPreferences m =
     menu
         { headerText = "Preferences (coming soon)"
         , isOn = True
-        , headerButtons = []
+        , headerItems = []
         , toggleMsg = NoOp
         , contentItems = []
         }
@@ -3109,6 +3108,7 @@ textInput { labelText, labelWidth, inputWidth, text, onChange } =
             ]
         , Events.onFocus FocusedATextInput
         , Events.onLoseFocus FocusLostFromTextInput
+        , Font.regular
         ]
         { onChange = onChange
         , text = text
@@ -3320,7 +3320,7 @@ history m =
     menu
         { headerText = "History"
         , isOn = m.historyIsOn
-        , headerButtons = []
+        , headerItems = []
         , toggleMsg = ToggleHistory
         , contentItems = [ content ]
         }
@@ -3388,7 +3388,7 @@ selector m =
     menu
         { headerText = "Selector"
         , isOn = m.selectorIsOn
-        , headerButtons = []
+        , headerItems = []
         , toggleMsg = ToggleSelector
         , contentItems = [ content ]
         }
@@ -3542,13 +3542,13 @@ bags m =
     menu
         { headerText = "Bags"
         , isOn = m.bagsIsOn
-        , headerButtons =
-            [ leftBarHeaderButton
+        , headerItems =
+            [ menuHeaderButton
                 { title = "Add New Bag"
                 , onClickMsg = ClickOnBagPlus
                 , iconPath = Icons.icons.plus
                 }
-            , leftBarHeaderButton
+            , menuHeaderButton
                 { title = "Remove Selected Bag"
                 , onClickMsg = ClickOnBagTrash
                 , iconPath = Icons.icons.trash
@@ -3579,7 +3579,7 @@ vertexPreferences m =
     menu
         { headerText = headerForVertexProperties
         , isOn = m.vertexPreferencesIsOn
-        , headerButtons = []
+        , headerItems = []
         , toggleMsg = ToggleVertexPreferences
         , contentItems =
             [ El.row []
@@ -3810,7 +3810,7 @@ edgePreferences m =
     menu
         { headerText = headerForEdgeProperties
         , isOn = m.edgePreferencesIsOn
-        , headerButtons = []
+        , headerItems = []
         , toggleMsg = ToggleEdgePreferences
         , contentItems =
             [ El.row []
