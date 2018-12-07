@@ -3473,8 +3473,8 @@ bags m =
                             , labelWidth = 80
                             , isExpanded = m.bagColorPickerIsExpanded
                             , selectedColor =
-                                present m
-                                    |> GF.getBagProperties idOfTheSelectedBag
+                                GF.getBagProperties idOfTheSelectedBag
+                                    (present m)
                                     |> Maybe.map .color
                             , msgOnColorClick = InputBagColor idOfTheSelectedBag
                             , msgOnExpanderClick = ClickOnBagColorPicker
@@ -3484,8 +3484,8 @@ bags m =
                             { labelText = "Convex Hull"
                             , labelWidth = 80
                             , state =
-                                present m
-                                    |> GF.getBagProperties idOfTheSelectedBag
+                                GF.getBagProperties idOfTheSelectedBag
+                                    (present m)
                                     |> Maybe.map .hasConvexHull
                             , onChange = InputBagConvexHull idOfTheSelectedBag
                             }
@@ -3496,8 +3496,7 @@ bags m =
                             , labelWidth = 80
                             , inputWidth = 60
                             , text =
-                                present m
-                                    |> GF.getBagProperties idOfTheSelectedBag
+                                GF.getBagProperties idOfTheSelectedBag (present m)
                                     |> Maybe.map .label
                                     |> Maybe.withDefault Nothing
                                     |> Maybe.withDefault ""
