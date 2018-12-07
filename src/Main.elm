@@ -3086,6 +3086,7 @@ textInput { labelText, labelWidth, inputWidth, text, onChange } =
 sliderInput :
     { labelText : String
     , labelWidth : Int
+    , totalWidth : Int
     , value : Float
     , min : Float
     , max : Float
@@ -3093,8 +3094,8 @@ sliderInput :
     , onChange : Float -> Msg
     }
     -> Element Msg
-sliderInput { labelText, labelWidth, value, min, max, step, onChange } =
-    El.el [ El.width (El.px 240) ] <|
+sliderInput { labelText, labelWidth, totalWidth, value, min, max, step, onChange } =
+    El.el [ El.width (El.px totalWidth) ] <|
         Input.slider
             [ El.spacing 8
             , El.behindContent
@@ -3467,20 +3468,6 @@ bags m =
 
                 Just idOfTheSelectedBag ->
                     [ El.row []
-                        [ textInput
-                            { labelText = "Label"
-                            , labelWidth = 80
-                            , inputWidth = 60
-                            , text =
-                                present m
-                                    |> GF.getBagProperties idOfTheSelectedBag
-                                    |> Maybe.map .label
-                                    |> Maybe.withDefault Nothing
-                                    |> Maybe.withDefault ""
-                            , onChange = InputBagLabel idOfTheSelectedBag
-                            }
-                        ]
-                    , El.row [ El.height (El.px 40) ]
                         [ colorPicker
                             { labelText = "Color"
                             , labelWidth = 80
@@ -3503,6 +3490,20 @@ bags m =
                             , onChange = InputBagConvexHull idOfTheSelectedBag
                             }
                         ]
+                    , El.row []
+                        [ textInput
+                            { labelText = "Label"
+                            , labelWidth = 80
+                            , inputWidth = 60
+                            , text =
+                                present m
+                                    |> GF.getBagProperties idOfTheSelectedBag
+                                    |> Maybe.map .label
+                                    |> Maybe.withDefault Nothing
+                                    |> Maybe.withDefault ""
+                            , onChange = InputBagLabel idOfTheSelectedBag
+                            }
+                        ]
                     ]
     in
     menu
@@ -3523,7 +3524,7 @@ bags m =
         , toggleMsg = ToggleBags
         , contentItems =
             [ tableOfBags
-            , El.column [ El.height (El.px 50) ] maybeBagPreferences
+            , El.column [ El.height (El.px 44), El.spacing 5 ] maybeBagPreferences
             ]
         }
 
@@ -3549,6 +3550,49 @@ vertexPreferences m =
         , toggleMsg = ToggleVertexPreferences
         , contentItems =
             [ El.row []
+                [ colorPicker
+                    { labelText = "Color"
+                    , labelWidth = 80
+                    , isExpanded = m.vertexColorPickerIsExpanded
+                    , selectedColor =
+                        if Set.isEmpty m.selectedVertices then
+                            Just
+                                (present m
+                                    |> GF.getDefaultVertexProperties
+                                    |> .color
+                                )
+
+                        else
+                            present m
+                                |> GF.getCommonVertexProperty m.selectedVertices .color
+                    , msgOnColorClick = InputVertexColor
+                    , msgOnExpanderClick = ClickOnVertexColorPicker
+                    , msgOnLeave = MouseLeaveVertexColorPicker
+                    }
+                , sliderInput
+                    { labelText = "Radius"
+                    , labelWidth = 60
+                    , totalWidth = 134
+                    , value =
+                        if Set.isEmpty m.selectedVertices then
+                            present m
+                                |> GF.getDefaultVertexProperties
+                                |> .radius
+
+                        else
+                            case present m |> GF.getCommonVertexProperty m.selectedVertices .radius of
+                                Just r ->
+                                    r
+
+                                Nothing ->
+                                    5
+                    , min = 4
+                    , max = 20
+                    , step = 1
+                    , onChange = InputVertexRadius
+                    }
+                ]
+            , El.row []
                 [ textInput
                     { labelText = "Label"
                     , labelWidth = 80
@@ -3571,7 +3615,7 @@ vertexPreferences m =
                     }
                 , checkbox
                     { labelText = "Show Label"
-                    , labelWidth = 70
+                    , labelWidth = 68
                     , state =
                         if Set.isEmpty m.selectedVertices then
                             Just
@@ -3585,6 +3629,45 @@ vertexPreferences m =
                                 |> GF.getCommonVertexProperty m.selectedVertices .labelIsVisible
                     , onChange =
                         InputVertexLabelVisibility
+                    }
+                ]
+            , El.row []
+                [ textInput
+                    { labelText = "Label Size"
+                    , labelWidth = 80
+                    , inputWidth = 30
+                    , text =
+                        if Set.isEmpty m.selectedVertices then
+                            present m
+                                |> GF.getDefaultVertexProperties
+                                |> .labelSize
+                                |> round
+                                |> String.fromInt
+
+                        else
+                            case present m |> GF.getCommonVertexProperty m.selectedVertices .labelSize of
+                                Just lS ->
+                                    String.fromInt (round lS)
+
+                                _ ->
+                                    ""
+                    , onChange = InputVertexLabelSize
+                    }
+                , checkbox
+                    { labelText = "Label Above"
+                    , labelWidth = 98
+                    , state =
+                        if Set.isEmpty m.selectedVertices then
+                            Just
+                                (present m
+                                    |> GF.getDefaultVertexProperties
+                                    |> .labelAbove
+                                )
+
+                        else
+                            present m
+                                |> GF.getCommonVertexProperty m.selectedVertices .labelAbove
+                    , onChange = InputVertexLabelAbove
                     }
                 ]
             , El.row []
@@ -3631,48 +3714,10 @@ vertexPreferences m =
                     , onChange = InputVertexY
                     }
                 ]
-            , El.row []
-                [ textInput
-                    { labelText = "Label Size"
-                    , labelWidth = 80
-                    , inputWidth = 30
-                    , text =
-                        if Set.isEmpty m.selectedVertices then
-                            present m
-                                |> GF.getDefaultVertexProperties
-                                |> .labelSize
-                                |> round
-                                |> String.fromInt
-
-                        else
-                            case present m |> GF.getCommonVertexProperty m.selectedVertices .labelSize of
-                                Just lS ->
-                                    String.fromInt (round lS)
-
-                                _ ->
-                                    ""
-                    , onChange = InputVertexLabelSize
-                    }
-                , checkbox
-                    { labelText = "Label Above"
-                    , labelWidth = 80
-                    , state =
-                        if Set.isEmpty m.selectedVertices then
-                            Just
-                                (present m
-                                    |> GF.getDefaultVertexProperties
-                                    |> .labelAbove
-                                )
-
-                        else
-                            present m
-                                |> GF.getCommonVertexProperty m.selectedVertices .labelAbove
-                    , onChange = InputVertexLabelAbove
-                    }
-                ]
             , sliderInput
                 { labelText = "Charge"
                 , labelWidth = 80
+                , totalWidth = 240
                 , value =
                     -1
                         * (let
@@ -3695,48 +3740,9 @@ vertexPreferences m =
                 , onChange = InputVertexCharge
                 }
             , sliderInput
-                { labelText = "Radius"
-                , labelWidth = 80
-                , value =
-                    if Set.isEmpty m.selectedVertices then
-                        present m
-                            |> GF.getDefaultVertexProperties
-                            |> .radius
-
-                    else
-                        case present m |> GF.getCommonVertexProperty m.selectedVertices .radius of
-                            Just r ->
-                                r
-
-                            Nothing ->
-                                5
-                , min = 4
-                , max = 20
-                , step = 1
-                , onChange = InputVertexRadius
-                }
-            , colorPicker
-                { labelText = "Color"
-                , labelWidth = 80
-                , isExpanded = m.vertexColorPickerIsExpanded
-                , selectedColor =
-                    if Set.isEmpty m.selectedVertices then
-                        Just
-                            (present m
-                                |> GF.getDefaultVertexProperties
-                                |> .color
-                            )
-
-                    else
-                        present m
-                            |> GF.getCommonVertexProperty m.selectedVertices .color
-                , msgOnColorClick = InputVertexColor
-                , msgOnExpanderClick = ClickOnVertexColorPicker
-                , msgOnLeave = MouseLeaveVertexColorPicker
-                }
-            , sliderInput
                 { labelText = "Gravity"
                 , labelWidth = 80
+                , totalWidth = 240
                 , value =
                     if Set.isEmpty m.selectedVertices then
                         present m
@@ -3780,6 +3786,46 @@ edgePreferences m =
         , toggleMsg = ToggleEdgePreferences
         , contentItems =
             [ El.row []
+                [ colorPicker
+                    { labelText = "Color"
+                    , labelWidth = 80
+                    , isExpanded = m.edgeColorPickerIsExpanded
+                    , selectedColor =
+                        if Set.isEmpty m.selectedEdges then
+                            Just
+                                (present m
+                                    |> GF.getDefaultEdgeProperties
+                                    |> .color
+                                )
+
+                        else
+                            present m
+                                |> GF.getCommonEdgeProperty m.selectedEdges .color
+                    , msgOnColorClick = InputEdgeColor
+                    , msgOnExpanderClick = ClickOnEdgeColorPicker
+                    , msgOnLeave = MouseLeaveEdgeColorPicker
+                    }
+                , sliderInput
+                    { labelText = "Thickness"
+                    , labelWidth = 60
+                    , totalWidth = 134
+                    , value =
+                        if Set.isEmpty m.selectedEdges then
+                            present m
+                                |> GF.getDefaultEdgeProperties
+                                |> .thickness
+
+                        else
+                            present m
+                                |> GF.getCommonEdgeProperty m.selectedEdges .thickness
+                                |> Maybe.withDefault 3
+                    , min = 1
+                    , max = 20
+                    , step = 1
+                    , onChange = InputEdgeThickness
+                    }
+                ]
+            , El.row []
                 [ textInput
                     { labelText = "Label"
                     , labelWidth = 80
@@ -3802,7 +3848,7 @@ edgePreferences m =
                     }
                 , checkbox
                     { labelText = "Show Label"
-                    , labelWidth = 70
+                    , labelWidth = 68
                     , state =
                         if Set.isEmpty m.selectedEdges then
                             Just
@@ -3819,26 +3865,9 @@ edgePreferences m =
                     }
                 ]
             , sliderInput
-                { labelText = "Thickness"
-                , labelWidth = 80
-                , value =
-                    if Set.isEmpty m.selectedEdges then
-                        present m
-                            |> GF.getDefaultEdgeProperties
-                            |> .thickness
-
-                    else
-                        present m
-                            |> GF.getCommonEdgeProperty m.selectedEdges .thickness
-                            |> Maybe.withDefault 3
-                , min = 1
-                , max = 20
-                , step = 1
-                , onChange = InputEdgeThickness
-                }
-            , sliderInput
                 { labelText = "Distance"
                 , labelWidth = 80
+                , totalWidth = 240
                 , value =
                     if Set.isEmpty m.selectedEdges then
                         present m
@@ -3857,6 +3886,7 @@ edgePreferences m =
             , sliderInput
                 { labelText = "Strength"
                 , labelWidth = 80
+                , totalWidth = 240
                 , value =
                     if Set.isEmpty m.selectedEdges then
                         present m
@@ -3871,25 +3901,6 @@ edgePreferences m =
                 , max = 1
                 , step = 0.05
                 , onChange = InputEdgeStrength
-                }
-            , colorPicker
-                { labelText = "Color"
-                , labelWidth = 80
-                , isExpanded = m.edgeColorPickerIsExpanded
-                , selectedColor =
-                    if Set.isEmpty m.selectedEdges then
-                        Just
-                            (present m
-                                |> GF.getDefaultEdgeProperties
-                                |> .color
-                            )
-
-                    else
-                        present m
-                            |> GF.getCommonEdgeProperty m.selectedEdges .color
-                , msgOnColorClick = InputEdgeColor
-                , msgOnExpanderClick = ClickOnEdgeColorPicker
-                , msgOnLeave = MouseLeaveEdgeColorPicker
                 }
             ]
         }
