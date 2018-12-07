@@ -507,6 +507,8 @@ type Msg
     | ClickOnCloseFile
     | ClickOnFileItem String
     | InputRenameFile String
+    | FocusNextFile
+    | FocusPreviousFile
       --
     | ClickOnRunDijsktraButton
 
@@ -1640,6 +1642,9 @@ updateHelper msg m =
         ClickOnCloseFile ->
             { m | files = Files.close m.files }
 
+        InputRenameFile str ->
+            { m | files = Files.rename str m.files }
+
         ClickOnFileItem name ->
             let
                 newFiles =
@@ -1655,8 +1660,35 @@ updateHelper msg m =
                         }
             }
 
-        InputRenameFile str ->
-            { m | files = Files.rename str m.files }
+        FocusNextFile ->
+            let
+                newFiles =
+                    Files.focusNext m.files
+            in
+            { m
+                | files = newFiles
+                , animation =
+                    TransitionAnimation
+                        { startGraph = present m
+                        , endGraph = Files.present newFiles |> Tuple.second
+                        , transitionState = Transition.initialState
+                        }
+            }
+
+        FocusPreviousFile ->
+            let
+                newFiles =
+                    Files.focusPrevious m.files
+            in
+            { m
+                | files = newFiles
+                , animation =
+                    TransitionAnimation
+                        { startGraph = present m
+                        , endGraph = Files.present newFiles |> Tuple.second
+                        , transitionState = Transition.initialState
+                        }
+            }
 
         ClickOnRunDijsktraButton ->
             { m
@@ -1732,6 +1764,12 @@ animationFrame m =
 toKeyDownMsg : Key -> Msg
 toKeyDownMsg key =
     case key of
+        Character '[' ->
+            FocusPreviousFile
+
+        Character ']' ->
+            FocusNextFile
+
         Character 'a' ->
             ClickOnDistractionFreeButton
 

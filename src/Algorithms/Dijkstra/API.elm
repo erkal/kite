@@ -1,7 +1,7 @@
 module Algorithms.Dijkstra.API exposing (run)
 
 import Algorithm
-import Algorithms.Dijkstra exposing (Distance(..), InputData, StepData)
+import Algorithms.Dijkstra as Dijkstra exposing (Distance(..), InputData, StepData)
 import Colors
 import Dict exposing (Dict)
 import Graph
@@ -12,14 +12,18 @@ import Set exposing (Set)
 
 
 run : GraphFile -> List GraphFile
-run inputGraphFile =
-    runHelper (GF.getGraph inputGraphFile)
-        |> List.map (\g -> GF.setGraph g inputGraphFile)
+run inputGF =
+    inputGF
+        |> GF.getGraph
+        |> runOnMyGraph
+        |> List.map (\g -> GF.setGraph g inputGF)
 
 
-runHelper : MyGraph -> List MyGraph
-runHelper inputGraph =
-    Algorithm.run Algorithms.Dijkstra.algorithm (fromMyGraph inputGraph)
+runOnMyGraph : MyGraph -> List MyGraph
+runOnMyGraph inputGraph =
+    inputGraph
+        |> toInputData
+        |> Algorithm.run Dijkstra.algorithm
         |> List.map (toMyGraph inputGraph)
 
 
@@ -28,8 +32,8 @@ runHelper inputGraph =
 If there is vertex labeled with "start", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id.
 
 -}
-fromMyGraph : MyGraph -> InputData
-fromMyGraph g =
+toInputData : MyGraph -> InputData
+toInputData g =
     { startVertex =
         let
             maybeVertexWithLabelStart =
@@ -77,60 +81,51 @@ fromMyGraph g =
 toMyGraph : MyGraph -> StepData -> MyGraph
 toMyGraph inputGraph stepData =
     let
-        markVisited ({ label } as node) =
-            { node
-                | label =
-                    { label
-                        | color = Colors.white
-                        , labelColor = Colors.black
-                        , radius = 4 + label.radius
-                    }
-            }
-
-        setLabel str ({ label } as node) =
-            { node
-                | label =
-                    { label
+        styleVertices =
+            let
+                setLabel currentBestDistance vP =
+                    { vP
                         | labelIsVisible = True
                         , labelColor = Colors.white
-                        , label = Just str
-                    }
-            }
-
-        up { hasBeenVisited, currentBestDistance, maybePredecessor } ctx =
-            { ctx
-                | node =
-                    ctx.node
-                        |> setLabel
-                            (case currentBestDistance of
+                        , label =
+                            case currentBestDistance of
                                 Finite dist ->
-                                    String.fromInt dist
+                                    Just (String.fromInt dist)
 
                                 Infinity ->
-                                    "∞"
-                            )
-                        |> (if hasBeenVisited then
-                                markVisited
+                                    Just "∞"
+                    }
 
-                            else
-                                identity
-                           )
-            }
+                markVisited hasBeenVisited vP =
+                    if hasBeenVisited then
+                        { vP
+                            | color = Colors.white
+                            , labelColor = Colors.black
+                            , radius = 4 + vP.radius
+                        }
 
-        applyVertexData id vData =
-            Graph.update id (Maybe.map (up vData))
+                    else
+                        vP
 
-        predEdges =
-            stepData
-                |> IntDict.toList
-                |> List.filterMap
-                    (\( id, { maybePredecessor } ) ->
-                        maybePredecessor |> Maybe.map (\pred -> ( pred, id ))
-                    )
-                |> Set.fromList
+                up d vP =
+                    vP
+                        |> setLabel d.currentBestDistance
+                        |> markVisited d.hasBeenVisited
+            in
+            Graph.Extra.updateNodesBy (IntDict.toList stepData) up
 
-        upPredEdges =
+        --
+        markPredecessorEdges =
             let
+                takePred ( id, { maybePredecessor } ) =
+                    Maybe.map (\pred -> ( pred, id )) maybePredecessor
+
+                predEdges =
+                    stepData
+                        |> IntDict.toList
+                        |> List.filterMap takePred
+                        |> Set.fromList
+
                 upPE eP =
                     { eP
                         | color = Colors.white
@@ -140,8 +135,9 @@ toMyGraph inputGraph stepData =
             in
             Graph.Extra.updateEdges predEdges upPE
 
-        upNextVertextoHandle =
-            case Algorithms.Dijkstra.nextVertexToHandle stepData of
+        --
+        markNextVertexToHandle =
+            case Dijkstra.nextVertexToHandle stepData of
                 Just id ->
                     Graph.Extra.mapNode id
                         (\vP ->
@@ -155,6 +151,7 @@ toMyGraph inputGraph stepData =
                 Nothing ->
                     identity
     in
-    IntDict.foldr applyVertexData inputGraph stepData
-        |> upNextVertextoHandle
-        |> upPredEdges
+    inputGraph
+        |> styleVertices
+        |> markPredecessorEdges
+        |> markNextVertexToHandle

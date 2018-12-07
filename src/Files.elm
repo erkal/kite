@@ -6,6 +6,7 @@ module Files exposing
     , undo, redo, goToInHistory, new, mapPresent, save, delete, rename, duplicate, close
     , present, getName, hasFuture, hasPast, lengthPast, uLWSVizData
     , vizData
+    , focusNext, focusPrevious
     )
 
 {-| Represent an ordered nonempty list of files, each with unique names, keeping track of a focused file. It allows undo-redo operations on each file.
@@ -263,6 +264,34 @@ duplicate files =
 close : Files data -> Files data
 close =
     mapULWS ULWS.resetToSaved
+
+
+focusNext : Files data -> Files data
+focusNext ((Files { before, focused, after }) as files) =
+    case after of
+        x :: xs ->
+            Files
+                { before = focused :: before
+                , focused = x
+                , after = xs
+                }
+
+        [] ->
+            files
+
+
+focusPrevious : Files data -> Files data
+focusPrevious ((Files { before, focused, after }) as files) =
+    case before of
+        x :: xs ->
+            Files
+                { before = xs
+                , focused = x
+                , after = focused :: after
+                }
+
+        [] ->
+            files
 
 
 
