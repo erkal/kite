@@ -1,6 +1,6 @@
-module Algorithms.Dijkstra exposing (InputData, StepData, algorithm, nextVertexToHandle)
+module Algorithms.Dijkstra exposing (Distance(..), InputData, StepData, algorithm, nextVertexToHandle)
 
-import Algorithm exposing (Algorithm)
+import Algorithm exposing (Algorithm, StepResult(..))
 import IntDict exposing (IntDict)
 import Set exposing (Set)
 
@@ -14,7 +14,7 @@ algorithm =
 
 
 
--- inputData
+-- InputData
 
 
 type alias InputData =
@@ -32,15 +32,20 @@ type alias Weight =
 
 
 
--- stepData
+-- StepData
 
 
 type alias StepData =
     IntDict
-        { visited : Bool
-        , maybeDist : Maybe Int
-        , maybePred : Maybe VertexId
+        { hasBeenVisited : Bool
+        , currentBestDistance : Distance
+        , maybePredecessor : Maybe VertexId
         }
+
+
+type Distance
+    = Infinity
+    | Finite Int
 
 
 
@@ -50,21 +55,18 @@ type alias StepData =
 init : InputData -> StepData
 init { startVertex, graph } =
     let
-        initVertexState id _ =
-            { visited = False
-            , maybeDist =
+        initVertex id _ =
+            { hasBeenVisited = False
+            , currentBestDistance =
                 if startVertex == id then
-                    Just 0
+                    Finite 0
 
                 else
-                    Nothing
-            , maybePred = Nothing
+                    Infinity
+            , maybePredecessor = Nothing
             }
-
-        nextStepData =
-            IntDict.map initVertexState graph
     in
-    nextStepData
+    IntDict.map initVertex graph
 
 
 
@@ -75,11 +77,11 @@ step : InputData -> StepData -> Algorithm.StepResult StepData
 step inputData lastStep =
     case unvisitedWithTheSmallestTDist lastStep of
         Just idAndDist ->
-            Algorithm.Next
+            Next
                 (handleVertex inputData lastStep idAndDist)
 
         Nothing ->
-            Algorithm.End
+            End
 
 
 
@@ -99,11 +101,17 @@ unvisitedWithTheSmallestTDist : StepData -> Maybe ( VertexId, Int )
 unvisitedWithTheSmallestTDist =
     let
         take ( id, v ) =
-            if not v.visited then
-                v.maybeDist |> Maybe.map (\dist -> ( id, dist ))
+            case v.currentBestDistance of
+                Finite dist ->
+                    if not v.hasBeenVisited then
+                        Just ( id, dist )
 
-            else
-                Nothing
+                    else
+                        Nothing
+
+                Infinity ->
+                    -- This never happens
+                    Nothing
     in
     IntDict.toList
         >> List.filterMap take
@@ -111,23 +119,20 @@ unvisitedWithTheSmallestTDist =
         >> List.head
 
 
-updateDist id newDist newPred stepData =
-    let
-        up d =
-            { d
-                | maybeDist = Just newDist
-                , maybePred = Just newPred
-            }
-    in
-    stepData |> IntDict.update id (Maybe.map up)
+updateDist id newDist newPred =
+    IntDict.update id
+        (Maybe.map
+            (\d ->
+                { d
+                    | currentBestDistance = Finite newDist
+                    , maybePredecessor = Just newPred
+                }
+            )
+        )
 
 
-handleVertex :
-    InputData
-    -> StepData
-    -> ( VertexId, Int )
-    -> StepData
-handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
+handleVertex : InputData -> StepData -> ( VertexId, Int ) -> StepData
+handleVertex { graph } lastStep ( idOfHandled, distOfHandled ) =
     let
         neighboursWithWeights =
             IntDict.get idOfHandled graph
@@ -136,30 +141,28 @@ handleVertex { graph } lastStep ( idOfHandled, tDistOfHandled ) =
         updateNeighbour neighbourId w stepData =
             let
                 up =
-                    stepData
-                        |> updateDist neighbourId
-                            (tDistOfHandled + w)
-                            idOfHandled
+                    updateDist neighbourId (distOfHandled + w) idOfHandled
             in
-            case IntDict.get neighbourId stepData of
-                Just { maybeDist } ->
-                    case maybeDist of
-                        Just dist ->
-                            if tDistOfHandled + w < dist then
-                                up
+            stepData
+                |> (case IntDict.get neighbourId stepData of
+                        Just { currentBestDistance } ->
+                            case currentBestDistance of
+                                Finite currentBest ->
+                                    if distOfHandled + w < currentBest then
+                                        up
 
-                            else
-                                stepData
+                                    else
+                                        identity
+
+                                Infinity ->
+                                    up
 
                         Nothing ->
-                            up
+                            identity
+                   )
 
-                Nothing ->
-                    stepData
-
-        nextStepData =
-            neighboursWithWeights
-                |> IntDict.foldr updateNeighbour lastStep
-                |> IntDict.update idOfHandled (Maybe.map (\d -> { d | visited = True }))
+        markAsVisited d =
+            { d | hasBeenVisited = True }
     in
-    nextStepData
+    IntDict.foldr updateNeighbour lastStep neighboursWithWeights
+        |> IntDict.update idOfHandled (Maybe.map markAsVisited)

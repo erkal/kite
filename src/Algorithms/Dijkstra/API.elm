@@ -1,7 +1,7 @@
 module Algorithms.Dijkstra.API exposing (run)
 
 import Algorithm
-import Algorithms.Dijkstra exposing (InputData, StepData)
+import Algorithms.Dijkstra exposing (Distance(..), InputData, StepData)
 import Colors
 import Dict exposing (Dict)
 import Graph
@@ -82,10 +82,7 @@ toMyGraph inputGraph stepData =
                 | label =
                     { label
                         | color = Colors.white
-
-                        --    borderWidth = 4
-                        --, borderColor = Colors.white
-                        , labelColor = Colors.white
+                        , labelColor = Colors.black
                         , radius = 4 + label.radius
                     }
             }
@@ -95,29 +92,29 @@ toMyGraph inputGraph stepData =
                 | label =
                     { label
                         | labelIsVisible = True
-                        , labelColor = Colors.black
+                        , labelColor = Colors.white
                         , label = Just str
                     }
             }
 
-        up { visited, maybeDist, maybePred } ctx =
+        up { hasBeenVisited, currentBestDistance, maybePredecessor } ctx =
             { ctx
                 | node =
                     ctx.node
-                        |> (if visited then
+                        |> setLabel
+                            (case currentBestDistance of
+                                Finite dist ->
+                                    String.fromInt dist
+
+                                Infinity ->
+                                    "∞"
+                            )
+                        |> (if hasBeenVisited then
                                 markVisited
 
                             else
                                 identity
                            )
-                        |> setLabel
-                            (case maybeDist of
-                                Just dist ->
-                                    String.fromInt dist
-
-                                Nothing ->
-                                    "∞"
-                            )
             }
 
         applyVertexData id vData =
@@ -127,8 +124,8 @@ toMyGraph inputGraph stepData =
             stepData
                 |> IntDict.toList
                 |> List.filterMap
-                    (\( id, { maybePred } ) ->
-                        maybePred |> Maybe.map (\pred -> ( pred, id ))
+                    (\( id, { maybePredecessor } ) ->
+                        maybePredecessor |> Maybe.map (\pred -> ( pred, id ))
                     )
                 |> Set.fromList
 
@@ -146,25 +143,18 @@ toMyGraph inputGraph stepData =
         upNextVertextoHandle =
             case Algorithms.Dijkstra.nextVertexToHandle stepData of
                 Just id ->
-                    let
-                        upNode ({ label } as node) =
-                            { node
-                                | label =
-                                    { label
-                                        | color = Colors.yellow
-                                        , radius = 4 + label.radius
-                                    }
+                    Graph.Extra.mapNode id
+                        (\vP ->
+                            { vP
+                                | borderWidth = 4
+                                , radius = vP.radius + 4
+                                , borderColor = Colors.white
                             }
-
-                        upCtx ctx =
-                            { ctx | node = ctx.node |> upNode }
-                    in
-                    Graph.update id (Maybe.map upCtx)
+                        )
 
                 Nothing ->
                     identity
     in
-    stepData
-        |> IntDict.foldr applyVertexData inputGraph
+    IntDict.foldr applyVertexData inputGraph stepData
         |> upNextVertextoHandle
         |> upPredEdges

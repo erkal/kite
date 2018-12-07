@@ -22,7 +22,6 @@ basic initAndStep =
 run : Algorithm inputData stepData -> inputData -> List stepData
 run (Algorithm { init, step }) inputData =
     let
-        helper : stepData -> List stepData -> List stepData
         helper lastStepData past =
             case step inputData lastStepData of
                 Next nextStepData ->
@@ -31,4 +30,5 @@ run (Algorithm { init, step }) inputData =
                 End ->
                     lastStepData :: past
     in
-    helper (init inputData) [] |> List.reverse
+    List.reverse
+        (helper (init inputData) [])
