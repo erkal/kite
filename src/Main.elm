@@ -1648,7 +1648,7 @@ updateHelper msg m =
         ClickOnFileItem name ->
             let
                 newFiles =
-                    Files.focus name m.files
+                    Files.open name m.files
             in
             { m
                 | files = newFiles
@@ -1663,7 +1663,7 @@ updateHelper msg m =
         FocusNextFile ->
             let
                 newFiles =
-                    Files.focusNext m.files
+                    Files.openNext m.files
             in
             { m
                 | files = newFiles
@@ -1678,7 +1678,7 @@ updateHelper msg m =
         FocusPreviousFile ->
             let
                 newFiles =
-                    Files.focusPrevious m.files
+                    Files.openPrevious m.files
             in
             { m
                 | files = newFiles
@@ -1928,17 +1928,20 @@ guiColumns m =
                     )
                 )
 
+        fileTabs =
+            El.row [] []
+
         midCol =
             El.column
                 [ El.height El.fill
                 , El.width El.fill
                 ]
-                [ El.el
-                    [ El.width El.fill
-                    , El.alignTop
-                    , El.htmlAttribute (HA.style "pointer-events" "auto")
+                [ fileTabs
+                , El.el
+                    [ El.alignTop
+                    , El.width El.fill
                     ]
-                    (topBar m)
+                    (fpsView m)
 
                 --, El.el
                 --    [ El.alignTop
@@ -1950,8 +1953,9 @@ guiColumns m =
                 , El.el
                     [ El.alignBottom
                     , El.width El.fill
+                    , El.htmlAttribute (HA.style "pointer-events" "auto")
                     ]
-                    (fpsView m)
+                    (topBar m)
                 ]
     in
     if m.distractionFree then
@@ -2301,7 +2305,7 @@ leftBarContentForFiles m =
             El.row (attr vizDatum)
                 [ El.row [ El.spacing 6 ]
                     [ El.el [] <|
-                        if vizDatum.edited then
+                        if vizDatum.isEdited then
                             El.html (Icons.draw14px Icons.icons.editedPen)
 
                         else
@@ -2325,7 +2329,7 @@ leftBarContentForFiles m =
                 (vizData
                     |> List.filterMap
                         (\vizDatum ->
-                            if vizDatum.isOpened then
+                            if vizDatum.isOpen then
                                 Just (openedItem vizDatum)
 
                             else

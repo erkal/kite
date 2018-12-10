@@ -2,11 +2,10 @@ module Files exposing
     ( Files
     , encode, decoder
     , singleton, newFile
-    , focus
     , undo, redo, goToInHistory, new, mapPresent, save, delete, rename, duplicate, close
     , present, getName, hasFuture, hasPast, lengthPast, uLWSVizData
     , vizData
-    , focusNext, focusPrevious
+    , open, openNext, openPrevious
     )
 
 {-| Represent an ordered nonempty list of files, each with unique names, keeping track of a focused file. It allows undo-redo operations on each file.
@@ -77,7 +76,11 @@ type Files data
 
 
 type File data
-    = File Name (UndoListWithSave data)
+    = File
+        { name : Name
+        , isOpen : Bool
+        , uLWS : UndoListWithSave data
+        }
 
 
 type alias Name =
@@ -100,10 +103,10 @@ encode encodeFileData (Files { before, focused, after }) =
 
 
 encodeFile : (data -> Value) -> File data -> Value
-encodeFile encodeFileData (File name uLWS) =
+encodeFile encodeFileData (File f) =
     JE.object
-        [ ( "name", JE.string name )
-        , ( "savedData", encodeFileData (ULWS.getSavedState uLWS) )
+        [ ( "name", JE.string f.name )
+        , ( "savedData", encodeFileData (ULWS.getSavedState f.uLWS) )
         ]
 
 
@@ -123,9 +126,9 @@ decoder dataDecoder =
 
 fileDecoder : Decoder data -> Decoder (File data)
 fileDecoder dataDecoder =
-    JD.map2 File
+    JD.map2 (\n d -> File { name = n, isOpen = False, uLWS = ULWS.fresh d })
         (JD.field "name" JD.string)
-        (JD.field "savedData" (JD.map ULWS.fresh dataDecoder))
+        (JD.field "savedData" dataDecoder)
 
 
 
@@ -140,7 +143,12 @@ singleton : Name -> data -> Files data
 singleton name data =
     Files
         { before = []
-        , focused = File name (ULWS.fresh data)
+        , focused =
+            File
+                { name = name
+                , isOpen = True
+                , uLWS = ULWS.fresh data
+                }
         , after = []
         }
 
@@ -151,33 +159,40 @@ newFile : Name -> data -> Files data -> Files data
 newFile name d ((Files { before, focused, after }) as files) =
     Files
         { before = focused :: before
-        , focused = File (newNameFrom name files) (ULWS.fresh d)
+        , focused =
+            File
+                { name = newNameFrom name files
+                , isOpen = True
+                , uLWS = ULWS.fresh d
+                }
         , after = after
         }
 
 
 
 -----------------------
--- Setting the Focus --
+-- Opening a file --
 -----------------------
 
 
-{-| Given a name which is not the name of the focused file, returns files with the file with the given name focused.
+{-| Given a name which is not the name of the focused file, returns files with the file with the given name opened and focused.
 -}
-focus : Name -> Files data -> Files data
-focus name ((Files { before, focused, after }) as files) =
+open : Name -> Files data -> Files data
+open nameToFocus ((Files { before, focused, after }) as files) =
     let
         hasTheNameToPick : File a -> Bool
-        hasTheNameToPick (File name_ uLWS) =
-            name_ == name
+        hasTheNameToPick (File f) =
+            f.name == nameToFocus
+
+        setIsOpen b (File f) =
+            File { f | isOpen = b }
     in
     case pick hasTheNameToPick before of
         Just ( oldBeforeAfterNewFocused, newFocused, newBefore ) ->
             Files
                 { before = newBefore
-                , focused = newFocused
-                , after =
-                    oldBeforeAfterNewFocused ++ (focused :: after)
+                , focused = setIsOpen True newFocused
+                , after = oldBeforeAfterNewFocused ++ (focused :: after)
                 }
 
         Nothing ->
@@ -186,7 +201,7 @@ focus name ((Files { before, focused, after }) as files) =
                     Files
                         { before =
                             oldAfterBeforeNewFocused ++ (focused :: before)
-                        , focused = newFocused
+                        , focused = setIsOpen True newFocused
                         , after = newAfter
                         }
 
@@ -235,10 +250,10 @@ save =
 delete : Files data -> Files data
 delete ((Files { before, focused, after }) as files) =
     case before of
-        f :: fs ->
+        x :: xs ->
             Files
-                { before = fs
-                , focused = f
+                { before = xs
+                , focused = x
                 , after = after
                 }
 
@@ -248,9 +263,7 @@ delete ((Files { before, focused, after }) as files) =
 
 rename : Name -> Files data -> Files data
 rename newName files =
-    map
-        (\(File name arr) -> File (newNameFrom newName files) arr)
-        files
+    map (\(File f) -> File { f | name = newNameFrom newName files }) files
 
 
 duplicate : Files data -> Files data
@@ -263,16 +276,23 @@ duplicate files =
 
 close : Files data -> Files data
 close =
-    mapULWS ULWS.resetToSaved
+    map
+        (\(File f) ->
+            File { f | isOpen = False, uLWS = ULWS.resetToSaved f.uLWS }
+        )
 
 
-focusNext : Files data -> Files data
-focusNext ((Files { before, focused, after }) as files) =
+openNext : Files data -> Files data
+openNext ((Files { before, focused, after }) as files) =
+    let
+        setIsOpen b (File f) =
+            File { f | isOpen = b }
+    in
     case after of
         x :: xs ->
             Files
                 { before = focused :: before
-                , focused = x
+                , focused = setIsOpen True x
                 , after = xs
                 }
 
@@ -280,13 +300,17 @@ focusNext ((Files { before, focused, after }) as files) =
             files
 
 
-focusPrevious : Files data -> Files data
-focusPrevious ((Files { before, focused, after }) as files) =
+openPrevious : Files data -> Files data
+openPrevious ((Files { before, focused, after }) as files) =
+    let
+        setIsOpen b (File f) =
+            File { f | isOpen = b }
+    in
     case before of
         x :: xs ->
             Files
                 { before = xs
-                , focused = x
+                , focused = setIsOpen True x
                 , after = focused :: after
                 }
 
@@ -311,7 +335,7 @@ present =
 -}
 getName : Files data -> Name
 getName (Files { focused }) =
-    (\(File name _) -> name) focused
+    (\(File f) -> f.name) focused
 
 
 hasFuture : Files data -> Bool
@@ -343,19 +367,21 @@ uLWSVizData =
 type alias VizDatum =
     { name : Name
     , isTheFocused : Bool
-    , edited : Bool
-    , isOpened : Bool
+    , isEdited : Bool
+    , isOpen : Bool
+    , hasPast : Bool
     }
 
 
 vizData : Files a -> List VizDatum
 vizData (Files { before, focused, after }) =
     let
-        datum isTheFocused (File name uLWS) =
-            { name = name
+        datum isTheFocused (File f) =
+            { name = f.name
             , isTheFocused = isTheFocused
-            , edited = not (ULWS.presentIsTheLastSaved uLWS)
-            , isOpened = ULWS.hasPast uLWS
+            , isEdited = not (ULWS.presentIsTheLastSaved f.uLWS)
+            , isOpen = f.isOpen
+            , hasPast = ULWS.hasPast f.uLWS
             }
     in
     List.reverse (List.map (datum False) before)
@@ -369,11 +395,13 @@ vizData (Files { before, focused, after }) =
 
 
 queryULWS q (Files { focused }) =
-    (\(File name uLWS) -> q uLWS) focused
+    focused
+        |> (\(File f) -> f.uLWS)
+        |> q
 
 
 mapULWS up =
-    map (\(File name uLWS) -> File name (up uLWS))
+    map (\(File f) -> File { f | uLWS = up f.uLWS })
 
 
 map up (Files { before, focused, after }) =
@@ -385,20 +413,20 @@ map up (Files { before, focused, after }) =
 
 
 newNameFrom : Name -> Files a -> Name
-newNameFrom name (Files { before, focused, after }) =
+newNameFrom suggestedName (Files { before, focused, after }) =
     let
         allFiles =
             before ++ (focused :: after)
 
         allNames =
             allFiles
-                |> List.map (\(File n _) -> n)
+                |> List.map (\(File { name }) -> name)
                 |> Set.fromList
 
         try i =
             let
                 nameToTry =
-                    name ++ " " ++ String.fromInt i
+                    suggestedName ++ " " ++ String.fromInt i
             in
             if Set.member nameToTry allNames then
                 try (i + 1)
@@ -406,11 +434,11 @@ newNameFrom name (Files { before, focused, after }) =
             else
                 nameToTry
     in
-    if Set.member name allNames then
+    if Set.member suggestedName allNames then
         try 1
 
     else
-        name
+        suggestedName
 
 
 {-| Pick an element satisfiying the check and returns also the elements to the left and to the right
