@@ -1,15 +1,15 @@
 module Algorithm exposing (Algorithm, StepResult(..), basic, run)
 
 
-type Algorithm inputData stepData vizData
+type Algorithm inputData stepData
     = Algorithm
-        { init : inputData -> ( stepData, vizData )
-        , step : inputData -> stepData -> StepResult stepData vizData
+        { init : inputData -> stepData
+        , step : inputData -> stepData -> StepResult stepData
         }
 
 
-type StepResult stepData vizData
-    = Next ( stepData, vizData )
+type StepResult stepData
+    = Next stepData
     | End
 
 
@@ -19,23 +19,16 @@ basic initAndStep =
 
 {-| stepData must hold all information for the visualization of that step.
 -}
-run :
-    Algorithm inputData stepData vizData
-    -> inputData
-    -> List ( stepData, vizData )
+run : Algorithm inputData stepData -> inputData -> List stepData
 run (Algorithm { init, step }) inputData =
     let
-        helper :
-            ( stepData, vizData )
-            -> List ( stepData, vizData )
-            -> List ( stepData, vizData )
-        helper lD past =
-            case step inputData (Tuple.first lD) of
-                Next nD ->
-                    helper nD (lD :: past)
+        helper lastStepData past =
+            case step inputData lastStepData of
+                Next nextStepData ->
+                    helper nextStepData (lastStepData :: past)
 
                 End ->
-                    lD :: past
+                    lastStepData :: past
     in
-    helper (init inputData) []
-        |> List.reverse
+    List.reverse
+        (helper (init inputData) [])

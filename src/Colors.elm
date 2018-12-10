@@ -138,6 +138,7 @@ red =
 
 
 mainSvgBackground =
+    --El.rgb255 250 243 237
     El.rgb255 46 46 46
 
 

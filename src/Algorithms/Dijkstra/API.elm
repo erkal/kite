@@ -1,7 +1,7 @@
 module Algorithms.Dijkstra.API exposing (run)
 
 import Algorithm
-import Algorithms.Dijkstra exposing (InputData, StepData, VizData)
+import Algorithms.Dijkstra as Dijkstra exposing (Distance(..), InputData, StepData)
 import Colors
 import Dict exposing (Dict)
 import Graph
@@ -12,14 +12,18 @@ import Set exposing (Set)
 
 
 run : GraphFile -> List GraphFile
-run inputGraphFile =
-    runHelper (GF.getGraph inputGraphFile)
-        |> List.map (\g -> GF.setGraph g inputGraphFile)
+run inputGF =
+    inputGF
+        |> GF.getGraph
+        |> runOnMyGraph
+        |> List.map (\g -> GF.setGraph g inputGF)
 
 
-runHelper : MyGraph -> List MyGraph
-runHelper inputGraph =
-    Algorithm.run Algorithms.Dijkstra.algorithm (fromMyGraph inputGraph)
+runOnMyGraph : MyGraph -> List MyGraph
+runOnMyGraph inputGraph =
+    inputGraph
+        |> toInputData
+        |> Algorithm.run Dijkstra.algorithm
         |> List.map (toMyGraph inputGraph)
 
 
@@ -28,8 +32,8 @@ runHelper inputGraph =
 If there is vertex labeled with "start", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id.
 
 -}
-fromMyGraph : MyGraph -> InputData
-fromMyGraph g =
+toInputData : MyGraph -> InputData
+toInputData g =
     { startVertex =
         let
             maybeVertexWithLabelStart =
@@ -74,66 +78,54 @@ fromMyGraph g =
     }
 
 
-toMyGraph : MyGraph -> ( StepData, VizData ) -> MyGraph
-toMyGraph inputGraph ( stepData, vizData ) =
+toMyGraph : MyGraph -> StepData -> MyGraph
+toMyGraph inputGraph stepData =
     let
-        markVisited ({ label } as node) =
-            { node
-                | label =
-                    { label
-                        | color = Colors.white
-
-                        --    borderWidth = 4
-                        --, borderColor = Colors.white
-                        , labelColor = Colors.white
-                        , radius = 4 + label.radius
-                    }
-            }
-
-        setLabel str ({ label } as node) =
-            { node
-                | label =
-                    { label
-                        | labelIsVisible = True
-                        , labelColor = Colors.black
-                        , label = Just str
-                    }
-            }
-
-        up { visited, maybeDist, maybePred } ctx =
-            { ctx
-                | node =
-                    ctx.node
-                        |> (if visited then
-                                markVisited
-
-                            else
-                                identity
-                           )
-                        |> setLabel
-                            (case maybeDist of
-                                Just dist ->
-                                    String.fromInt dist
-
-                                Nothing ->
-                                    "∞"
-                            )
-            }
-
-        applyVertexData id vData =
-            Graph.update id (Maybe.map (up vData))
-
-        predEdges =
-            stepData
-                |> IntDict.toList
-                |> List.filterMap
-                    (\( id, { maybePred } ) ->
-                        maybePred |> Maybe.map (\pred -> ( pred, id ))
-                    )
-                |> Set.fromList
-
-        upPredEdges =
+        styleVertices =
             let
+                setLabel currentBestDistance vP =
+                    { vP
+                        | labelIsVisible = True
+                        , labelColor = Colors.white
+                        , label =
+                            case currentBestDistance of
+                                Finite dist ->
+                                    Just (String.fromInt dist)
+
+                                Infinity ->
+                                    Just "∞"
+                    }
+
+                markVisited hasBeenVisited vP =
+                    if hasBeenVisited then
+                        { vP
+                            | color = Colors.white
+                            , labelColor = Colors.black
+                            , radius = 4 + vP.radius
+                        }
+
+                    else
+                        vP
+
+                up d vP =
+                    vP
+                        |> setLabel d.currentBestDistance
+                        |> markVisited d.hasBeenVisited
+            in
+            Graph.Extra.updateNodesBy (IntDict.toList stepData) up
+
+        --
+        markPredecessorEdges =
+            let
+                takePred ( id, { maybePredecessor } ) =
+                    Maybe.map (\pred -> ( pred, id )) maybePredecessor
+
+                predEdges =
+                    stepData
+                        |> IntDict.toList
+                        |> List.filterMap takePred
+                        |> Set.fromList
+
                 upPE eP =
                     { eP
                         | color = Colors.white
@@ -143,22 +135,23 @@ toMyGraph inputGraph ( stepData, vizData ) =
             in
             Graph.Extra.updateEdges predEdges upPE
 
-        setColor color ({ label } as node) =
-            { node | label = { label | color = color } }
-
-        upNextVertextoHandle =
-            case vizData.nextVertextoHandle of
+        --
+        markNextVertexToHandle =
+            case Dijkstra.nextVertexToHandle stepData of
                 Just id ->
-                    let
-                        yellowize ctx =
-                            { ctx | node = ctx.node |> setColor Colors.yellow }
-                    in
-                    Graph.update id (Maybe.map yellowize)
+                    Graph.Extra.mapNode id
+                        (\vP ->
+                            { vP
+                                | borderWidth = 4
+                                , radius = vP.radius + 4
+                                , borderColor = Colors.white
+                            }
+                        )
 
                 Nothing ->
                     identity
     in
-    stepData
-        |> IntDict.foldr applyVertexData inputGraph
-        |> upNextVertextoHandle
-        |> upPredEdges
+    inputGraph
+        |> styleVertices
+        |> markPredecessorEdges
+        |> markNextVertexToHandle

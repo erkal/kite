@@ -9,6 +9,7 @@ module Graph.Extra exposing
     , inducedNodes
     , insertEdge
     , insertNode
+    , mapNode
     , removeEdge
     , union
     , updateEdges
@@ -245,7 +246,12 @@ updateNodes nodeSetToUpdate up graph =
         up_ ({ node } as ctx) =
             { ctx | node = { node | label = up node.label } }
     in
-    nodeSetToUpdate |> Set.foldr (\id -> Graph.update id (Maybe.map up_)) graph
+    Set.foldr (\id -> Graph.update id (Maybe.map up_)) graph nodeSetToUpdate
+
+
+mapNode : NodeId -> (n -> n) -> Graph n e -> Graph n e
+mapNode id up graph =
+    updateNodes (Set.singleton id) up graph
 
 
 updateEdges : Set ( NodeId, NodeId ) -> (e -> e) -> Graph n e -> Graph n e
