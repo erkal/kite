@@ -445,7 +445,6 @@ type Msg
     | MouseDownOnGravityCenter (List VertexId)
     | MouseDownOnDefaultGravityCenter
       --
-    | ToggleOpenedFiles
     | ToggleAllFiles
       --
     | ToggleTableOfVertices
@@ -1466,9 +1465,6 @@ updateHelper msg m =
                 |> reheatForce
                 |> new newGF "Changed edge strength"
 
-        ToggleOpenedFiles ->
-            { m | openedFilesIsExpanded = not m.openedFilesIsExpanded }
-
         ToggleAllFiles ->
             { m | allFilesIsExpanded = not m.allFilesIsExpanded }
 
@@ -1929,8 +1925,15 @@ guiColumns m =
                 )
 
         fileTabs =
-            Files.vizData m.files
-                |> List.filterMap
+            El.row
+                [ El.alignTop
+                , El.width El.fill
+                , El.height (El.px 40)
+                , El.scrollbarX
+                , Background.color Colors.menuBackground
+                , El.htmlAttribute (HA.style "pointer-events" "auto")
+                ]
+                (List.filterMap
                     (\vizDatum ->
                         if vizDatum.isOpen then
                             Just (tab vizDatum)
@@ -1938,17 +1941,31 @@ guiColumns m =
                         else
                             Nothing
                     )
+                    (Files.vizData m.files)
+                )
 
         tabStyle vizDatum =
-            if vizDatum.isTheFocused then
-                [ Font.bold
-                , Font.color Colors.white
-                ]
+            let
+                focusedStyle =
+                    if vizDatum.isTheFocused then
+                        [ Font.bold
+                        , Font.color Colors.white
+                        ]
 
-            else
-                [ Font.regular
-                , Font.color Colors.lightText
-                ]
+                    else
+                        [ Font.regular
+                        , Font.color Colors.lightText
+                        ]
+
+                editedStyle =
+                    if vizDatum.isEdited then
+                        [ Font.italic
+                        ]
+
+                    else
+                        []
+            in
+            focusedStyle ++ editedStyle
 
         tab vizDatum =
             El.column
@@ -1968,21 +1985,17 @@ guiColumns m =
                     )
                     [ El.el [ El.alignLeft, El.width (El.px 100), El.clip ]
                         (El.text vizDatum.name)
-                    , El.el
-                        [ El.alignRight
-                        , El.transparent (not vizDatum.isTheFocused)
-                        ]
-                      <|
-                        menuHeaderButton
-                            { title = "Close"
-                            , onClickMsg = ClickOnCloseFile
-                            , iconPath =
-                                if vizDatum.isEdited then
-                                    Icons.icons.editedPen
+                    , if vizDatum.isTheFocused then
+                        El.el [ El.alignRight ]
+                            (menuHeaderButton
+                                { title = "Close"
+                                , onClickMsg = ClickOnCloseFile
+                                , iconPath = Icons.icons.closeFile
+                                }
+                            )
 
-                                else
-                                    Icons.icons.closeFile
-                            }
+                      else
+                        El.none
                     ]
                 , El.el
                     [ El.width El.fill
@@ -1998,44 +2011,50 @@ guiColumns m =
                     El.none
                 ]
 
+        fpsView_ =
+            El.el
+                [ El.alignBottom
+                , El.width El.fill
+                ]
+                (fpsView m)
+
+        toolButtons_ =
+            El.el
+                [ El.alignBottom
+                , El.width El.fill
+                , El.htmlAttribute (HA.style "pointer-events" "auto")
+                ]
+                (toolButtons m)
+
+        midColWidth =
+            m.windowSize.width
+                - layoutParams.leftStripeWidth
+                - layoutParams.leftBarWidth
+                - layoutParams.rightBarWidth
+
+        midColForDistractionFree =
+            El.column
+                [ El.height El.fill
+                , El.width (El.px midColWidth)
+                , El.moveRight (toFloat layoutParams.leftBarWidth)
+                ]
+                [ fpsView_
+                , toolButtons_
+                ]
+
         midCol =
             El.column
                 [ El.height El.fill
-                , El.width El.fill
+                , El.width (El.px midColWidth)
                 ]
-                [ El.row
-                    [ El.alignTop
-                    , El.width El.fill
-                    , El.height (El.px 40)
-                    , El.scrollbarX
-                    , Background.color Colors.menuBackground
-                    , El.htmlAttribute (HA.style "pointer-events" "auto")
-                    ]
-                    fileTabs
-                , El.el
-                    [ El.alignBottom
-                    , El.width El.fill
-                    ]
-                    (fpsView m)
-
-                --, El.el
-                --    [ El.alignTop
-                --    , Font.size 12
-                --    , El.width (El.px 600)
-                --    , El.scrollbarX
-                --    ]
-                --    (debugView m)
-                , El.el
-                    [ El.alignBottom
-                    , El.width El.fill
-                    , El.htmlAttribute (HA.style "pointer-events" "auto")
-                    ]
-                    (topBar m)
+                [ fileTabs
+                , fpsView_
+                , toolButtons_
                 ]
     in
     if m.distractionFree then
         [ onlyYinYangInsteadOfLeftStripe
-        , midCol
+        , midColForDistractionFree
         ]
 
     else
@@ -2044,12 +2063,6 @@ guiColumns m =
         , midCol
         , rightBar m
         ]
-
-
-
---debugView : Model -> Element Msg
---debugView m =
---    El.text (Debug.toString m.animation)
 
 
 fpsView : Model -> Element Msg
@@ -2374,59 +2387,9 @@ leftBarContentForFiles m =
         allFilesContent =
             El.column [ El.width El.fill ]
                 (List.map allFilesItem vizData)
-
-        --
-        openedItem vizDatum =
-            El.row (attr vizDatum)
-                [ El.row [ El.spacing 6 ]
-                    [ El.el [] <|
-                        if vizDatum.isEdited then
-                            El.html (Icons.draw14px Icons.icons.editedPen)
-
-                        else
-                            El.none
-                    , El.text vizDatum.name
-                    ]
-                , if vizDatum.isTheFocused then
-                    El.el [ El.alignRight ] <|
-                        menuHeaderButton
-                            { title = "Close"
-                            , onClickMsg = ClickOnCloseFile
-                            , iconPath = Icons.icons.closeFile
-                            }
-
-                  else
-                    El.none
-                ]
-
-        openedFilesContent =
-            El.column [ El.width El.fill ]
-                (vizData
-                    |> List.filterMap
-                        (\vizDatum ->
-                            if vizDatum.isOpen then
-                                Just (openedItem vizDatum)
-
-                            else
-                                Nothing
-                        )
-                )
     in
     El.column [ El.width El.fill ]
         [ menu
-            { headerText = "Opened Files"
-            , isOn = m.openedFilesIsExpanded
-            , headerItems =
-                [ menuHeaderButton
-                    { title = "Save File"
-                    , onClickMsg = ClickOnSaveFile
-                    , iconPath = Icons.icons.save
-                    }
-                ]
-            , toggleMsg = ToggleOpenedFiles
-            , contentItems = [ openedFilesContent ]
-            }
-        , menu
             { headerText = "All Files"
             , isOn = m.allFilesIsExpanded
             , headerItems =
@@ -2998,8 +2961,8 @@ radioButton { title, iconPath, onClickMsg, state } =
     El.el attributes (El.html (Icons.draw34px iconPath))
 
 
-topBar : Model -> Element Msg
-topBar m =
+toolButtons : Model -> Element Msg
+toolButtons m =
     El.el
         [ El.clip
         , Border.color Colors.menuBorder
@@ -3014,6 +2977,14 @@ topBar m =
             , El.spacing 16
             ]
             [ oneClickButtonGroup
+                [ oneClickButton
+                    { title = "Save"
+                    , iconPath = Icons.icons.save
+                    , onClickMsg = ClickOnSaveFile
+                    , disabled = False
+                    }
+                ]
+            , oneClickButtonGroup
                 [ oneClickButton
                     { title = "Undo"
                     , iconPath = Icons.icons.undo
