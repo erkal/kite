@@ -333,7 +333,7 @@ initialModel maybeSavedFiles =
     , bagColorPickerIsExpanded = False
 
     --
-    , selectedMode = AlgorithmVisualizations
+    , selectedMode = GraphsFolder
 
     --
     , tableOfVerticesIsOn = True
@@ -1929,16 +1929,91 @@ guiColumns m =
                 )
 
         fileTabs =
-            El.row [] []
+            Files.vizData m.files
+                |> List.filterMap
+                    (\vizDatum ->
+                        if vizDatum.isOpen then
+                            Just (tab vizDatum)
+
+                        else
+                            Nothing
+                    )
+
+        tabStyle vizDatum =
+            if vizDatum.isTheFocused then
+                [ Font.bold
+                , Font.color Colors.white
+                ]
+
+            else
+                [ Font.regular
+                , Font.color Colors.lightText
+                ]
+
+        tab vizDatum =
+            El.column
+                [ El.width (El.px 140)
+                , El.height El.fill
+                , Background.color Colors.menuBackground
+                , Events.onClick (ClickOnFileItem vizDatum.name)
+                , El.mouseDown [ Background.color Colors.black ]
+                , El.mouseOver [ Background.color Colors.selectedItem ]
+                ]
+                [ El.row
+                    (tabStyle vizDatum
+                        ++ [ El.width El.fill
+                           , El.centerY
+                           , El.paddingXY 16 0
+                           ]
+                    )
+                    [ El.el [ El.alignLeft, El.width (El.px 100), El.clip ]
+                        (El.text vizDatum.name)
+                    , El.el
+                        [ El.alignRight
+                        , El.transparent (not vizDatum.isTheFocused)
+                        ]
+                      <|
+                        menuHeaderButton
+                            { title = "Close"
+                            , onClickMsg = ClickOnCloseFile
+                            , iconPath =
+                                if vizDatum.isEdited then
+                                    Icons.icons.editedPen
+
+                                else
+                                    Icons.icons.closeFile
+                            }
+                    ]
+                , El.el
+                    [ El.width El.fill
+                    , El.height (El.px 2)
+                    , El.alignBottom
+                    , Background.color <|
+                        if vizDatum.isTheFocused then
+                            Colors.lightText
+
+                        else
+                            Colors.menuBackground
+                    ]
+                    El.none
+                ]
 
         midCol =
             El.column
                 [ El.height El.fill
                 , El.width El.fill
                 ]
-                [ fileTabs
-                , El.el
+                [ El.row
                     [ El.alignTop
+                    , El.width El.fill
+                    , El.height (El.px 40)
+                    , El.scrollbarX
+                    , Background.color Colors.menuBackground
+                    , El.htmlAttribute (HA.style "pointer-events" "auto")
+                    ]
+                    fileTabs
+                , El.el
+                    [ El.alignBottom
                     , El.width El.fill
                     ]
                     (fpsView m)
