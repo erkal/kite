@@ -23,6 +23,7 @@ import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, G
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
 import Html.Events as HE
+import Http
 import Icons exposing (icons)
 import IntDict exposing (IntDict)
 import Json.Decode as JD exposing (Decoder, Value)
@@ -67,8 +68,23 @@ init maybeValue =
 
         Nothing ->
             initialModel Nothing
-    , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
+    , Cmd.batch
+        [ Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
+        , Http.get
+            { url = "https://api.github.com/repos/erkal/kite/git/trees/master?recursive=1"
+            , expect = Http.expectJson GotContentsFromGithub githubContentsDecoder
+            }
+        ]
     )
+
+
+type alias GithubContents =
+    List String
+
+
+githubContentsDecoder : Decoder GithubContents
+githubContentsDecoder =
+    JD.field "tree" (JD.list (JD.field "path" JD.string))
 
 
 graphFilesDecoder : Decoder (Files ( String, GraphFile ))
@@ -510,6 +526,8 @@ type Msg
     | FocusPreviousFile
       --
     | ClickOnRunDijsktraButton
+      --
+    | GotContentsFromGithub (Result Http.Error GithubContents)
 
 
 reheatForce : Model -> Model
@@ -1706,6 +1724,18 @@ updateHelper msg m =
                 , selectedMode = GraphsFolder
             }
 
+        GotContentsFromGithub httpResult ->
+            case httpResult of
+                Ok str ->
+                    let
+                        a =
+                            str |> Debug.log ""
+                    in
+                    m
+
+                _ ->
+                    m
+
 
 
 -- SUBSCRIPTIONS
@@ -1983,7 +2013,7 @@ guiColumns m =
                            , El.paddingXY 16 0
                            ]
                     )
-                    [ El.el [ El.alignLeft, El.width (El.px 100), El.clip ]
+                    [ El.el [ El.alignLeft, El.width (El.px 80), El.clip ]
                         (El.text vizDatum.name)
                     , if vizDatum.isTheFocused then
                         El.el [ El.alignRight ]
@@ -2779,6 +2809,15 @@ leftBarContentForGraphGenerators m =
                 --    , text = "TODO"
                 --    , onChange = always NoOp
                 --    }
+                ]
+            }
+        , menu
+            { headerText = "Elm Module Dependency Graph"
+            , isOn = True
+            , headerItems = []
+            , toggleMsg = NoOp
+            , contentItems =
+                [ El.html (Icons.draw24px Icons.icons.elmLogo)
                 ]
             }
         , menu

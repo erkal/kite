@@ -120,15 +120,14 @@ unvisitedWithTheSmallestTDist =
 
 
 updateDist id newDist newPred =
-    IntDict.update id
-        (Maybe.map
-            (\d ->
-                { d
-                    | currentBestDistance = Finite newDist
-                    , maybePredecessor = Just newPred
-                }
-            )
-        )
+    let
+        up d =
+            { d
+                | currentBestDistance = Finite newDist
+                , maybePredecessor = Just newPred
+            }
+    in
+    IntDict.update id (Maybe.map up)
 
 
 handleVertex : InputData -> StepData -> ( VertexId, Int ) -> StepData
@@ -139,27 +138,27 @@ handleVertex { graph } lastStep ( idOfHandled, distOfHandled ) =
                 |> Maybe.withDefault IntDict.empty
 
         updateNeighbour neighbourId w stepData =
-            let
-                up =
-                    updateDist neighbourId (distOfHandled + w) idOfHandled
-            in
-            stepData
-                |> (case IntDict.get neighbourId stepData of
-                        Just { currentBestDistance } ->
-                            case currentBestDistance of
-                                Finite currentBest ->
-                                    if distOfHandled + w < currentBest then
-                                        up
+            case IntDict.get neighbourId stepData of
+                Just { currentBestDistance } ->
+                    case currentBestDistance of
+                        Finite currentBest ->
+                            if distOfHandled + w < currentBest then
+                                updateDist neighbourId
+                                    (distOfHandled + w)
+                                    idOfHandled
+                                    stepData
 
-                                    else
-                                        identity
+                            else
+                                stepData
 
-                                Infinity ->
-                                    up
+                        Infinity ->
+                            updateDist neighbourId
+                                (distOfHandled + w)
+                                idOfHandled
+                                stepData
 
-                        Nothing ->
-                            identity
-                   )
+                Nothing ->
+                    stepData
 
         markAsVisited d =
             { d | hasBeenVisited = True }
