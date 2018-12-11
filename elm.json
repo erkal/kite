@@ -12,6 +12,7 @@
             "elm/html": "1.0.0",
             "elm/http": "2.0.0",
             "elm/json": "1.1.2",
+            "elm/parser": "1.1.0",
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm-community/dict-extra": "2.4.0",

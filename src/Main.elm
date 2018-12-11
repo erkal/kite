@@ -17,8 +17,8 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Keyed
 import Files exposing (Files)
+import Generators.ElmDep as ElmDep
 import Geometry.Svg
-import GithubAPI
 import Graph.Force as Force exposing (Force)
 import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, VertexId, VertexProperties)
 import Html as H exposing (Html, div)
@@ -71,7 +71,7 @@ init maybeValue =
             initialModel Nothing
     , Cmd.batch
         [ Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
-        , Cmd.map FromGithubAPI GithubAPI.getPathsOfElmFiles
+        , Cmd.map FromElmDep ElmDep.getPathsOfElmFiles
         ]
     )
 
@@ -136,16 +136,16 @@ update msg m =
             , setStorage (JE.encode 4 (encodeGraphFiles newModel.files))
             )
 
-        FromGithubAPI githubAPIMsg ->
+        FromElmDep elmDepMsg ->
             let
                 newModel =
                     updateHelper msg m
 
-                ( newGithubAPIState, githubAPICmd ) =
-                    GithubAPI.update githubAPIMsg newModel.githubAPIState
+                ( newElmDepState, elmDepCmd ) =
+                    ElmDep.update elmDepMsg newModel.elmDepState
             in
-            ( { newModel | githubAPIState = newGithubAPIState }
-            , Cmd.map FromGithubAPI githubAPICmd
+            ( { newModel | elmDepState = newElmDepState }
+            , Cmd.map FromElmDep elmDepCmd
             )
 
         _ ->
@@ -232,7 +232,7 @@ type alias Model =
     --
     , selectedVertices : Set VertexId
     , selectedEdges : Set EdgeId
-    , githubAPIState : GithubAPI.State
+    , elmDepState : ElmDep.State
     }
 
 
@@ -381,7 +381,7 @@ initialModel maybeSavedFiles =
     , selectedEdges = Set.empty
 
     --
-    , githubAPIState = GithubAPI.DownloadFinished []
+    , elmDepState = ElmDep.DownloadFinished []
     }
 
 
@@ -531,7 +531,7 @@ type Msg
       --
     | ClickOnRunDijsktraButton
       --
-    | FromGithubAPI GithubAPI.Msg
+    | FromElmDep ElmDep.Msg
 
 
 reheatForce : Model -> Model
@@ -1728,7 +1728,7 @@ updateHelper msg m =
                 , selectedMode = GraphsFolder
             }
 
-        FromGithubAPI _ ->
+        FromElmDep _ ->
             m
 
 
@@ -2813,7 +2813,7 @@ leftBarContentForGraphGenerators m =
             , toggleMsg = NoOp
             , contentItems =
                 [ El.html (Icons.draw24px Icons.icons.elmLogo)
-                , El.el [] (El.text (Debug.toString m.githubAPIState))
+                , El.el [] (El.text (Debug.toString m.elmDepState))
                 ]
             }
         , menu
