@@ -18,6 +18,7 @@ import Element.Input as Input
 import Element.Keyed
 import Files exposing (Files)
 import Geometry.Svg
+import GithubAPI
 import Graph.Force as Force exposing (Force)
 import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, VertexId, VertexProperties)
 import Html as H exposing (Html, div)
@@ -70,21 +71,9 @@ init maybeValue =
             initialModel Nothing
     , Cmd.batch
         [ Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
-        , Http.get
-            { url = "https://api.github.com/repos/erkal/kite/git/trees/master?recursive=1"
-            , expect = Http.expectJson GotContentsFromGithub githubContentsDecoder
-            }
+        , Cmd.map FromGithubAPI GithubAPI.getPathsOfElmFiles
         ]
     )
-
-
-type alias GithubContents =
-    List String
-
-
-githubContentsDecoder : Decoder GithubContents
-githubContentsDecoder =
-    JD.field "tree" (JD.list (JD.field "path" JD.string))
 
 
 graphFilesDecoder : Decoder (Files ( String, GraphFile ))
@@ -135,7 +124,7 @@ encodeGraphFiles graphFiles =
     Files.encode encodeFileData graphFiles
 
 
-update : Msg -> Model -> ( Model, Cmd msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
         ClickOnSaveFile ->
@@ -144,8 +133,19 @@ update msg m =
                     updateHelper msg m
             in
             ( newModel
-            , setStorage
-                (JE.encode 4 (encodeGraphFiles newModel.files))
+            , setStorage (JE.encode 4 (encodeGraphFiles newModel.files))
+            )
+
+        FromGithubAPI githubAPIMsg ->
+            let
+                newModel =
+                    updateHelper msg m
+
+                ( newGithubAPIState, githubAPICmd ) =
+                    GithubAPI.update githubAPIMsg newModel.githubAPIState
+            in
+            ( { newModel | githubAPIState = newGithubAPIState }
+            , Cmd.map FromGithubAPI githubAPICmd
             )
 
         _ ->
@@ -232,6 +232,7 @@ type alias Model =
     --
     , selectedVertices : Set VertexId
     , selectedEdges : Set EdgeId
+    , githubAPIState : GithubAPI.State
     }
 
 
@@ -378,6 +379,9 @@ initialModel maybeSavedFiles =
     --
     , selectedVertices = Set.empty
     , selectedEdges = Set.empty
+
+    --
+    , githubAPIState = GithubAPI.DownloadFinished []
     }
 
 
@@ -527,7 +531,7 @@ type Msg
       --
     | ClickOnRunDijsktraButton
       --
-    | GotContentsFromGithub (Result Http.Error GithubContents)
+    | FromGithubAPI GithubAPI.Msg
 
 
 reheatForce : Model -> Model
@@ -1724,17 +1728,8 @@ updateHelper msg m =
                 , selectedMode = GraphsFolder
             }
 
-        GotContentsFromGithub httpResult ->
-            case httpResult of
-                Ok str ->
-                    let
-                        a =
-                            str |> Debug.log ""
-                    in
-                    m
-
-                _ ->
-                    m
+        FromGithubAPI _ ->
+            m
 
 
 
@@ -2818,6 +2813,7 @@ leftBarContentForGraphGenerators m =
             , toggleMsg = NoOp
             , contentItems =
                 [ El.html (Icons.draw24px Icons.icons.elmLogo)
+                , El.el [] (El.text (Debug.toString m.githubAPIState))
                 ]
             }
         , menu
