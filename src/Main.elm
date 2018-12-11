@@ -143,8 +143,22 @@ update msg m =
 
                 ( newElmDepState, elmDepCmd ) =
                     ElmDep.update elmDepMsg newModel.elmDepState
+
+                addGraphFileIfDownloadFinished =
+                    case newElmDepState of
+                        ElmDep.DownloadFinished l ->
+                            Files.newFile "Elm Dependency"
+                                ( "Created elm module dependency graph"
+                                , ElmDep.toGraphFile l
+                                )
+
+                        _ ->
+                            identity
             in
-            ( { newModel | elmDepState = newElmDepState }
+            ( { newModel
+                | elmDepState = newElmDepState
+                , files = addGraphFileIfDownloadFinished m.files
+              }
             , Cmd.map FromElmDep elmDepCmd
             )
 
@@ -2812,7 +2826,9 @@ leftBarContentForGraphGenerators m =
             , headerItems = []
             , toggleMsg = NoOp
             , contentItems =
-                [ El.html (Icons.draw24px Icons.icons.elmLogo)
+                [ El.el
+                    [ Events.onClick {- TODO -} NoOp ]
+                    (El.html (Icons.draw24px Icons.icons.elmLogo))
                 , El.el [] (El.text (Debug.toString m.elmDepState))
                 ]
             }

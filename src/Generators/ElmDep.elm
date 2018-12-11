@@ -1,4 +1,4 @@
-port module Generators.ElmDep exposing (Msg(..), State(..), getPathsOfElmFiles, update)
+port module Generators.ElmDep exposing (Msg(..), State(..), getPathsOfElmFiles, toGraphFile, update)
 
 import Char
 import Colors
@@ -167,8 +167,8 @@ update msg state =
                     )
 
 
-toMyGraph : List ElmFile -> GraphFile
-toMyGraph l =
+toGraphFile : List ElmFile -> GraphFile
+toGraphFile l =
     let
         dVP =
             GF.defaultVertexProp
@@ -196,12 +196,14 @@ toMyGraph l =
                     , fixed = moduleName == "Main"
                 }
             , dependencies
-                |> List.map
+                |> List.filterMap
                     (\importedModule ->
-                        Edge
-                            (safeGetId moduleName)
-                            (safeGetId importedModule)
-                            dEP
+                        case Dict.get importedModule idDict of
+                            Just j ->
+                                Just (Edge (safeGetId moduleName) j dEP)
+
+                            Nothing ->
+                                Nothing
                     )
             )
 
