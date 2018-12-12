@@ -23,7 +23,6 @@ module GraphFile exposing
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
     , forceTick, transitionGraphFile
-    --, decoder
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -849,7 +848,7 @@ divideEdge coordinates ( s, t ) user =
 
 setVertexPositionsForGraph : List ( VertexId, Point2d ) -> MyGraph -> MyGraph
 setVertexPositionsForGraph l =
-    -- This is internal.
+    -- TODO: This should be done by PositionedGraph
     Graph.Extra.updateNodesBy l (\pos vP -> { vP | position = pos })
 
 

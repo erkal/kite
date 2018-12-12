@@ -1,9 +1,10 @@
-port module Generators.ElmDep exposing (Msg(..), State(..), getPathsOfElmFiles, toGraphFile, update)
+port module Generators.ElmDep exposing (ElmFileContentAccumulator, Model, Msg(..), StateVizData(..), finishedDownloadingWith, getPathsOfElmFiles, initialModel, stateVizData, toGraphFile, update)
 
 import Char
 import Colors
 import Dict exposing (Dict)
 import Graph exposing (Edge, Node)
+import Graph.Layout
 import GraphFile as GF exposing (EdgeProperties, GraphFile, MyGraph, VertexId, VertexProperties)
 import Http
 import Json.Decode as JD exposing (Decoder, Value)
@@ -11,8 +12,16 @@ import Parser exposing ((|.), (|=), Parser)
 import Set exposing (Set)
 
 
+type alias Model =
+    { githubUserName : String
+    , repositoryName : String
+    , state : State
+    }
+
+
 type State
-    = Downloading ElmFileContentAccumulator
+    = Idle
+    | Downloading ElmFileContentAccumulator
     | DownloadFinished (List ElmFile)
     | DownloadError String
 
@@ -34,6 +43,26 @@ type ElmFile
 type Msg
     = GotPathsOfElmFiles (Result Http.Error (List String))
     | GotRawElmFile (Result Http.Error String)
+    | ChangeGithubUserName String
+    | ChangeRepositoryName String
+
+
+initialModel : Model
+initialModel =
+    { githubUserName = "erkal"
+    , repositoryName = "kite"
+    , state = DownloadFinished []
+    }
+
+
+finishedDownloadingWith : Model -> Maybe (List ElmFile)
+finishedDownloadingWith m =
+    case m.state of
+        DownloadFinished l ->
+            Just l
+
+        _ ->
+            Nothing
 
 
 fromRawtoElmFile : String -> ElmFile
@@ -53,8 +82,7 @@ fromRawtoElmFile raw =
     ElmFile
         { moduleName =
             lines
-                |> List.head
-                |> Maybe.map
+                |> List.filterMap
                     (Parser.run
                         (Parser.oneOf
                             [ Parser.succeed identity
@@ -67,8 +95,9 @@ fromRawtoElmFile raw =
                             |. Parser.spaces
                             |= moduleNameParser
                         )
-                        >> Result.withDefault "ERROR"
+                        >> Result.toMaybe
                     )
+                |> List.head
                 |> Maybe.withDefault "ERROR"
         , dependencies =
             lines
@@ -85,19 +114,16 @@ fromRawtoElmFile raw =
         }
 
 
-getPathsOfElmFiles : Cmd Msg
-getPathsOfElmFiles =
+getPathsOfElmFiles : Model -> Cmd Msg
+getPathsOfElmFiles m =
     Http.get
-        { url = "https://api.github.com/repos/erkal/kite/git/trees/master?recursive=1"
+        { url =
+            "https://api.github.com/repos/"
+                ++ m.githubUserName
+                ++ "/"
+                ++ m.repositoryName
+                ++ "/git/trees/master?recursive=1"
         , expect = Http.expectJson GotPathsOfElmFiles pathsOfElmFilesDecoder
-        }
-
-
-getRawElmFile : String -> Cmd Msg
-getRawElmFile path =
-    Http.get
-        { url = "https://raw.githubusercontent.com/erkal/kite/master/" ++ path
-        , expect = Http.expectString GotRawElmFile
         }
 
 
@@ -107,62 +133,94 @@ pathsOfElmFilesDecoder =
         |> JD.map (List.filter (String.endsWith ".elm"))
 
 
-update : Msg -> State -> ( State, Cmd Msg )
-update msg state =
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg m =
+    let
+        withState newState =
+            { m | state = newState }
+    in
     case msg of
+        ChangeGithubUserName str ->
+            ( { m | githubUserName = str, state = Idle }, Cmd.none )
+
+        ChangeRepositoryName str ->
+            ( { m | repositoryName = str, state = Idle }, Cmd.none )
+
         GotPathsOfElmFiles httpResult ->
-            case state of
+            case m.state of
                 Downloading _ ->
-                    ( state, Cmd.none )
+                    ( m, Cmd.none )
 
                 _ ->
                     case httpResult of
                         Ok (p :: ps) ->
-                            ( Downloading (ElmFileContentAccumulator ps [])
+                            ( withState
+                                (Downloading (ElmFileContentAccumulator ps []))
                             , Http.get
                                 { url =
-                                    "https://raw.githubusercontent.com/erkal/kite/master/" ++ p
+                                    "https://raw.githubusercontent.com/"
+                                        ++ m.githubUserName
+                                        ++ "/"
+                                        ++ m.repositoryName
+                                        ++ "/master/"
+                                        ++ p
                                 , expect = Http.expectString GotRawElmFile
                                 }
                             )
 
                         Ok [] ->
-                            ( DownloadError "No Elm Files have been found."
+                            ( withState
+                                (DownloadError "No Elm Files have been found.")
                             , Cmd.none
                             )
 
                         _ ->
-                            ( DownloadError "Couldn't connect to github."
+                            ( withState
+                                (DownloadError "Couldn't connect to github.")
                             , Cmd.none
                             )
 
         GotRawElmFile httpResult ->
-            case state of
+            case m.state of
                 Downloading { pathsToDownload, downloaded } ->
                     case httpResult of
                         Ok raw ->
                             case pathsToDownload of
                                 p :: ps ->
-                                    ( Downloading
-                                        (ElmFileContentAccumulator ps
-                                            (fromRawtoElmFile raw :: downloaded)
+                                    ( withState
+                                        (Downloading
+                                            (ElmFileContentAccumulator ps
+                                                (fromRawtoElmFile raw :: downloaded)
+                                            )
                                         )
-                                    , getRawElmFile p
+                                    , Http.get
+                                        { url =
+                                            "https://raw.githubusercontent.com/"
+                                                ++ m.githubUserName
+                                                ++ "/"
+                                                ++ m.repositoryName
+                                                ++ "/master/"
+                                                ++ p
+                                        , expect =
+                                            Http.expectString GotRawElmFile
+                                        }
                                     )
 
                                 [] ->
-                                    ( DownloadFinished
-                                        (fromRawtoElmFile raw :: downloaded)
+                                    ( withState
+                                        (DownloadFinished
+                                            (fromRawtoElmFile raw :: downloaded)
+                                        )
                                     , Cmd.none
                                     )
 
                         _ ->
-                            ( DownloadError ""
+                            ( withState (DownloadError "")
                             , Cmd.none
                             )
 
                 _ ->
-                    ( state
+                    ( m
                     , Cmd.none
                     )
 
@@ -219,5 +277,33 @@ toGraphFile l =
 
         graph =
             Graph.fromNodesAndEdges nodes edges
+                |> Graph.Layout.circular
+                    { center = ( 300, 300 ), radius = 250 }
     in
     GF.setGraph graph GF.default
+
+
+type StateVizData
+    = WaitingForUserInput
+    | Downloaded (List String)
+    | Error String
+
+
+stateVizData : Model -> StateVizData
+stateVizData m =
+    let
+        getNames =
+            List.map (\(ElmFile { moduleName }) -> moduleName)
+    in
+    case m.state of
+        Idle ->
+            WaitingForUserInput
+
+        Downloading { pathsToDownload, downloaded } ->
+            Downloaded (List.reverse (getNames downloaded))
+
+        DownloadFinished listOfElmFiles ->
+            Downloaded (List.reverse (getNames listOfElmFiles))
+
+        DownloadError str ->
+            Error str

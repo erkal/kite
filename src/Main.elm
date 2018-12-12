@@ -62,17 +62,11 @@ init maybeValue =
     ( case maybeValue of
         Just value ->
             initialModel
-                (JD.decodeValue graphFilesDecoder value
-                    --|> Debug.log ""
-                    |> Result.toMaybe
-                )
+                (Result.toMaybe (JD.decodeValue graphFilesDecoder value))
 
         Nothing ->
             initialModel Nothing
-    , Cmd.batch
-        [ Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
-        , Cmd.map FromElmDep ElmDep.getPathsOfElmFiles
-        ]
+    , Task.perform WindowResize (Task.map getWindowSize Dom.getViewport)
     )
 
 
@@ -141,25 +135,34 @@ update msg m =
                 newModel =
                     updateHelper msg m
 
-                ( newElmDepState, elmDepCmd ) =
-                    ElmDep.update elmDepMsg newModel.elmDepState
+                ( newElmDep, elmDepCmd ) =
+                    ElmDep.update elmDepMsg newModel.elmDep
 
                 addGraphFileIfDownloadFinished =
-                    case newElmDepState of
-                        ElmDep.DownloadFinished l ->
+                    case ElmDep.finishedDownloadingWith newElmDep of
+                        Just l ->
                             Files.newFile "Elm Dependency"
                                 ( "Created elm module dependency graph"
                                 , ElmDep.toGraphFile l
                                 )
 
-                        _ ->
+                        Nothing ->
                             identity
             in
             ( { newModel
-                | elmDepState = newElmDepState
+                | elmDep = newElmDep
                 , files = addGraphFileIfDownloadFinished m.files
               }
             , Cmd.map FromElmDep elmDepCmd
+            )
+
+        ClickOnGetElmDepButton ->
+            let
+                newModel =
+                    updateHelper msg m
+            in
+            ( newModel
+            , Cmd.map FromElmDep (ElmDep.getPathsOfElmFiles m.elmDep)
             )
 
         _ ->
@@ -246,7 +249,7 @@ type alias Model =
     --
     , selectedVertices : Set VertexId
     , selectedEdges : Set EdgeId
-    , elmDepState : ElmDep.State
+    , elmDep : ElmDep.Model
     }
 
 
@@ -395,7 +398,7 @@ initialModel maybeSavedFiles =
     , selectedEdges = Set.empty
 
     --
-    , elmDepState = ElmDep.DownloadFinished []
+    , elmDep = ElmDep.initialModel
     }
 
 
@@ -546,6 +549,7 @@ type Msg
     | ClickOnRunDijsktraButton
       --
     | FromElmDep ElmDep.Msg
+    | ClickOnGetElmDepButton
 
 
 reheatForce : Model -> Model
@@ -1745,6 +1749,9 @@ updateHelper msg m =
         FromElmDep _ ->
             m
 
+        ClickOnGetElmDepButton ->
+            m
+
 
 
 -- SUBSCRIPTIONS
@@ -2798,47 +2805,78 @@ leftBarContentForGraphGenerators m =
                 (El.html (Icons.draw24px Icons.icons.lightning))
     in
     El.column [ El.width El.fill ]
-        [ menu
-            { headerText = "Basic Graphs"
-            , isOn = True
-            , headerItems = []
-            , toggleMsg = NoOp
-            , contentItems =
-                [ El.row [ El.padding 10, El.spacing 5 ]
-                    [ generateButton ClickOnGenerateStarGraphButton
-                    , El.el
-                        [ Font.bold ]
-                        (El.text "Star Graph")
-                    ]
-
-                --, textInput
-                --    { labelText = "Number of Leaves"
-                --    , labelWidth = 100
-                --    , inputWidth = 40
-                --    , text = "TODO"
-                --    , onChange = always NoOp
-                --    }
-                ]
-            }
-        , menu
+        [ --    menu
+          --    { headerText = "Basic Graphs"
+          --    , isOn = True
+          --    , headerItems = []
+          --    , toggleMsg = NoOp
+          --    , contentItems =
+          --        [ El.row [ El.padding 10, El.spacing 5 ]
+          --            [ generateButton ClickOnGenerateStarGraphButton
+          --            , El.el
+          --                [ Font.bold ]
+          --                (El.text "Star Graph")
+          --            ]
+          --        , textInput
+          --            { labelText = "Number of Leaves"
+          --            , labelWidth = 100
+          --            , inputWidth = 40
+          --            , text = "TODO"
+          --            , onChange = always NoOp
+          --            }
+          --        ]
+          --    }
+          --,
+          menu
             { headerText = "Elm Module Dependency Graph"
             , isOn = True
             , headerItems = []
             , toggleMsg = NoOp
             , contentItems =
-                [ El.el
-                    [ Events.onClick {- TODO -} NoOp ]
-                    (El.html (Icons.draw24px Icons.icons.elmLogo))
-                , El.el [] (El.text (Debug.toString m.elmDepState))
+                [ El.paragraph []
+                    [ textInput
+                        { labelText = "https://github.com/"
+                        , labelWidth = 100
+                        , inputWidth = 40
+                        , text = m.elmDep.githubUserName
+                        , onChange = ElmDep.ChangeGithubUserName >> FromElmDep
+                        }
+                    , textInput
+                        { labelText = "/"
+                        , labelWidth = 10
+                        , inputWidth = 40
+                        , text = m.elmDep.repositoryName
+                        , onChange = ElmDep.ChangeRepositoryName >> FromElmDep
+                        }
+                    ]
+                , El.paragraph []
+                    [ El.el
+                        [ Events.onClick ClickOnGetElmDepButton ]
+                        (El.html (Icons.draw24px Icons.icons.elmLogo))
+                    , El.column []
+                        (case ElmDep.stateVizData m.elmDep of
+                            ElmDep.WaitingForUserInput ->
+                                []
+
+                            ElmDep.Downloaded l ->
+                                List.map (\n -> El.el [] (El.text n)) l
+
+                            ElmDep.Error str ->
+                                [ El.el [ Font.color Colors.red ]
+                                    (El.text str)
+                                ]
+                        )
+                    ]
                 ]
             }
-        , menu
-            { headerText = "Random Graphs (coming soon)"
-            , isOn = False
-            , headerItems = []
-            , toggleMsg = NoOp
-            , contentItems = []
-            }
+
+        --, menu
+        --    { headerText = "Random Graphs (coming soon)"
+        --    , isOn = False
+        --    , headerItems = []
+        --    , toggleMsg = NoOp
+        --    , contentItems = []
+        --    }
         ]
 
 
