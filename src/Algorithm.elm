@@ -1,15 +1,15 @@
-module Algorithm exposing (Algorithm, StepResult(..), basic, run)
+module Algorithm exposing (Algorithm, Result(..), basic, run)
 
 
-type Algorithm inputData stepData
+type Algorithm input state
     = Algorithm
-        { init : inputData -> stepData
-        , step : inputData -> stepData -> StepResult stepData
+        { init : input -> state
+        , step : input -> state -> Result state
         }
 
 
-type StepResult stepData
-    = Next stepData
+type Result state
+    = Next state
     | End
 
 
@@ -17,13 +17,13 @@ basic initAndStep =
     Algorithm initAndStep
 
 
-{-| stepData must hold all information for the visualization of that step.
+{-| state must hold all information for the visualization of that step.
 -}
-run : Algorithm inputData stepData -> inputData -> List stepData
-run (Algorithm { init, step }) inputData =
+run : Algorithm input state -> input -> List state
+run (Algorithm { init, step }) input =
     let
         helper lastStepData past =
-            case step inputData lastStepData of
+            case step input lastStepData of
                 Next nextStepData ->
                     helper nextStepData (lastStepData :: past)
 
@@ -31,4 +31,4 @@ run (Algorithm { init, step }) inputData =
                     lastStepData :: past
     in
     List.reverse
-        (helper (init inputData) [])
+        (helper (init input) [])

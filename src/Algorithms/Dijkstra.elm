@@ -1,11 +1,11 @@
-module Algorithms.Dijkstra exposing (Distance(..), InputData, StepData, algorithm, nextVertexToHandle)
+module Algorithms.Dijkstra exposing (Distance(..), Input, State, algorithm, nextVertexToHandle)
 
-import Algorithm exposing (Algorithm, StepResult(..))
+import Algorithm exposing (Algorithm, Result(..))
 import IntDict exposing (IntDict)
 import Set exposing (Set)
 
 
-algorithm : Algorithm InputData StepData
+algorithm : Algorithm Input State
 algorithm =
     Algorithm.basic
         { init = init
@@ -14,10 +14,10 @@ algorithm =
 
 
 
--- InputData
+-- Input
 
 
-type alias InputData =
+type alias Input =
     { startVertex : VertexId
     , graph : IntDict (IntDict Weight)
     }
@@ -32,10 +32,10 @@ type alias Weight =
 
 
 
--- StepData
+-- State
 
 
-type alias StepData =
+type alias State =
     IntDict
         { hasBeenVisited : Bool
         , currentBestDistance : Distance
@@ -52,7 +52,7 @@ type Distance
 -- init
 
 
-init : InputData -> StepData
+init : Input -> State
 init { startVertex, graph } =
     let
         initVertex id _ =
@@ -73,12 +73,12 @@ init { startVertex, graph } =
 -- step
 
 
-step : InputData -> StepData -> Algorithm.StepResult StepData
-step inputData lastStep =
-    case unvisitedWithTheSmallestTDist lastStep of
+step : Input -> State -> Algorithm.Result State
+step input lastState =
+    case unvisitedWithTheSmallestTDist lastState of
         Just idAndDist ->
             Next
-                (handleVertex inputData lastStep idAndDist)
+                (handleVertex input lastState idAndDist)
 
         Nothing ->
             End
@@ -88,7 +88,7 @@ step inputData lastStep =
 -- queries
 
 
-nextVertexToHandle : StepData -> Maybe VertexId
+nextVertexToHandle : State -> Maybe VertexId
 nextVertexToHandle =
     unvisitedWithTheSmallestTDist >> Maybe.map Tuple.first
 
@@ -97,7 +97,7 @@ nextVertexToHandle =
 -- helpers
 
 
-unvisitedWithTheSmallestTDist : StepData -> Maybe ( VertexId, Int )
+unvisitedWithTheSmallestTDist : State -> Maybe ( VertexId, Int )
 unvisitedWithTheSmallestTDist =
     let
         take ( id, v ) =
@@ -130,15 +130,15 @@ updateDist id newDist newPred =
     IntDict.update id (Maybe.map up)
 
 
-handleVertex : InputData -> StepData -> ( VertexId, Int ) -> StepData
-handleVertex { graph } lastStep ( idOfHandled, distOfHandled ) =
+handleVertex : Input -> State -> ( VertexId, Int ) -> State
+handleVertex { graph } lastState ( idOfHandled, distOfHandled ) =
     let
         neighboursWithWeights =
             IntDict.get idOfHandled graph
                 |> Maybe.withDefault IntDict.empty
 
-        updateNeighbour neighbourId w stepData =
-            case IntDict.get neighbourId stepData of
+        updateNeighbour neighbourId w state =
+            case IntDict.get neighbourId state of
                 Just { currentBestDistance } ->
                     case currentBestDistance of
                         Finite currentBest ->
@@ -146,22 +146,22 @@ handleVertex { graph } lastStep ( idOfHandled, distOfHandled ) =
                                 updateDist neighbourId
                                     (distOfHandled + w)
                                     idOfHandled
-                                    stepData
+                                    state
 
                             else
-                                stepData
+                                state
 
                         Infinity ->
                             updateDist neighbourId
                                 (distOfHandled + w)
                                 idOfHandled
-                                stepData
+                                state
 
                 Nothing ->
-                    stepData
+                    state
 
         markAsVisited d =
             { d | hasBeenVisited = True }
     in
-    IntDict.foldr updateNeighbour lastStep neighboursWithWeights
+    IntDict.foldr updateNeighbour lastState neighboursWithWeights
         |> IntDict.update idOfHandled (Maybe.map markAsVisited)
