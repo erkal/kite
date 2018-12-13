@@ -42,7 +42,7 @@ type ElmFile
 
 initialModel : Model
 initialModel =
-    { repoName = "erkal/kite"
+    { repoName = "elm/core"
     , state = WaitingForUserInput
     }
 
