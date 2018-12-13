@@ -152,6 +152,7 @@ update msg m =
             ( { newModel
                 | elmDep = newElmDep
                 , files = addGraphFileIfDownloadFinished m.files
+                , vaderIsOn = False
               }
             , Cmd.map FromElmDep elmDepCmd
             )
@@ -1053,7 +1054,11 @@ updateHelper msg m =
                     else
                         let
                             newSelectedVertices =
-                                Set.singleton id
+                                if m.shiftIsDown then
+                                    Set.insert id m.selectedVertices
+
+                                else
+                                    Set.singleton id
                         in
                         { m
                             | selectedVertices = newSelectedVertices
@@ -1681,6 +1686,7 @@ updateHelper msg m =
                         ( "Started with empty graph", GF.default )
                         m.files
             }
+                |> stopAnimation
 
         ClickOnDuplicateFile ->
             { m | files = Files.duplicate m.files }

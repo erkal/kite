@@ -4,6 +4,7 @@ import Char
 import Colors
 import Dict exposing (Dict)
 import Graph exposing (Edge, Node)
+import Graph.Extra
 import Graph.Layout
 import GraphFile as GF exposing (EdgeProperties, GraphFile, MyGraph, VertexId, VertexProperties)
 import Http
@@ -271,8 +272,14 @@ toGraphFile l =
             Graph.fromNodesAndEdges nodes edges
                 |> Graph.Layout.circular
                     { center = ( 300, 300 ), radius = 250 }
+
+        setOfRootNodeIds =
+            Set.fromList (Graph.Extra.rootNodeIds graph)
     in
-    GF.setGraph graph GF.default
+    GF.default
+        |> GF.setGraph graph
+        |> GF.addBag setOfRootNodeIds
+        |> Tuple.first
 
 
 type StateVizData
