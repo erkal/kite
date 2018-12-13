@@ -13,17 +13,16 @@ import Set exposing (Set)
 
 
 type alias Model =
-    { githubUserName : String
-    , repositoryName : String
+    { repoName : String
     , state : State
     }
 
 
 type State
-    = Idle
+    = WaitingForUserInput
     | Downloading ElmFileContentAccumulator
     | DownloadFinished (List ElmFile)
-    | DownloadError String
+    | Error String
 
 
 type alias ElmFileContentAccumulator =
@@ -40,18 +39,10 @@ type ElmFile
         }
 
 
-type Msg
-    = GotPathsOfElmFiles (Result Http.Error (List String))
-    | GotRawElmFile (Result Http.Error String)
-    | ChangeGithubUserName String
-    | ChangeRepositoryName String
-
-
 initialModel : Model
 initialModel =
-    { githubUserName = "erkal"
-    , repositoryName = "kite"
-    , state = DownloadFinished []
+    { repoName = "erkal/kite"
+    , state = WaitingForUserInput
     }
 
 
@@ -91,6 +82,10 @@ fromRawtoElmFile raw =
                                 |. Parser.keyword "port"
                                 |. Parser.spaces
                                 |. Parser.keyword "module"
+                            , Parser.succeed identity
+                                |. Parser.keyword "effect"
+                                |. Parser.spaces
+                                |. Parser.keyword "module"
                             ]
                             |. Parser.spaces
                             |= moduleNameParser
@@ -119,9 +114,7 @@ getPathsOfElmFiles m =
     Http.get
         { url =
             "https://api.github.com/repos/"
-                ++ m.githubUserName
-                ++ "/"
-                ++ m.repositoryName
+                ++ m.repoName
                 ++ "/git/trees/master?recursive=1"
         , expect = Http.expectJson GotPathsOfElmFiles pathsOfElmFilesDecoder
         }
@@ -133,6 +126,12 @@ pathsOfElmFilesDecoder =
         |> JD.map (List.filter (String.endsWith ".elm"))
 
 
+type Msg
+    = GotPathsOfElmFiles (Result Http.Error (List String))
+    | GotRawElmFile (Result Http.Error String)
+    | ChangeRepo String
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     let
@@ -140,11 +139,10 @@ update msg m =
             { m | state = newState }
     in
     case msg of
-        ChangeGithubUserName str ->
-            ( { m | githubUserName = str, state = Idle }, Cmd.none )
-
-        ChangeRepositoryName str ->
-            ( { m | repositoryName = str, state = Idle }, Cmd.none )
+        ChangeRepo str ->
+            ( { m | repoName = str, state = WaitingForUserInput }
+            , Cmd.none
+            )
 
         GotPathsOfElmFiles httpResult ->
             case m.state of
@@ -159,9 +157,7 @@ update msg m =
                             , Http.get
                                 { url =
                                     "https://raw.githubusercontent.com/"
-                                        ++ m.githubUserName
-                                        ++ "/"
-                                        ++ m.repositoryName
+                                        ++ m.repoName
                                         ++ "/master/"
                                         ++ p
                                 , expect = Http.expectString GotRawElmFile
@@ -170,13 +166,13 @@ update msg m =
 
                         Ok [] ->
                             ( withState
-                                (DownloadError "No Elm Files have been found.")
+                                (Error "No Elm Files have been found.")
                             , Cmd.none
                             )
 
                         _ ->
                             ( withState
-                                (DownloadError "Couldn't connect to github.")
+                                (Error "Couldn't connect to github.")
                             , Cmd.none
                             )
 
@@ -196,9 +192,7 @@ update msg m =
                                     , Http.get
                                         { url =
                                             "https://raw.githubusercontent.com/"
-                                                ++ m.githubUserName
-                                                ++ "/"
-                                                ++ m.repositoryName
+                                                ++ m.repoName
                                                 ++ "/master/"
                                                 ++ p
                                         , expect =
@@ -215,7 +209,7 @@ update msg m =
                                     )
 
                         _ ->
-                            ( withState (DownloadError "")
+                            ( withState (Error "")
                             , Cmd.none
                             )
 
@@ -284,9 +278,13 @@ toGraphFile l =
 
 
 type StateVizData
-    = WaitingForUserInput
-    | Downloaded (List String)
-    | Error String
+    = WaitingForUserInputViz
+    | DownloadingViz
+        { numberOfModules : Int
+        , namesOfDownloadedModules : List String
+        }
+    | DownloadFinishedViz { namesOfDownloadedModules : List String }
+    | ErrorViz String
 
 
 stateVizData : Model -> StateVizData
@@ -296,14 +294,21 @@ stateVizData m =
             List.map (\(ElmFile { moduleName }) -> moduleName)
     in
     case m.state of
-        Idle ->
-            WaitingForUserInput
+        WaitingForUserInput ->
+            WaitingForUserInputViz
 
         Downloading { pathsToDownload, downloaded } ->
-            Downloaded (List.reverse (getNames downloaded))
+            DownloadingViz
+                { numberOfModules =
+                    1 + List.length pathsToDownload + List.length downloaded
+                , namesOfDownloadedModules = List.reverse (getNames downloaded)
+                }
 
         DownloadFinished listOfElmFiles ->
-            Downloaded (List.reverse (getNames listOfElmFiles))
+            DownloadFinishedViz
+                { namesOfDownloadedModules =
+                    List.reverse (getNames listOfElmFiles)
+                }
 
-        DownloadError str ->
-            Error str
+        Error str ->
+            ErrorViz str

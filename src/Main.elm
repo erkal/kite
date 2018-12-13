@@ -199,6 +199,7 @@ type alias Model =
 
     --
     , altIsDown : Bool
+    , ctrlIsDown : Bool
     , shiftIsDown : Bool
 
     --
@@ -348,6 +349,7 @@ initialModel maybeSavedFiles =
 
     --
     , altIsDown = False
+    , ctrlIsDown = False
     , shiftIsDown = False
 
     --
@@ -367,7 +369,7 @@ initialModel maybeSavedFiles =
     , bagColorPickerIsExpanded = False
 
     --
-    , selectedMode = GraphsFolder
+    , selectedMode = GraphGenerators
 
     --
     , tableOfVerticesIsOn = True
@@ -429,6 +431,8 @@ type Msg
       --
     | KeyDownAlt
     | KeyUpAlt
+    | KeyDownCtrl
+    | KeyUpCtrl
     | KeyDownShift
     | KeyUpShift
       --
@@ -703,6 +707,12 @@ updateHelper msg m =
         KeyUpAlt ->
             { m | altIsDown = False }
 
+        KeyDownCtrl ->
+            { m | ctrlIsDown = True }
+
+        KeyUpCtrl ->
+            { m | ctrlIsDown = False }
+
         KeyDownShift ->
             { m | shiftIsDown = True }
 
@@ -715,6 +725,7 @@ updateHelper msg m =
                 Hidden ->
                     { m
                         | shiftIsDown = False
+                        , ctrlIsDown = False
                         , altIsDown = False
                     }
 
@@ -1606,7 +1617,12 @@ updateHelper msg m =
         ClickOnVertexItem id ->
             { m
                 | selectedTool = Select SelectIdle
-                , selectedVertices = Set.singleton id
+                , selectedVertices =
+                    if m.shiftIsDown then
+                        Set.insert id m.selectedVertices
+
+                    else
+                        Set.singleton id
                 , selectedEdges = Set.empty
             }
 
@@ -1833,6 +1849,9 @@ toKeyDownMsg key =
         Control "Alt" ->
             KeyDownAlt
 
+        Control "Control" ->
+            KeyDownCtrl
+
         Control "Shift" ->
             KeyDownShift
 
@@ -1845,6 +1864,9 @@ toKeyUpMsg key =
     case key of
         Control "Alt" ->
             KeyUpAlt
+
+        Control "Control" ->
+            KeyUpCtrl
 
         Control "Shift" ->
             KeyUpShift
@@ -2396,6 +2418,7 @@ commonCellProperties =
     , Font.center
     , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
     , Border.color Colors.menuBorder
+    , El.scrollbarX
     ]
 
 
@@ -2788,6 +2811,40 @@ leftBarContentForGraphQueries m =
         }
 
 
+buttonWithIconAndText :
+    { iconPath : String
+    , text : String
+    , onClickMsg : Msg
+    , disabled : Bool
+    }
+    -> Element Msg
+buttonWithIconAndText p =
+    let
+        commonAttributes =
+            [ Border.width 1
+            , Border.color Colors.menuBorder
+            , Border.rounded 16
+            , El.padding 4
+            ]
+
+        occasionalAttributes =
+            if p.disabled then
+                [ El.alpha 0.1
+                ]
+
+            else
+                [ El.pointer
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                , Events.onClick p.onClickMsg
+                ]
+    in
+    El.row (commonAttributes ++ occasionalAttributes)
+        [ El.html (Icons.draw24px p.iconPath)
+        , El.el [ El.paddingXY 10 0 ] (El.text p.text)
+        ]
+
+
 leftBarContentForGraphGenerators : Model -> Element Msg
 leftBarContentForGraphGenerators m =
     let
@@ -2803,6 +2860,11 @@ leftBarContentForGraphGenerators m =
                 , Events.onClick msg
                 ]
                 (El.html (Icons.draw24px Icons.icons.lightning))
+
+        listOfFileNames : List String -> Element Msg
+        listOfFileNames l =
+            El.column [ El.padding 10 ]
+                (List.map (\n -> El.el [] (El.text ("- " ++ n))) l)
     in
     El.column [ El.width El.fill ]
         [ --    menu
@@ -2833,39 +2895,75 @@ leftBarContentForGraphGenerators m =
             , headerItems = []
             , toggleMsg = NoOp
             , contentItems =
-                [ El.paragraph []
-                    [ textInput
-                        { labelText = "https://github.com/"
-                        , labelWidth = 100
-                        , inputWidth = 40
-                        , text = m.elmDep.githubUserName
-                        , onChange = ElmDep.ChangeGithubUserName >> FromElmDep
-                        }
+                [ El.column [ El.width El.fill, El.spacing 16, El.padding 16 ]
+                    [ El.paragraph []
+                        [ El.text "To see the module dependency graph of an "
+                        , El.newTabLink
+                            [ Font.underline
+                            , Font.italic
+
+                            --, Font.color Colors.linkBlue
+                            ]
+                            { url = "https://elm-lang.org/"
+                            , label =
+                                El.text "Elm"
+                            }
+                        , El.text " project, enter its github repository path and hit the button below."
+                        ]
                     , textInput
-                        { labelText = "/"
-                        , labelWidth = 10
-                        , inputWidth = 40
-                        , text = m.elmDep.repositoryName
-                        , onChange = ElmDep.ChangeRepositoryName >> FromElmDep
+                        { labelText = "https://github.com/"
+                        , labelWidth = 90
+                        , inputWidth = 120
+                        , text = m.elmDep.repoName
+                        , onChange = ElmDep.ChangeRepo >> FromElmDep
                         }
-                    ]
-                , El.paragraph []
-                    [ El.el
-                        [ Events.onClick ClickOnGetElmDepButton ]
-                        (El.html (Icons.draw24px Icons.icons.elmLogo))
-                    , El.column []
-                        (case ElmDep.stateVizData m.elmDep of
-                            ElmDep.WaitingForUserInput ->
-                                []
+                    , El.el [ El.centerX ]
+                        (buttonWithIconAndText
+                            { iconPath = Icons.icons.elmLogo
+                            , text = "Get Module Dependency Graph!"
+                            , onClickMsg = ClickOnGetElmDepButton
+                            , disabled =
+                                case ElmDep.stateVizData m.elmDep of
+                                    ElmDep.DownloadingViz _ ->
+                                        True
 
-                            ElmDep.Downloaded l ->
-                                List.map (\n -> El.el [] (El.text n)) l
+                                    _ ->
+                                        False
+                            }
+                        )
+                    , case ElmDep.stateVizData m.elmDep of
+                        ElmDep.WaitingForUserInputViz ->
+                            El.none
 
-                            ElmDep.Error str ->
+                        ElmDep.DownloadingViz { numberOfModules, namesOfDownloadedModules } ->
+                            El.textColumn []
+                                [ El.paragraph []
+                                    [ El.text "Downloading files: "
+                                    , El.text
+                                        (String.fromInt
+                                            (List.length namesOfDownloadedModules)
+                                        )
+                                    , El.text "/"
+                                    , El.text (String.fromInt numberOfModules)
+                                    ]
+                                , El.paragraph [] [ listOfFileNames namesOfDownloadedModules ]
+                                ]
+
+                        ElmDep.DownloadFinishedViz { namesOfDownloadedModules } ->
+                            El.textColumn []
+                                [ El.paragraph []
+                                    [ El.text "Finished downloading all "
+                                    , El.text (String.fromInt (List.length namesOfDownloadedModules))
+                                    , El.text " files:"
+                                    ]
+                                , El.paragraph [] [ listOfFileNames namesOfDownloadedModules ]
+                                ]
+
+                        ElmDep.ErrorViz str ->
+                            El.paragraph []
                                 [ El.el [ Font.color Colors.red ]
                                     (El.text str)
                                 ]
-                        )
                     ]
                 ]
             }
