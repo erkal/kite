@@ -243,9 +243,7 @@ toGraphFile l =
             ( Node (safeGetId moduleName)
                 { dVP
                     | label = Just moduleName
-                    , labelAbove = True
                     , radius = 0.5 * sqrt (toFloat loc)
-                    , fixed = moduleName == "Main"
                 }
             , dependencies
                 |> List.filterMap

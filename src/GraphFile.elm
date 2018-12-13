@@ -1,6 +1,6 @@
 module GraphFile exposing
     ( GraphFile
-    , MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
+    , MyGraph, VertexId, VertexProperties, LabelPosition(..), EdgeId, EdgeProperties
     , Bag, BagDict, BagId, BagProperties
     , default, defaultVertexProp, defaultEdgeProp
     , decoder
@@ -32,7 +32,7 @@ This module also contains operations acting on graphs needed bei the Main module
 # Definition
 
 @docs GraphFile
-@docs MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
+@docs MyGraph, VertexId, VertexProperties, LabelPosition, EdgeId, EdgeProperties
 @docs Bag, BagDict, BagId, BagProperties
 
 
@@ -142,7 +142,7 @@ type alias EdgeId =
 type alias VertexProperties =
     { label : Maybe String
     , labelSize : Float
-    , labelAbove : Bool
+    , labelPosition : LabelPosition
     , labelColor : Color
     , labelIsVisible : Bool
     , position : Point2d
@@ -157,6 +157,18 @@ type alias VertexProperties =
     , borderWidth : Float
     , inBags : Set BagId
     }
+
+
+type LabelPosition
+    = LabelTopLeft
+    | LabelTop
+    | LabelTopRight
+    | LabelLeft
+    | LabelCenter
+    | LabelRight
+    | LabelBottomLeft
+    | LabelBottom
+    | LabelBottomRight
 
 
 type alias EdgeProperties =
@@ -212,7 +224,7 @@ defaultVertexProp : VertexProperties
 defaultVertexProp =
     { label = Nothing
     , labelSize = 12
-    , labelAbove = False
+    , labelPosition = LabelTop
     , labelColor = Colors.white
     , labelIsVisible = True
     , position = Point2d.origin
@@ -296,7 +308,7 @@ encodeVertexProperties vP =
     JE.object
         [ ( "label", encodeMaybeString vP.label )
         , ( "labelSize", JE.float vP.labelSize )
-        , ( "labelAbove", JE.bool vP.labelAbove )
+        , ( "labelPosition", encodeLabelPosition vP.labelPosition )
         , ( "labelColor", Colors.encode vP.labelColor )
         , ( "labelIsVisible", JE.bool vP.labelIsVisible )
         , ( "position", encodePoint2d vP.position )
@@ -311,6 +323,38 @@ encodeVertexProperties vP =
         , ( "borderWidth", JE.float vP.borderWidth )
         , ( "inBags", JE.list JE.int (Set.toList vP.inBags) )
         ]
+
+
+encodeLabelPosition : LabelPosition -> Value
+encodeLabelPosition lP =
+    JE.string <|
+        case lP of
+            LabelTopLeft ->
+                "LabelTopLeft"
+
+            LabelTop ->
+                "LabelTop"
+
+            LabelTopRight ->
+                "LabelTopRight"
+
+            LabelLeft ->
+                "LabelLeft"
+
+            LabelCenter ->
+                "LabelCenter"
+
+            LabelRight ->
+                "LabelRight"
+
+            LabelBottomLeft ->
+                "LabelBottomLeft"
+
+            LabelBottom ->
+                "LabelBottom"
+
+            LabelBottomRight ->
+                "LabelBottomRight"
 
 
 encodeEdgeProperties : EdgeProperties -> Value
@@ -408,7 +452,7 @@ vertexPropertiesDecoder =
     JD.succeed VertexProperties
         |> JDP.required "label" (JD.nullable JD.string)
         |> JDP.required "labelSize" JD.float
-        |> JDP.required "labelAbove" JD.bool
+        |> JDP.required "labelPosition" labelPositionDecoder
         |> JDP.required "labelColor" Colors.decoder
         |> JDP.required "labelIsVisible" JD.bool
         |> JDP.required "position" point2dDecoder
@@ -422,6 +466,45 @@ vertexPropertiesDecoder =
         |> JDP.required "borderColor" Colors.decoder
         |> JDP.required "borderWidth" JD.float
         |> JDP.required "inBags" (JD.map Set.fromList (JD.list JD.int))
+
+
+labelPositionDecoder : Decoder LabelPosition
+labelPositionDecoder =
+    JD.map
+        (\str ->
+            case str of
+                "LabelTopLeft" ->
+                    LabelTopLeft
+
+                "LabelTop" ->
+                    LabelTop
+
+                "LabelTopRight" ->
+                    LabelTopRight
+
+                "LabelLeft" ->
+                    LabelLeft
+
+                "LabelCenter" ->
+                    LabelCenter
+
+                "LabelRight" ->
+                    LabelRight
+
+                "LabelBottomLeft" ->
+                    LabelBottomLeft
+
+                "LabelBottom" ->
+                    LabelBottom
+
+                "LabelBottomRight" ->
+                    LabelBottomRight
+
+                _ ->
+                    -- This never happens
+                    LabelBottomLeft
+        )
+        JD.string
 
 
 edgePropertiesDecoder : Decoder EdgeProperties

@@ -20,7 +20,7 @@ import Files exposing (Files)
 import Generators.ElmDep as ElmDep
 import Geometry.Svg
 import Graph.Force as Force exposing (Force)
-import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, VertexId, VertexProperties)
+import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, LabelPosition(..), VertexId, VertexProperties)
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
 import Html.Events as HE
@@ -523,7 +523,7 @@ type Msg
     | InputVertexX String
     | InputVertexY String
     | InputVertexLabelSize String
-    | InputVertexLabelAbove Bool
+    | InputVertexLabelPosition GF.LabelPosition
     | InputVertexRadius Float
     | InputVertexGravityStrength Float
     | InputVertexCharge Float
@@ -1270,19 +1270,19 @@ updateHelper msg m =
             in
             m |> new newGF "Changed vertex label size"
 
-        InputVertexLabelAbove b ->
+        InputVertexLabelPosition lP ->
             let
-                updateLabelAbove v =
-                    { v | labelAbove = b }
+                updateLabelPosition v =
+                    { v | labelPosition = lP }
 
                 newGF =
                     if Set.isEmpty m.selectedVertices then
                         present m
-                            |> GF.updateDefaultVertexProperties updateLabelAbove
+                            |> GF.updateDefaultVertexProperties updateLabelPosition
 
                     else
                         present m
-                            |> GF.updateVertices m.selectedVertices updateLabelAbove
+                            |> GF.updateVertices m.selectedVertices updateLabelPosition
             in
             m |> new newGF "Changed vertex label position"
 
@@ -2601,7 +2601,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ id, label } ->
                                 cell id <|
-                                    El.text (String.fromFloat label.radius)
+                                    El.text (String.fromInt (round label.radius))
                       }
                     , { header = columnHeader " "
                       , width = El.px 8
@@ -3406,6 +3406,50 @@ checkbox { labelText, labelWidth, state, onChange } =
         ]
 
 
+labelPositionInput : LabelPosition -> Element Msg
+labelPositionInput labelPosToShow =
+    let
+        box : LabelPosition -> Element Msg
+        box lP =
+            El.el
+                [ Background.color
+                    (if lP == labelPosToShow then
+                        Colors.icon
+
+                     else
+                        Colors.inputBackground
+                    )
+                , El.width (El.px 6)
+                , El.height (El.px 6)
+                , Events.onClick (InputVertexLabelPosition lP)
+                , El.pointer
+                ]
+                El.none
+
+        boxesColumn =
+            El.column [ El.padding 1, El.spacing 1 ]
+
+        boxesRow =
+            El.row [ El.spacing 1 ]
+
+        nineBoxes =
+            boxesColumn
+                [ boxesRow
+                    [ box LabelTopLeft, box LabelTop, box LabelTopRight ]
+                , boxesRow
+                    [ box LabelLeft, box LabelCenter, box LabelRight ]
+                , boxesRow
+                    [ box LabelBottomLeft, box LabelBottom, box LabelBottomRight ]
+                ]
+    in
+    El.row
+        [ El.spacing 8
+        ]
+        [ El.el (labelAttr 95) (El.text "Label Position")
+        , El.el [ El.centerX, El.centerY ] nineBoxes
+        ]
+
+
 colorPicker :
     { labelText : String
     , labelWidth : Int
@@ -3889,22 +3933,20 @@ vertexPreferences m =
                                     ""
                     , onChange = InputVertexLabelSize
                     }
-                , checkbox
-                    { labelText = "Label Above"
-                    , labelWidth = 98
-                    , state =
-                        if Set.isEmpty m.selectedVertices then
-                            Just
-                                (present m
-                                    |> GF.getDefaultVertexProperties
-                                    |> .labelAbove
-                                )
+                , labelPositionInput
+                    (if Set.isEmpty m.selectedVertices then
+                        present m
+                            |> GF.getDefaultVertexProperties
+                            |> .labelPosition
 
-                        else
-                            present m
-                                |> GF.getCommonVertexProperty m.selectedVertices .labelAbove
-                    , onChange = InputVertexLabelAbove
-                    }
+                     else
+                        case present m |> GF.getCommonVertexProperty m.selectedVertices .labelPosition of
+                            Just lP ->
+                                lP
+
+                            Nothing ->
+                                LabelCenter
+                    )
                 ]
             , El.row []
                 [ checkbox
@@ -4651,19 +4693,70 @@ viewVertices graphFile =
                 ( x, y ) =
                     Point2d.coordinates label.position
 
+                ( labelAnchor, labelX, labelY ) =
+                    case label.labelPosition of
+                        GF.LabelTopLeft ->
+                            ( "end"
+                            , -label.radius - 4
+                            , -label.radius - 4
+                            )
+
+                        GF.LabelTop ->
+                            ( "middle"
+                            , 0
+                            , -label.radius - 4
+                            )
+
+                        GF.LabelTopRight ->
+                            ( "start"
+                            , label.radius + 4
+                            , -label.radius - 4
+                            )
+
+                        GF.LabelCenter ->
+                            ( "middle"
+                            , 0
+                            , 0.39 * label.labelSize
+                            )
+
+                        GF.LabelLeft ->
+                            ( "end"
+                            , -label.radius - 4
+                            , 0.39 * label.labelSize
+                            )
+
+                        GF.LabelRight ->
+                            ( "start"
+                            , label.radius + 4
+                            , 0.39 * label.labelSize
+                            )
+
+                        GF.LabelBottomLeft ->
+                            ( "end"
+                            , -label.radius - 4
+                            , label.radius + label.labelSize
+                            )
+
+                        GF.LabelBottom ->
+                            ( "middle"
+                            , 0
+                            , label.radius + label.labelSize
+                            )
+
+                        GF.LabelBottomRight ->
+                            ( "start"
+                            , label.radius + 4
+                            , label.radius + label.labelSize
+                            )
+
                 vertexLabel =
                     if label.labelIsVisible then
                         S.text_
                             [ SA.fill (Colors.toString label.labelColor)
-                            , SA.textAnchor "middle"
                             , SA.fontSize (String.fromFloat label.labelSize)
-                            , SA.y <|
-                                String.fromFloat <|
-                                    if label.labelAbove then
-                                        -(label.radius + 4)
-
-                                    else
-                                        0.4 * label.labelSize
+                            , SA.textAnchor labelAnchor
+                            , SA.x (String.fromFloat labelX)
+                            , SA.y (String.fromFloat labelY)
                             ]
                             [ S.text <|
                                 case label.label of
