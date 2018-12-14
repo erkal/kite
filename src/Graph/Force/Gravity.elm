@@ -10,7 +10,8 @@ type alias Vertex =
     , position : Point2d
     , velocity : Vector2d
     , gravityCenter : Point2d
-    , gravityStrength : Float
+    , gravityStrengthX : Float
+    , gravityStrengthY : Float
     }
 
 
@@ -18,14 +19,16 @@ run : Float -> List Vertex -> List ( Int, Vector2d )
 run alpha =
     let
         handle : Vertex -> ( Int, Vector2d )
-        handle { id, position, velocity, gravityCenter, gravityStrength } =
+        handle { id, position, velocity, gravityCenter, gravityStrengthX, gravityStrengthY } =
             let
-                k =
-                    gravityStrength * alpha
+                v =
+                    Vector2d.from position gravityCenter
 
                 velocityDelta =
-                    Vector2d.from position gravityCenter
-                        |> Vector2d.scaleBy k
+                    Vector2d.fromComponents
+                        ( Vector2d.xComponent v * gravityStrengthX * alpha
+                        , Vector2d.yComponent v * gravityStrengthY * alpha
+                        )
             in
             ( id
             , Vector2d.sum velocity velocityDelta

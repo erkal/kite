@@ -23,6 +23,7 @@ module GraphFile exposing
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
     , forceTick, transitionGraphFile
+    , mapGraph
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -149,7 +150,8 @@ type alias VertexProperties =
     , velocity : Vector2d
     , manyBodyStrength : Float
     , gravityCenter : Point2d
-    , gravityStrength : Float
+    , gravityStrengthX : Float
+    , gravityStrengthY : Float
     , fixed : Bool
     , color : Color
     , radius : Float
@@ -230,7 +232,8 @@ defaultVertexProp =
     , position = Point2d.origin
     , velocity = Vector2d.zero
     , gravityCenter = Point2d.fromCoordinates ( 300, 200 )
-    , gravityStrength = 0.05
+    , gravityStrengthX = 0.05
+    , gravityStrengthY = 0.05
     , manyBodyStrength = -300
     , color = Colors.darkGray
     , radius = 8
@@ -315,7 +318,8 @@ encodeVertexProperties vP =
         , ( "velocity", encodeVector2d vP.velocity )
         , ( "manyBodyStrength", JE.float vP.manyBodyStrength )
         , ( "gravityCenter", encodePoint2d vP.gravityCenter )
-        , ( "gravityStrength", JE.float vP.gravityStrength )
+        , ( "gravityStrengthX", JE.float vP.gravityStrengthX )
+        , ( "gravityStrengthY", JE.float vP.gravityStrengthY )
         , ( "fixed", JE.bool vP.fixed )
         , ( "color", Colors.encode vP.color )
         , ( "radius", JE.float vP.radius )
@@ -459,7 +463,8 @@ vertexPropertiesDecoder =
         |> JDP.required "velocity" vector2dDecoder
         |> JDP.required "manyBodyStrength" JD.float
         |> JDP.required "gravityCenter" point2dDecoder
-        |> JDP.required "gravityStrength" JD.float
+        |> JDP.required "gravityStrengthX" JD.float
+        |> JDP.required "gravityStrengthY" JD.float
         |> JDP.required "fixed" JD.bool
         |> JDP.required "color" Colors.decoder
         |> JDP.required "radius" JD.float

@@ -42,7 +42,8 @@ type alias ForceVertex n =
         , velocity : Velocity
         , manyBodyStrength : Float
         , gravityCenter : Point2d
-        , gravityStrength : Float
+        , gravityStrengthX : Float
+        , gravityStrengthY : Float
         , fixed : Bool
     }
 
@@ -152,7 +153,8 @@ applyForce alpha force forceGraph =
                     , position = label.position
                     , velocity = label.velocity
                     , gravityCenter = label.gravityCenter
-                    , gravityStrength = label.gravityStrength
+                    , gravityStrengthX = label.gravityStrengthX
+                    , gravityStrengthY = label.gravityStrengthY
                     }
 
                 newVelocities : List ( NodeId, Velocity )

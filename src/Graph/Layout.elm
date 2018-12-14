@@ -1,7 +1,9 @@
-module Graph.Layout exposing (circular)
+module Graph.Layout exposing (circular, topological)
 
+import Direction2d
 import Graph exposing (Edge, Graph, Node, NodeId)
 import Graph.Extra
+import LineSegment2d exposing (LineSegment2d)
 import Point2d exposing (Point2d)
 import Vector2d exposing (Vector2d)
 
@@ -49,3 +51,53 @@ circular { center, radius } g =
             List.map pos (List.range 1 n)
     in
     applyPositions posList g
+
+
+topological : LineSegment2d -> PositionedGraph n e -> Result String (PositionedGraph n e)
+topological line maybeAcyclicGraph =
+    case Graph.checkAcyclic maybeAcyclicGraph of
+        Ok g ->
+            let
+                leveledIds =
+                    Graph.heightLevels g
+                        |> List.map (List.map (.node >> .id))
+
+                numberOfLevels =
+                    List.length leveledIds
+
+                shift i j =
+                    let
+                        down =
+                            LineSegment2d.vector line
+                                |> Vector2d.scaleBy
+                                    (toFloat i / toFloat numberOfLevels)
+
+                        right =
+                            Vector2d.withLength (toFloat j * 50) Direction2d.positiveX
+                    in
+                    Vector2d.sum down right
+
+                levelToPosition i j =
+                    LineSegment2d.startPoint line
+                        |> Point2d.translateBy (shift i j)
+
+                idsWithTheirNewPositions =
+                    leveledIds
+                        |> List.indexedMap
+                            (\i ids ->
+                                List.indexedMap
+                                    (\j id -> ( id, levelToPosition i j ))
+                                    ids
+                            )
+                        |> List.concat
+
+                upPos newPos vP =
+                    { vP | position = newPos }
+
+                upNodesToTheirNewPositions =
+                    Graph.Extra.updateNodesBy idsWithTheirNewPositions upPos
+            in
+            Ok (upNodesToTheirNewPositions maybeAcyclicGraph)
+
+        Err _ ->
+            Err "The input graph is not acyclic"

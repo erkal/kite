@@ -21,6 +21,7 @@ import Files exposing (Files)
 import Generators.ElmDep as ElmDep
 import Geometry.Svg
 import Graph.Force as Force exposing (Force)
+import Graph.Layout
 import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, LabelPosition(..), VertexId, VertexProperties)
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
@@ -139,12 +140,24 @@ update msg m =
                 ( newElmDep, elmDepCmd ) =
                     ElmDep.update elmDepMsg newModel.elmDep
 
+                lineToSortAlong =
+                    LineSegment2d.fromEndpoints
+                        ( Point2d.fromCoordinates ( 300, 50 )
+                        , Point2d.fromCoordinates ( 300, 750 )
+                        )
+
+                topoSort =
+                    GF.mapGraph
+                        (Graph.Layout.topological lineToSortAlong
+                            >> Result.withDefault (GF.getGraph (present m))
+                        )
+
                 addGraphFileIfDownloadFinished =
                     case ElmDep.finishedDownloadingWith newElmDep of
                         Just l ->
                             Files.newFile "Elm Dependency"
                                 ( "Created elm module dependency graph"
-                                , ElmDep.toGraphFile l
+                                , topoSort (ElmDep.toGraphFile l)
                                 )
 
                         Nothing ->
@@ -527,7 +540,8 @@ type Msg
     | InputVertexLabelSize String
     | InputVertexLabelPosition GF.LabelPosition
     | InputVertexRadius Float
-    | InputVertexGravityStrength Float
+    | InputVertexGravityStrengthX Float
+    | InputVertexGravityStrengthY Float
     | InputVertexCharge Float
     | InputVertexFixed Bool
     | InputVertexColor Color
@@ -1323,23 +1337,41 @@ updateHelper msg m =
             in
             m |> new newGF "Changed vertex radius"
 
-        InputVertexGravityStrength num ->
+        InputVertexGravityStrengthX num ->
             let
-                updateGravityStrength v =
-                    { v | gravityStrength = num }
+                updateGravityStrengthX v =
+                    { v | gravityStrengthX = num }
 
                 newGF =
                     if Set.isEmpty m.selectedVertices then
                         present m
-                            |> GF.updateDefaultVertexProperties updateGravityStrength
+                            |> GF.updateDefaultVertexProperties updateGravityStrengthX
 
                     else
                         present m
-                            |> GF.updateVertices m.selectedVertices updateGravityStrength
+                            |> GF.updateVertices m.selectedVertices updateGravityStrengthX
             in
             m
                 |> reheatForce
-                |> new newGF "Changed vertex gravity strength"
+                |> new newGF "Changed vertex gravity strength in x direction"
+
+        InputVertexGravityStrengthY num ->
+            let
+                updateGravityStrengthY v =
+                    { v | gravityStrengthY = num }
+
+                newGF =
+                    if Set.isEmpty m.selectedVertices then
+                        present m
+                            |> GF.updateDefaultVertexProperties updateGravityStrengthY
+
+                    else
+                        present m
+                            |> GF.updateVertices m.selectedVertices updateGravityStrengthY
+            in
+            m
+                |> reheatForce
+                |> new newGF "Changed vertex gravity strength in y direction"
 
         InputVertexCharge num ->
             let
@@ -4079,17 +4111,17 @@ vertexPreferences m =
                 , onChange = InputVertexCharge
                 }
             , sliderInput
-                { labelText = "Gravity"
+                { labelText = "GravityX"
                 , labelWidth = 80
                 , totalWidth = 240
                 , value =
                     if Set.isEmpty m.selectedVertices then
                         present m
                             |> GF.getDefaultVertexProperties
-                            |> .gravityStrength
+                            |> .gravityStrengthX
 
                     else
-                        case present m |> GF.getCommonVertexProperty m.selectedVertices .gravityStrength of
+                        case present m |> GF.getCommonVertexProperty m.selectedVertices .gravityStrengthX of
                             Just gS ->
                                 gS
 
@@ -4098,7 +4130,29 @@ vertexPreferences m =
                 , min = 0
                 , max = 1
                 , step = 0.05
-                , onChange = InputVertexGravityStrength
+                , onChange = InputVertexGravityStrengthX
+                }
+            , sliderInput
+                { labelText = "GravityY"
+                , labelWidth = 80
+                , totalWidth = 240
+                , value =
+                    if Set.isEmpty m.selectedVertices then
+                        present m
+                            |> GF.getDefaultVertexProperties
+                            |> .gravityStrengthY
+
+                    else
+                        case present m |> GF.getCommonVertexProperty m.selectedVertices .gravityStrengthY of
+                            Just gS ->
+                                gS
+
+                            Nothing ->
+                                0.1
+                , min = 0
+                , max = 1
+                , step = 0.05
+                , onChange = InputVertexGravityStrengthY
                 }
             ]
         }
