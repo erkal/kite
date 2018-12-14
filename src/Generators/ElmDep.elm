@@ -272,14 +272,10 @@ toGraphFile l =
             Graph.fromNodesAndEdges nodes edges
                 |> Graph.Layout.circular
                     { center = ( 300, 300 ), radius = 250 }
-
-        setOfRootNodeIds =
-            Set.fromList (Graph.Extra.rootNodeIds graph)
     in
     GF.default
         |> GF.setGraph graph
-        |> GF.addBag setOfRootNodeIds
-        |> Tuple.first
+        |> GF.topologicalSort
 
 
 type StateVizData

@@ -21,7 +21,6 @@ import Files exposing (Files)
 import Generators.ElmDep as ElmDep
 import Geometry.Svg
 import Graph.Force as Force exposing (Force)
-import Graph.Layout
 import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, LabelPosition(..), VertexId, VertexProperties)
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
@@ -140,24 +139,12 @@ update msg m =
                 ( newElmDep, elmDepCmd ) =
                     ElmDep.update elmDepMsg newModel.elmDep
 
-                lineToSortAlong =
-                    LineSegment2d.fromEndpoints
-                        ( Point2d.fromCoordinates ( 300, 50 )
-                        , Point2d.fromCoordinates ( 300, 750 )
-                        )
-
-                topoSort =
-                    GF.mapGraph
-                        (Graph.Layout.topological lineToSortAlong
-                            >> Result.withDefault (GF.getGraph (present m))
-                        )
-
                 addGraphFileIfDownloadFinished =
                     case ElmDep.finishedDownloadingWith newElmDep of
                         Just l ->
                             Files.newFile "Elm Dependency"
                                 ( "Created elm module dependency graph"
-                                , topoSort (ElmDep.toGraphFile l)
+                                , ElmDep.toGraphFile l
                                 )
 
                         Nothing ->

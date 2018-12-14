@@ -13,6 +13,7 @@ module GraphFile exposing
     , addStarGraph
     , duplicateSubgraph
     , setCentroidX, setCentroidY, setVertexPositions
+    , topologicalSort
     , getGraph
     , getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
     , getEdges
@@ -23,7 +24,6 @@ module GraphFile exposing
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
     , forceTick, transitionGraphFile
-    , mapGraph
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -62,6 +62,7 @@ This module also contains operations acting on graphs needed bei the Main module
 @docs addStarGraph
 @docs duplicateSubgraph
 @docs setCentroidX, setCentroidY, setVertexPositions
+@docs topologicalSort
 
 
 # Graph Queries
@@ -105,6 +106,7 @@ import Graph.Encode
 import Graph.Extra
 import Graph.Force as Force exposing (Force, ForceGraph)
 import Graph.Generators
+import Graph.Layout
 import IntDict exposing (IntDict)
 import Json.Decode as JD exposing (Decoder, Value)
 import Json.Decode.Pipeline as JDP
@@ -234,7 +236,7 @@ defaultVertexProp =
     , gravityCenter = Point2d.fromCoordinates ( 300, 200 )
     , gravityStrengthX = 0.05
     , gravityStrengthY = 0.05
-    , manyBodyStrength = -300
+    , manyBodyStrength = -100
     , color = Colors.darkGray
     , radius = 8
     , borderColor = Colors.mainSvgBackground
@@ -943,6 +945,34 @@ setVertexPositionsForGraph l =
 setVertexPositions : List ( VertexId, Point2d ) -> GraphFile -> GraphFile
 setVertexPositions l =
     mapGraph (setVertexPositionsForGraph l)
+
+
+topologicalSort : GraphFile -> GraphFile
+topologicalSort =
+    let
+        lineToSortAlong =
+            LineSegment2d.fromEndpoints
+                ( Point2d.fromCoordinates ( 50, 50 )
+                , Point2d.fromCoordinates ( 50, 750 )
+                )
+
+        assignGravity =
+            Graph.mapNodes
+                (\vP ->
+                    { vP
+                        | gravityCenter =
+                            Point2d.fromCoordinates
+                                ( 300
+                                , Point2d.yCoordinate vP.position
+                                )
+                        , gravityStrengthX = 0.005
+                        , gravityStrengthY = 0.2
+                        , manyBodyStrength = -100
+                    }
+                )
+                >> Graph.mapEdges (\eP -> { eP | strength = 0.01 })
+    in
+    mapGraph (Graph.Layout.topological lineToSortAlong >> assignGravity)
 
 
 unionWithNewGraph :

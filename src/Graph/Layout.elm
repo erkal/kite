@@ -53,9 +53,12 @@ circular { center, radius } g =
     applyPositions posList g
 
 
-topological : LineSegment2d -> PositionedGraph n e -> Result String (PositionedGraph n e)
+topological : LineSegment2d -> PositionedGraph n e -> PositionedGraph n e
 topological line maybeAcyclicGraph =
     case Graph.checkAcyclic maybeAcyclicGraph of
+        Err _ ->
+            maybeAcyclicGraph
+
         Ok g ->
             let
                 leveledIds =
@@ -97,7 +100,4 @@ topological line maybeAcyclicGraph =
                 upNodesToTheirNewPositions =
                     Graph.Extra.updateNodesBy idsWithTheirNewPositions upPos
             in
-            Ok (upNodesToTheirNewPositions maybeAcyclicGraph)
-
-        Err _ ->
-            Err "The input graph is not acyclic"
+            upNodesToTheirNewPositions maybeAcyclicGraph
