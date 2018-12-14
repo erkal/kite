@@ -1,6 +1,7 @@
 port module Main exposing (main)
 
 import Algorithms.Dijkstra.API
+import Algorithms.TopologicalSorting.API
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser exposing (Document)
 import Browser.Dom as Dom
@@ -552,6 +553,7 @@ type Msg
     | FocusPreviousFile
       --
     | ClickOnRunDijsktraButton
+    | ClickOnRunTopoSort
       --
     | FromElmDep ElmDep.Msg
     | ClickOnGetElmDepButton
@@ -1761,6 +1763,26 @@ updateHelper msg m =
                                     ( "Generated as step "
                                         ++ String.fromInt i
                                         ++ " of Dijsktra's Algorithm."
+                                    , gF
+                                    )
+                            )
+                            m.files
+                , selectedMode = GraphsFolder
+            }
+
+        ClickOnRunTopoSort ->
+            { m
+                | files =
+                    present m
+                        |> Algorithms.TopologicalSorting.API.run
+                        |> List.indexedMap Tuple.pair
+                        |> List.foldl
+                            (\( i, gF ) ->
+                                Files.newFile
+                                    ("Topological Sort step-" ++ String.fromInt i)
+                                    ( "Generated as step "
+                                        ++ String.fromInt i
+                                        ++ " of Topological Sorting Algorithm."
                                     , gF
                                     )
                             )
@@ -2984,58 +3006,91 @@ leftBarContentForGraphGenerators m =
         ]
 
 
+runButton : Msg -> Element Msg
+runButton msg =
+    El.el
+        [ El.htmlAttribute (HA.title "Run!")
+        , El.alignRight
+        , Border.rounded 4
+        , El.mouseDown [ Background.color Colors.selectedItem ]
+        , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+        , El.pointer
+        , Events.onClick msg
+        ]
+        (El.html (Icons.draw24px Icons.icons.lightning))
+
+
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
 leftBarContentForAlgorithmVisualizations m =
-    let
-        runButton : Msg -> Element Msg
-        runButton msg =
-            El.el
-                [ El.htmlAttribute (HA.title "Run!")
-                , El.alignRight
-                , Border.rounded 4
-                , El.mouseDown [ Background.color Colors.selectedItem ]
-                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
-                , El.pointer
-                , Events.onClick msg
-                ]
-                (El.html (Icons.draw24px Icons.icons.lightning))
-    in
-    menu
-        { headerText = "Dijsktra's Shortest Path"
-        , isOn = True
-        , headerItems = []
-        , toggleMsg = NoOp
-        , contentItems =
-            [ El.textColumn [ El.width El.fill, El.padding 24, El.spacing 10 ]
-                [ El.paragraph []
-                    [ El.text
-                        "When you hit the lightning button, "
-                    , El.el
-                        [ El.alignLeft
-                        ]
-                        (runButton ClickOnRunDijsktraButton)
-                    , El.newTabLink
-                        [ Font.underline
-                        , Font.italic
+    El.column []
+        [ menu
+            { headerText = "Dijsktra's Shortest Path"
+            , isOn = True
+            , headerItems = []
+            , toggleMsg = NoOp
+            , contentItems =
+                [ El.textColumn [ El.width El.fill, El.padding 16, El.spacing 10 ]
+                    [ El.paragraph []
+                        [ El.text
+                            "When you hit the lightning button, "
+                        , El.el
+                            [ El.alignLeft
+                            ]
+                            (runButton ClickOnRunDijsktraButton)
+                        , El.newTabLink
+                            [ Font.underline
+                            , Font.italic
 
-                        --, Font.color Colors.linkBlue
+                            --, Font.color Colors.linkBlue
+                            ]
+                            { url =
+                                "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm"
+                            , label =
+                                El.text "Dijkstra's Shortest Path Algorithm"
+                            }
+                        , El.text
+                            " is going to run on the current graph."
                         ]
-                        { url =
-                            "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm"
-                        , label =
-                            El.text "Dijkstra's Shortest Path Algorithm"
-                        }
-                    , El.text
-                        " is going to run on the current graph."
-                    ]
-                , El.paragraph []
-                    [ El.text "If an edge is labeled by a number, that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1." ]
-                , El.paragraph []
-                    [ El.text "If there is vertex labeled with \"start\", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id."
+                    , El.paragraph []
+                        [ El.text "If an edge is labeled by a number, that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1." ]
+                    , El.paragraph []
+                        [ El.text "If there is vertex labeled with \"start\", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id."
+                        ]
                     ]
                 ]
-            ]
-        }
+            }
+        , menu
+            { headerText = "Topological Sorting"
+            , isOn = True
+            , headerItems = []
+            , toggleMsg = NoOp
+            , contentItems =
+                [ El.textColumn [ El.width El.fill, El.padding 16, El.spacing 10 ]
+                    [ El.paragraph []
+                        [ El.text
+                            "When you hit the lightning button, "
+                        , El.el
+                            [ El.alignLeft
+                            ]
+                            (runButton ClickOnRunTopoSort)
+                        , El.newTabLink
+                            [ Font.underline
+                            , Font.italic
+
+                            --, Font.color Colors.linkBlue
+                            ]
+                            { url =
+                                "https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm"
+                            , label =
+                                El.text "Kahn's algorithm"
+                            }
+                        , El.text
+                            " is going to run on the current graph."
+                        ]
+                    ]
+                ]
+            }
+        ]
 
 
 leftBarContentForGamesOnGraphs : Model -> Element Msg

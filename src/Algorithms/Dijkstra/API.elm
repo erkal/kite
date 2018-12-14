@@ -13,18 +13,18 @@ import Set exposing (Set)
 
 run : GraphFile -> List GraphFile
 run inputGF =
+    let
+        runOnMyGraph : MyGraph -> List MyGraph
+        runOnMyGraph inputGraph =
+            inputGraph
+                |> toInputData
+                |> Algorithm.run Dijkstra.algorithm
+                |> List.map (toMyGraph inputGraph)
+    in
     inputGF
         |> GF.getGraph
         |> runOnMyGraph
         |> List.map (\g -> GF.setGraph g inputGF)
-
-
-runOnMyGraph : MyGraph -> List MyGraph
-runOnMyGraph inputGraph =
-    inputGraph
-        |> toInputData
-        |> Algorithm.run Dijkstra.algorithm
-        |> List.map (toMyGraph inputGraph)
 
 
 {-| If the the edges are labeled by numbers that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1.

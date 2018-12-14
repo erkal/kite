@@ -17,8 +17,6 @@ basic initAndStep =
     Algorithm initAndStep
 
 
-{-| state must hold all information for the visualization of that step.
--}
 run : Algorithm input state -> input -> List state
 run (Algorithm { init, step }) input =
     let

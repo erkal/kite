@@ -1,4 +1,4 @@
-module TopologicalSorting exposing (Input, Step, algorithm)
+module Algorithms.TopologicalSorting exposing (Input, State, algorithm)
 
 import Algorithm exposing (Algorithm, Result(..))
 import IntDict exposing (IntDict)
@@ -22,7 +22,7 @@ import Set exposing (Set)
         return L   (a topologically sorted order)
 
 -}
-algorithm : Algorithm Input Step
+algorithm : Algorithm Input State
 algorithm =
     Algorithm.basic
         { init = init
@@ -35,21 +35,21 @@ algorithm =
 
 
 type alias Input =
-    IntDict VertexId
+    IntDict (Set NodeId)
 
 
-type alias VertexId =
+type alias NodeId =
     Int
 
 
 
--- Step
+-- State
 
 
-type alias Step =
-    { edgesToHandle : IntDict VertexId
-    , l : List VertexId
-    , s : List VertexId
+type alias State =
+    { edgesLeft : IntDict (Set NodeId)
+    , l : List NodeId
+    , s : Set NodeId
     }
 
 
@@ -57,15 +57,11 @@ type alias Step =
 -- init
 
 
-init : Input -> Step
-init inputData =
-    let
-        rootNodes =
-            []
-    in
-    { edgesToHandle = inputData
+init : Input -> State
+init input =
+    { edgesLeft = input
     , l = []
-    , s = rootNodes
+    , s = Set.fromList (rootNodes input)
     }
 
 
@@ -73,11 +69,81 @@ init inputData =
 -- step
 
 
-step : Input -> Step -> Algorithm.Result Step
-step inputData lastStep =
-    End
+step : Input -> State -> Algorithm.Result State
+step input { edgesLeft, l, s } =
+    case pick s of
+        Just ( n, restOfS ) ->
+            let
+                outEdgesOfn =
+                    outEdges n edgesLeft
+
+                ( newEdgesLeft, newS ) =
+                    List.foldr handleEdge ( edgesLeft, restOfS ) outEdgesOfn
+            in
+            Next
+                { edgesLeft = newEdgesLeft
+                , l = n :: l
+                , s = newS
+                }
+
+        Nothing ->
+            End
 
 
 
 -- queries
 -- helpers
+
+
+type alias Acc =
+    ( IntDict (Set NodeId), Set NodeId )
+
+
+handleEdge : ( NodeId, NodeId ) -> Acc -> Acc
+handleEdge ( n, m ) ( edgesLeft, s ) =
+    let
+        eRemoved =
+            IntDict.update n (Maybe.map (Set.remove m)) edgesLeft
+    in
+    ( eRemoved
+    , if List.member m (rootNodes eRemoved) then
+        Set.insert m s
+
+      else
+        s
+    )
+
+
+outEdges : NodeId -> IntDict (Set NodeId) -> List ( NodeId, NodeId )
+outEdges n edgesLeft =
+    IntDict.get n edgesLeft
+        |> Maybe.withDefault Set.empty
+        |> Set.toList
+        |> List.map (\m -> ( n, m ))
+
+
+pick : Set comparable -> Maybe ( comparable, Set comparable )
+pick s =
+    case Set.toList s of
+        e :: rest ->
+            Just ( e, Set.fromList rest )
+
+        [] ->
+            Nothing
+
+
+rootNodes : IntDict (Set NodeId) -> List NodeId
+rootNodes adj =
+    let
+        allEdges =
+            adj
+                |> IntDict.map (\s ns -> Set.map (Tuple.pair s) ns)
+                |> IntDict.values
+                |> List.foldr Set.union Set.empty
+
+        isRoot u =
+            allEdges
+                |> Set.filter (\( s, t ) -> t == u)
+                |> Set.isEmpty
+    in
+    adj |> IntDict.keys |> List.filter isRoot
