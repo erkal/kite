@@ -119,25 +119,20 @@ encodeGraphFiles graphFiles =
     Files.encode encodeFileData graphFiles
 
 
+{-| Here, we only handle cases where Cmd is needed.
+-}
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
         ClickOnSaveFile ->
-            let
-                newModel =
-                    updateHelper msg m
-            in
-            ( newModel
-            , setStorage (JE.encode 4 (encodeGraphFiles newModel.files))
+            ( { m | files = Files.save m.files }
+            , setStorage (JE.encode 4 (encodeGraphFiles m.files))
             )
 
         FromElmDep elmDepMsg ->
             let
-                newModel =
-                    updateHelper msg m
-
                 ( newElmDep, elmDepCmd ) =
-                    ElmDep.update elmDepMsg newModel.elmDep
+                    ElmDep.update elmDepMsg m.elmDep
 
                 addGraphFileIfDownloadFinished =
                     case ElmDep.finishedDownloadingWith newElmDep of
@@ -150,22 +145,16 @@ update msg m =
                         Nothing ->
                             identity
             in
-            ( { newModel
+            ( { m
                 | elmDep = newElmDep
                 , files = addGraphFileIfDownloadFinished m.files
-                , vaderIsOn = False
               }
+                |> reheatForce
             , Cmd.map FromElmDep elmDepCmd
             )
 
         ClickOnGetElmDepButton ->
-            let
-                newModel =
-                    updateHelper msg m
-            in
-            ( newModel
-            , Cmd.map FromElmDep (ElmDep.getPathsOfElmFiles m.elmDep)
-            )
+            ( m, Cmd.map FromElmDep (ElmDep.getPathsOfElmFiles m.elmDep) )
 
         _ ->
             ( updateHelper msg m
@@ -1715,9 +1704,6 @@ updateHelper msg m =
         ClickOnDeleteFile ->
             { m | files = Files.delete m.files }
 
-        ClickOnSaveFile ->
-            { m | files = Files.save m.files }
-
         ClickOnCloseFile ->
             { m | files = Files.close m.files }
 
@@ -1808,6 +1794,10 @@ updateHelper msg m =
                             m.files
                 , selectedMode = GraphsFolder
             }
+
+        -- The rest is handled in the `update` function
+        ClickOnSaveFile ->
+            m
 
         FromElmDep _ ->
             m
