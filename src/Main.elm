@@ -125,8 +125,12 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
         ClickOnSaveFile ->
-            ( { m | files = Files.save m.files }
-            , setStorage (JE.encode 4 (encodeGraphFiles m.files))
+            let
+                newFiles =
+                    Files.save m.files
+            in
+            ( { m | files = newFiles }
+            , setStorage (JE.encode 4 (encodeGraphFiles newFiles))
             )
 
         FromElmDep elmDepMsg ->
