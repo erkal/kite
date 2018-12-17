@@ -1899,9 +1899,6 @@ toKeyDownMsg key =
         Character 'a' ->
             ClickOnDistractionFreeButton
 
-        Character 'h' ->
-            ClickOnHandTool
-
         Character 's' ->
             ClickOnSelectTool
 
