@@ -4,6 +4,7 @@ module Colors exposing
     , darkGray
     , darkText
     , decoder
+    , editedFileName
     , encode
     , gray
     , highlightPink
@@ -243,6 +244,10 @@ turquoise =
 
 purple =
     El.rgb255 61 61 106
+
+
+editedFileName =
+    El.rgb255 202 118 40
 
 
 vertexAndEdgeColors =

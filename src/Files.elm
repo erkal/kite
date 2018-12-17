@@ -125,12 +125,15 @@ decoder dataDecoder =
     let
         dec =
             fileDecoder dataDecoder
+
+        setIsOpen b (File f) =
+            File { f | isOpen = b }
     in
     JD.map3
         (\b f a_ ->
             Files
                 { before = b
-                , focused = f
+                , focused = setIsOpen True f
                 , after = a_
                 }
         )

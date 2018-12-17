@@ -2099,6 +2099,7 @@ guiColumns m =
                 editedStyle =
                     if vizDatum.isEdited then
                         [ Font.italic
+                        , Font.color Colors.editedFileName
                         ]
 
                     else
