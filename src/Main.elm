@@ -530,11 +530,13 @@ type Msg
     | InputVertexCharge Float
     | InputVertexFixed Bool
     | InputVertexColor Color
+    | InputVertexOpacity Float
     | ClickOnGravityTool
       --
     | InputEdgeLabel String
     | InputEdgeLabelVisibility Bool
     | InputEdgeThickness Float
+    | InputEdgeOpacity Float
     | InputEdgeDistance Float
     | InputEdgeStrength Float
     | InputEdgeColor Color
@@ -1398,6 +1400,23 @@ updateHelper msg m =
                 |> reheatForce
                 |> new newGF "Changed vertex charge"
 
+        InputVertexOpacity num ->
+            let
+                updateOpacity v =
+                    { v | opacity = num }
+
+                newGF =
+                    if Set.isEmpty m.selectedVertices then
+                        present m
+                            |> GF.updateDefaultVertexProperties updateOpacity
+
+                    else
+                        present m
+                            |> GF.updateVertices m.selectedVertices updateOpacity
+            in
+            m
+                |> new newGF "Changed vertex opacity"
+
         InputVertexLabel str ->
             let
                 updateLabel v =
@@ -1525,6 +1544,22 @@ updateHelper msg m =
                             |> GF.updateEdges m.selectedEdges updateThickness
             in
             m |> new newGF "Changed edge thickness"
+
+        InputEdgeOpacity num ->
+            let
+                updateOpacity e =
+                    { e | opacity = num }
+
+                newGF =
+                    if Set.isEmpty m.selectedEdges then
+                        present m
+                            |> GF.updateDefaultEdgeProperties updateOpacity
+
+                    else
+                        present m
+                            |> GF.updateEdges m.selectedEdges updateOpacity
+            in
+            m |> new newGF "Changed edge opacity"
 
         InputEdgeDistance num ->
             let
@@ -3977,6 +4012,29 @@ vertexPreferences m =
                     , onChange = InputVertexRadius
                     }
                 ]
+            , sliderInput
+                { labelText = "Opacity"
+                , labelWidth = 80
+                , totalWidth = 240
+                , value =
+                    let
+                        defaultVertexOpacity =
+                            present m
+                                |> GF.getDefaultVertexProperties
+                                |> .opacity
+                    in
+                    if Set.isEmpty m.selectedVertices then
+                        defaultVertexOpacity
+
+                    else
+                        present m
+                            |> GF.getCommonVertexProperty m.selectedVertices .opacity
+                            |> Maybe.withDefault defaultVertexOpacity
+                , min = 0.05
+                , max = 1
+                , step = 0.05
+                , onChange = InputVertexOpacity
+                }
             , El.row []
                 [ textInput
                     { labelText = "Label"
@@ -4230,6 +4288,29 @@ edgePreferences m =
                     , onChange = InputEdgeThickness
                     }
                 ]
+            , sliderInput
+                { labelText = "Opacity"
+                , labelWidth = 80
+                , totalWidth = 240
+                , value =
+                    let
+                        defaultEdgeOpacity =
+                            present m
+                                |> GF.getDefaultEdgeProperties
+                                |> .opacity
+                    in
+                    if Set.isEmpty m.selectedEdges then
+                        defaultEdgeOpacity
+
+                    else
+                        present m
+                            |> GF.getCommonEdgeProperty m.selectedEdges .opacity
+                            |> Maybe.withDefault defaultEdgeOpacity
+                , min = 0.05
+                , max = 1
+                , step = 0.05
+                , onChange = InputEdgeOpacity
+                }
             , El.row []
                 [ textInput
                     { labelText = "Label"
@@ -4786,7 +4867,8 @@ viewEdges graphFile =
                     in
                     ( edgeIdToString ( from, to )
                     , S.g
-                        [ SE.onMouseDown (MouseDownOnEdge ( from, to ))
+                        [ SA.opacity (String.fromFloat label.opacity)
+                        , SE.onMouseDown (MouseDownOnEdge ( from, to ))
                         , SE.onMouseUp (MouseUpOnEdge ( from, to ))
                         , SE.onMouseOver (MouseOverEdge ( from, to ))
                         , SE.onMouseOut (MouseOutEdge ( from, to ))
@@ -4921,6 +5003,7 @@ viewVertices graphFile =
             ( String.fromInt id
             , S.g
                 [ SA.transform <| "translate(" ++ String.fromFloat x ++ "," ++ String.fromFloat y ++ ")"
+                , SA.opacity (String.fromFloat label.opacity)
                 , SE.onMouseDown (MouseDownOnVertex id)
                 , SE.onMouseUp (MouseUpOnVertex id)
                 , SE.onMouseOver (MouseOverVertex id)

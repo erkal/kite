@@ -159,6 +159,7 @@ type alias VertexProperties =
     , radius : Float
     , borderColor : Color
     , borderWidth : Float
+    , opacity : Float
     , inBags : Set BagId
     }
 
@@ -184,6 +185,7 @@ type alias EdgeProperties =
     , strength : Float
     , thickness : Float
     , color : Color
+    , opacity : Float
     }
 
 
@@ -241,6 +243,7 @@ defaultVertexProp =
     , radius = 8
     , borderColor = Colors.mainSvgBackground
     , borderWidth = 0
+    , opacity = 1
     , inBags = Set.empty
     , fixed = False
     }
@@ -256,6 +259,7 @@ defaultEdgeProp =
     , thickness = 3
     , distance = 50
     , strength = 0.7
+    , opacity = 1
     }
 
 
@@ -327,6 +331,7 @@ encodeVertexProperties vP =
         , ( "radius", JE.float vP.radius )
         , ( "borderColor", Colors.encode vP.color )
         , ( "borderWidth", JE.float vP.borderWidth )
+        , ( "opacity", JE.float vP.opacity )
         , ( "inBags", JE.list JE.int (Set.toList vP.inBags) )
         ]
 
@@ -374,6 +379,7 @@ encodeEdgeProperties eP =
         , ( "strength", JE.float eP.strength )
         , ( "thickness", JE.float eP.thickness )
         , ( "color", Colors.encode eP.color )
+        , ( "opacity", JE.float eP.opacity )
         ]
 
 
@@ -472,6 +478,7 @@ vertexPropertiesDecoder =
         |> JDP.required "radius" JD.float
         |> JDP.required "borderColor" Colors.decoder
         |> JDP.required "borderWidth" JD.float
+        |> JDP.required "opacity" JD.float
         |> JDP.required "inBags" (JD.map Set.fromList (JD.list JD.int))
 
 
@@ -516,15 +523,16 @@ labelPositionDecoder =
 
 edgePropertiesDecoder : Decoder EdgeProperties
 edgePropertiesDecoder =
-    JD.map8 EdgeProperties
-        (JD.field "label" (JD.nullable JD.string))
-        (JD.field "labelSize" JD.float)
-        (JD.field "labelColor" Colors.decoder)
-        (JD.field "labelIsVisible" JD.bool)
-        (JD.field "distance" JD.float)
-        (JD.field "strength" JD.float)
-        (JD.field "thickness" JD.float)
-        (JD.field "color" Colors.decoder)
+    JD.succeed EdgeProperties
+        |> JDP.required "label" (JD.nullable JD.string)
+        |> JDP.required "labelSize" JD.float
+        |> JDP.required "labelColor" Colors.decoder
+        |> JDP.required "labelIsVisible" JD.bool
+        |> JDP.required "distance" JD.float
+        |> JDP.required "strength" JD.float
+        |> JDP.required "thickness" JD.float
+        |> JDP.required "color" Colors.decoder
+        |> JDP.required "opacity" JD.float
 
 
 point2dDecoder : Decoder Point2d
@@ -1196,6 +1204,9 @@ vertexTransition eTR startVertex endVertex =
             Colors.linearTransition eTR
                 startVertex.borderColor
                 endVertex.borderColor
+        , opacity =
+            startVertex.opacity
+                + (eTR * (endVertex.opacity - startVertex.opacity))
         , color =
             Colors.linearTransition eTR
                 startVertex.color
@@ -1231,4 +1242,7 @@ edgeTransition eTR startEdge endEdge =
                 endEdge.labelColor
         , color =
             Colors.linearTransition eTR startEdge.color endEdge.color
+        , opacity =
+            startEdge.opacity
+                + (eTR * (endEdge.opacity - startEdge.opacity))
     }
