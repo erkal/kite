@@ -227,6 +227,7 @@ type alias Model =
 
     --
     , selectedTool : Tool
+    , handToolActivatedWhen : Maybe Tool
 
     --
     , selectedSelector : Selector
@@ -375,6 +376,7 @@ initialModel maybeSavedFiles =
 
     --
     , selectedTool = Draw DrawIdle
+    , handToolActivatedWhen = Nothing
 
     --
     , selectedSelector = RectSelector
@@ -426,6 +428,9 @@ type Msg
     | KeyUpCtrl
     | KeyDownShift
     | KeyUpShift
+      --
+    | ActivateHandTool
+    | DeactivateHandTool
       --
     | PageVisibility Browser.Events.Visibility
       --
@@ -711,6 +716,28 @@ updateHelper msg m =
 
         KeyUpShift ->
             { m | shiftIsDown = False }
+
+        ActivateHandTool ->
+            case m.handToolActivatedWhen of
+                Just _ ->
+                    m
+
+                Nothing ->
+                    { m
+                        | selectedTool = Hand HandIdle
+                        , handToolActivatedWhen = Just m.selectedTool
+                    }
+
+        DeactivateHandTool ->
+            case m.handToolActivatedWhen of
+                Nothing ->
+                    m
+
+                Just t ->
+                    { m
+                        | selectedTool = t
+                        , handToolActivatedWhen = Nothing
+                    }
 
         PageVisibility visibility ->
             {- TODO : This does not work, I don't know why. Google this. -}
@@ -1859,6 +1886,10 @@ animationFrame m =
 toKeyDownMsg : Key -> Msg
 toKeyDownMsg key =
     case key of
+        Character ' ' ->
+            Debug.log "a"
+                ActivateHandTool
+
         Character '[' ->
             FocusPreviousFile
 
@@ -1899,6 +1930,10 @@ toKeyDownMsg key =
 toKeyUpMsg : Key -> Msg
 toKeyUpMsg key =
     case key of
+        Character ' ' ->
+            Debug.log "d"
+                DeactivateHandTool
+
         Control "Alt" ->
             KeyUpAlt
 
@@ -3265,7 +3300,7 @@ toolButtons m =
                 ]
             , radioButtonGroup
                 [ radioButton
-                    { title = "Hand (H)"
+                    { title = "Hand (Hold Down Space Key)"
                     , iconPath = Icons.icons.hand
                     , onClickMsg = ClickOnHandTool
                     , state =
