@@ -1,5 +1,6 @@
 module Colors exposing
     ( black
+    , blue
     , darkGray
     , darkText
     , decoder
@@ -21,6 +22,7 @@ module Colors exposing
     , menuBorderOnMouseOver
     , mouseOveredItem
     , orange
+    , purple
     , rectAroundSelectedVertices
     , red
     , rightBarHeader
@@ -30,6 +32,7 @@ module Colors exposing
     , sliderThumb
     , svgLine
     , toString
+    , turquoise
     , vertexAndEdgeColors
     , white
     , yellow
@@ -230,6 +233,18 @@ inputBackground =
     El.rgb255 69 69 69
 
 
+blue =
+    El.rgb255 42 123 154
+
+
+turquoise =
+    El.rgb255 0 187 173
+
+
+purple =
+    El.rgb255 61 61 106
+
+
 vertexAndEdgeColors =
     [ lightGray
     , gray
@@ -238,9 +253,9 @@ vertexAndEdgeColors =
     , El.rgb255 199 0 57
     , El.rgb255 144 12 63
     , El.rgb255 81 24 73
-    , El.rgb255 61 61 106
-    , El.rgb255 42 123 154
-    , El.rgb255 0 187 173
+    , purple
+    , blue
+    , turquoise
     , El.rgb255 86 199 133
     , El.rgb255 173 213 91
     , El.rgb255 237 221 83

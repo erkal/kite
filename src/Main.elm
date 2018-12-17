@@ -4384,7 +4384,7 @@ mainSvg m =
         , HE.on "wheel" (JD.map WheelDeltaY wheelDeltaY)
         ]
         [ maybeGravityLines m.selectedTool gFToShow
-        , pageA4WithRuler m.zoom
+        , viewMapScale m.zoom
         , viewHulls gFToShow
         , maybeBrushedEdge m.selectedTool m.svgMousePosition gFToShow
         , transparentInteractionRect
@@ -4419,51 +4419,60 @@ maybeGravityLines tool graphFile =
             emptySvgElement
 
 
-pageA4WithRuler : Float -> Html Msg
-pageA4WithRuler zoom =
+viewMapScale : Float -> Html Msg
+viewMapScale zoom =
     let
-        a4HeightByWidth =
-            297 / 210
-
-        backgroundPageWidth =
-            600
+        thinLine : ( Float, Float ) -> ( Float, Float ) -> Html Msg
+        thinLine startCoordinates endCoordinates =
+            Geometry.Svg.lineSegment2d
+                [ SA.stroke (Colors.toString Colors.svgLine)
+                , SA.strokeWidth (String.fromFloat (1 / zoom))
+                , SA.opacity "0.5"
+                ]
+                (LineSegment2d.from
+                    (Point2d.fromCoordinates startCoordinates)
+                    (Point2d.fromCoordinates endCoordinates)
+                )
     in
     S.g []
-        [ S.rect
-            [ SA.x "0"
-            , SA.y "0"
-            , SA.width (String.fromFloat backgroundPageWidth)
-            , SA.height (String.fromFloat (backgroundPageWidth * a4HeightByWidth))
-            , SA.stroke (Colors.toString Colors.svgLine)
-            , SA.fill "none"
-            , SA.strokeWidth (String.fromFloat (1 / zoom))
-            ]
-            []
-        , S.line
-            [ SA.x1 "100"
-            , SA.y1 "0"
-            , SA.x2 "100"
-            , SA.y2 (String.fromFloat (-5 / zoom))
-            , SA.stroke (Colors.toString Colors.svgLine)
-            , SA.strokeWidth (String.fromFloat (1 / zoom))
-            ]
-            []
+        [ thinLine ( 0, 0 ) ( 0, -5 / zoom )
+        , thinLine ( 0, 0 ) ( 100, 0 )
+        , thinLine ( 100, 0 ) ( 100, -5 / zoom )
         , S.text_
-            [ SA.x "100"
+            [ SA.x "50"
             , SA.y (String.fromFloat (-24 / zoom))
             , SA.fill (Colors.toString Colors.svgLine)
             , SA.textAnchor "middle"
             , SA.fontSize (String.fromFloat (12 / zoom))
+            , SA.opacity "0.5"
             ]
             [ S.text <| String.fromInt (round (100 * zoom)) ++ "%" ]
         , S.text_
-            [ SA.x "100"
+            [ SA.x "50"
             , SA.y (String.fromFloat (-10 / zoom))
             , SA.fill (Colors.toString Colors.svgLine)
             , SA.textAnchor "middle"
             , SA.fontSize (String.fromFloat (12 / zoom))
+            , SA.opacity "0.5"
             ]
             [ S.text <| "100px" ]
+
+        --, let
+        --    a4HeightByWidth =
+        --        297 / 210
+        --    backgroundPageWidth =
+        --        600
+        --  in
+        --  S.rect
+        --    [ SA.x "0"
+        --    , SA.y "0"
+        --    , SA.width (String.fromFloat backgroundPageWidth)
+        --    , SA.height (String.fromFloat (backgroundPageWidth * a4HeightByWidth))
+        --    , SA.stroke (Colors.toString Colors.svgLine)
+        --    , SA.fill "none"
+        --    , SA.strokeWidth (String.fromFloat (1 / zoom))
+        --    ]
+        --    []
         ]
 
 

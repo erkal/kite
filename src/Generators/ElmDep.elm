@@ -245,13 +245,19 @@ toGraphFile l =
                 { dVP
                     | label = Just moduleName
                     , radius = 0.5 * sqrt (toFloat loc)
+                    , color = Colors.blue
                 }
             , dependencies
                 |> List.filterMap
                     (\importedModule ->
                         case Dict.get importedModule idDict of
                             Just j ->
-                                Just (Edge (safeGetId moduleName) j dEP)
+                                Just
+                                    (Edge
+                                        (safeGetId moduleName)
+                                        j
+                                        { dEP | color = Colors.purple }
+                                    )
 
                             Nothing ->
                                 Nothing
@@ -266,7 +272,9 @@ toGraphFile l =
             nodesWithOutgoingNeighbours |> List.map Tuple.first
 
         edges =
-            nodesWithOutgoingNeighbours |> List.map Tuple.second |> List.concat
+            nodesWithOutgoingNeighbours
+                |> List.map Tuple.second
+                |> List.concat
 
         graph =
             Graph.fromNodesAndEdges nodes edges
