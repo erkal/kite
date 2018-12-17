@@ -1887,8 +1887,7 @@ toKeyDownMsg : Key -> Msg
 toKeyDownMsg key =
     case key of
         Character ' ' ->
-            Debug.log "a"
-                ActivateHandTool
+            ActivateHandTool
 
         Character '[' ->
             FocusPreviousFile
@@ -1928,8 +1927,7 @@ toKeyUpMsg : Key -> Msg
 toKeyUpMsg key =
     case key of
         Character ' ' ->
-            Debug.log "d"
-                DeactivateHandTool
+            DeactivateHandTool
 
         Control "Alt" ->
             KeyUpAlt

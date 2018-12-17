@@ -245,7 +245,12 @@ save =
     mapULWS ULWS.savePresent
 
 
-{-| Deletes the focused file. It doesn't do anything if it is the last item in the list.
+{-| Deletes the focused file.
+It doesn't do anything if it is the last item in the list.
+
+After deletion, the focus is set to the file just before.
+If there is no file before, then the file just after the deleted file gets the focus.
+
 -}
 delete : Files data -> Files data
 delete ((Files { before, focused, after }) as files) =
@@ -258,7 +263,16 @@ delete ((Files { before, focused, after }) as files) =
                 }
 
         [] ->
-            files
+            case after of
+                y :: ys ->
+                    Files
+                        { before = before
+                        , focused = y
+                        , after = ys
+                        }
+
+                [] ->
+                    files
 
 
 rename : Name -> Files data -> Files data
