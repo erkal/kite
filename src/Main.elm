@@ -1,6 +1,7 @@
 port module Main exposing (main)
 
 import Algorithms.Dijkstra.API
+import Algorithms.TopologicalSorting.API
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser exposing (Document)
 import Browser.Dom as Dom
@@ -17,12 +18,14 @@ import Element.Font as Font
 import Element.Input as Input
 import Element.Keyed
 import Files exposing (Files)
+import Generators.ElmDep as ElmDep
 import Geometry.Svg
 import Graph.Force as Force exposing (Force)
-import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, VertexId, VertexProperties)
+import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, LabelPosition(..), VertexId, VertexProperties)
 import Html as H exposing (Html, div)
 import Html.Attributes as HA
 import Html.Events as HE
+import Http
 import Icons exposing (icons)
 import IntDict exposing (IntDict)
 import Json.Decode as JD exposing (Decoder, Value)
@@ -60,10 +63,7 @@ init maybeValue =
     ( case maybeValue of
         Just value ->
             initialModel
-                (JD.decodeValue graphFilesDecoder value
-                    --|> Debug.log ""
-                    |> Result.toMaybe
-                )
+                (Result.toMaybe (JD.decodeValue graphFilesDecoder value))
 
         Nothing ->
             initialModel Nothing
@@ -119,18 +119,46 @@ encodeGraphFiles graphFiles =
     Files.encode encodeFileData graphFiles
 
 
-update : Msg -> Model -> ( Model, Cmd msg )
+{-| Here, we only handle cases where Cmd is needed.
+-}
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
         ClickOnSaveFile ->
             let
-                newModel =
-                    updateHelper msg m
+                newFiles =
+                    Files.save m.files
             in
-            ( newModel
-            , setStorage
-                (JE.encode 4 (encodeGraphFiles newModel.files))
+            ( { m | files = newFiles }
+            , setStorage (JE.encode 4 (encodeGraphFiles newFiles))
             )
+
+        FromElmDep elmDepMsg ->
+            let
+                ( newElmDep, elmDepCmd ) =
+                    ElmDep.update elmDepMsg m.elmDep
+
+                addGraphFileIfDownloadFinished =
+                    case ElmDep.finishedDownloadingWith newElmDep of
+                        Just l ->
+                            Files.newFile "Elm Dependency"
+                                ( "Created elm module dependency graph"
+                                , ElmDep.toGraphFile l
+                                )
+
+                        Nothing ->
+                            identity
+            in
+            ( { m
+                | elmDep = newElmDep
+                , files = addGraphFileIfDownloadFinished m.files
+              }
+                |> reheatForce
+            , Cmd.map FromElmDep elmDepCmd
+            )
+
+        ClickOnGetElmDepButton ->
+            ( m, Cmd.map FromElmDep (ElmDep.getPathsOfElmFiles m.elmDep) )
 
         _ ->
             ( updateHelper msg m
@@ -166,6 +194,7 @@ type alias Model =
 
     --
     , altIsDown : Bool
+    , ctrlIsDown : Bool
     , shiftIsDown : Bool
 
     --
@@ -202,6 +231,7 @@ type alias Model =
 
     --
     , selectedTool : Tool
+    , handToolActivatedWhen : Maybe Tool
 
     --
     , selectedSelector : Selector
@@ -216,6 +246,7 @@ type alias Model =
     --
     , selectedVertices : Set VertexId
     , selectedEdges : Set EdgeId
+    , elmDep : ElmDep.Model
     }
 
 
@@ -314,6 +345,7 @@ initialModel maybeSavedFiles =
 
     --
     , altIsDown = False
+    , ctrlIsDown = False
     , shiftIsDown = False
 
     --
@@ -333,7 +365,7 @@ initialModel maybeSavedFiles =
     , bagColorPickerIsExpanded = False
 
     --
-    , selectedMode = GraphsFolder
+    , selectedMode = GraphGenerators
 
     --
     , tableOfVerticesIsOn = True
@@ -348,6 +380,7 @@ initialModel maybeSavedFiles =
 
     --
     , selectedTool = Draw DrawIdle
+    , handToolActivatedWhen = Nothing
 
     --
     , selectedSelector = RectSelector
@@ -362,6 +395,9 @@ initialModel maybeSavedFiles =
     --
     , selectedVertices = Set.empty
     , selectedEdges = Set.empty
+
+    --
+    , elmDep = ElmDep.initialModel
     }
 
 
@@ -392,8 +428,13 @@ type Msg
       --
     | KeyDownAlt
     | KeyUpAlt
+    | KeyDownCtrl
+    | KeyUpCtrl
     | KeyDownShift
     | KeyUpShift
+      --
+    | ActivateHandTool
+    | DeactivateHandTool
       --
     | PageVisibility Browser.Events.Visibility
       --
@@ -482,17 +523,20 @@ type Msg
     | InputVertexX String
     | InputVertexY String
     | InputVertexLabelSize String
-    | InputVertexLabelAbove Bool
+    | InputVertexLabelPosition GF.LabelPosition
     | InputVertexRadius Float
-    | InputVertexGravityStrength Float
+    | InputVertexGravityStrengthX Float
+    | InputVertexGravityStrengthY Float
     | InputVertexCharge Float
     | InputVertexFixed Bool
     | InputVertexColor Color
+    | InputVertexOpacity Float
     | ClickOnGravityTool
       --
     | InputEdgeLabel String
     | InputEdgeLabelVisibility Bool
     | InputEdgeThickness Float
+    | InputEdgeOpacity Float
     | InputEdgeDistance Float
     | InputEdgeStrength Float
     | InputEdgeColor Color
@@ -510,6 +554,10 @@ type Msg
     | FocusPreviousFile
       --
     | ClickOnRunDijsktraButton
+    | ClickOnRunTopoSort
+      --
+    | FromElmDep ElmDep.Msg
+    | ClickOnGetElmDepButton
 
 
 reheatForce : Model -> Model
@@ -663,11 +711,39 @@ updateHelper msg m =
         KeyUpAlt ->
             { m | altIsDown = False }
 
+        KeyDownCtrl ->
+            { m | ctrlIsDown = True }
+
+        KeyUpCtrl ->
+            { m | ctrlIsDown = False }
+
         KeyDownShift ->
             { m | shiftIsDown = True }
 
         KeyUpShift ->
             { m | shiftIsDown = False }
+
+        ActivateHandTool ->
+            case m.handToolActivatedWhen of
+                Just _ ->
+                    m
+
+                Nothing ->
+                    { m
+                        | selectedTool = Hand HandIdle
+                        , handToolActivatedWhen = Just m.selectedTool
+                    }
+
+        DeactivateHandTool ->
+            case m.handToolActivatedWhen of
+                Nothing ->
+                    m
+
+                Just t ->
+                    { m
+                        | selectedTool = t
+                        , handToolActivatedWhen = Nothing
+                    }
 
         PageVisibility visibility ->
             {- TODO : This does not work, I don't know why. Google this. -}
@@ -675,6 +751,7 @@ updateHelper msg m =
                 Hidden ->
                     { m
                         | shiftIsDown = False
+                        , ctrlIsDown = False
                         , altIsDown = False
                     }
 
@@ -1002,7 +1079,11 @@ updateHelper msg m =
                     else
                         let
                             newSelectedVertices =
-                                Set.singleton id
+                                if m.shiftIsDown then
+                                    Set.insert id m.selectedVertices
+
+                                else
+                                    Set.singleton id
                         in
                         { m
                             | selectedVertices = newSelectedVertices
@@ -1219,19 +1300,19 @@ updateHelper msg m =
             in
             m |> new newGF "Changed vertex label size"
 
-        InputVertexLabelAbove b ->
+        InputVertexLabelPosition lP ->
             let
-                updateLabelAbove v =
-                    { v | labelAbove = b }
+                updateLabelPosition v =
+                    { v | labelPosition = lP }
 
                 newGF =
                     if Set.isEmpty m.selectedVertices then
                         present m
-                            |> GF.updateDefaultVertexProperties updateLabelAbove
+                            |> GF.updateDefaultVertexProperties updateLabelPosition
 
                     else
                         present m
-                            |> GF.updateVertices m.selectedVertices updateLabelAbove
+                            |> GF.updateVertices m.selectedVertices updateLabelPosition
             in
             m |> new newGF "Changed vertex label position"
 
@@ -1265,23 +1346,41 @@ updateHelper msg m =
             in
             m |> new newGF "Changed vertex radius"
 
-        InputVertexGravityStrength num ->
+        InputVertexGravityStrengthX num ->
             let
-                updateGravityStrength v =
-                    { v | gravityStrength = num }
+                updateGravityStrengthX v =
+                    { v | gravityStrengthX = num }
 
                 newGF =
                     if Set.isEmpty m.selectedVertices then
                         present m
-                            |> GF.updateDefaultVertexProperties updateGravityStrength
+                            |> GF.updateDefaultVertexProperties updateGravityStrengthX
 
                     else
                         present m
-                            |> GF.updateVertices m.selectedVertices updateGravityStrength
+                            |> GF.updateVertices m.selectedVertices updateGravityStrengthX
             in
             m
                 |> reheatForce
-                |> new newGF "Changed vertex gravity strength"
+                |> new newGF "Changed vertex gravity strength in x direction"
+
+        InputVertexGravityStrengthY num ->
+            let
+                updateGravityStrengthY v =
+                    { v | gravityStrengthY = num }
+
+                newGF =
+                    if Set.isEmpty m.selectedVertices then
+                        present m
+                            |> GF.updateDefaultVertexProperties updateGravityStrengthY
+
+                    else
+                        present m
+                            |> GF.updateVertices m.selectedVertices updateGravityStrengthY
+            in
+            m
+                |> reheatForce
+                |> new newGF "Changed vertex gravity strength in y direction"
 
         InputVertexCharge num ->
             let
@@ -1300,6 +1399,23 @@ updateHelper msg m =
             m
                 |> reheatForce
                 |> new newGF "Changed vertex charge"
+
+        InputVertexOpacity num ->
+            let
+                updateOpacity v =
+                    { v | opacity = num }
+
+                newGF =
+                    if Set.isEmpty m.selectedVertices then
+                        present m
+                            |> GF.updateDefaultVertexProperties updateOpacity
+
+                    else
+                        present m
+                            |> GF.updateVertices m.selectedVertices updateOpacity
+            in
+            m
+                |> new newGF "Changed vertex opacity"
 
         InputVertexLabel str ->
             let
@@ -1428,6 +1544,22 @@ updateHelper msg m =
                             |> GF.updateEdges m.selectedEdges updateThickness
             in
             m |> new newGF "Changed edge thickness"
+
+        InputEdgeOpacity num ->
+            let
+                updateOpacity e =
+                    { e | opacity = num }
+
+                newGF =
+                    if Set.isEmpty m.selectedEdges then
+                        present m
+                            |> GF.updateDefaultEdgeProperties updateOpacity
+
+                    else
+                        present m
+                            |> GF.updateEdges m.selectedEdges updateOpacity
+            in
+            m |> new newGF "Changed edge opacity"
 
         InputEdgeDistance num ->
             let
@@ -1566,7 +1698,12 @@ updateHelper msg m =
         ClickOnVertexItem id ->
             { m
                 | selectedTool = Select SelectIdle
-                , selectedVertices = Set.singleton id
+                , selectedVertices =
+                    if m.shiftIsDown then
+                        Set.insert id m.selectedVertices
+
+                    else
+                        Set.singleton id
                 , selectedEdges = Set.empty
             }
 
@@ -1625,15 +1762,13 @@ updateHelper msg m =
                         ( "Started with empty graph", GF.default )
                         m.files
             }
+                |> stopAnimation
 
         ClickOnDuplicateFile ->
             { m | files = Files.duplicate m.files }
 
         ClickOnDeleteFile ->
             { m | files = Files.delete m.files }
-
-        ClickOnSaveFile ->
-            { m | files = Files.save m.files }
 
         ClickOnCloseFile ->
             { m | files = Files.close m.files }
@@ -1706,6 +1841,36 @@ updateHelper msg m =
                 , selectedMode = GraphsFolder
             }
 
+        ClickOnRunTopoSort ->
+            { m
+                | files =
+                    present m
+                        |> Algorithms.TopologicalSorting.API.run
+                        |> List.indexedMap Tuple.pair
+                        |> List.foldl
+                            (\( i, gF ) ->
+                                Files.newFile
+                                    ("Topological Sort step-" ++ String.fromInt i)
+                                    ( "Generated as step "
+                                        ++ String.fromInt i
+                                        ++ " of Topological Sorting Algorithm."
+                                    , gF
+                                    )
+                            )
+                            m.files
+                , selectedMode = GraphsFolder
+            }
+
+        -- The rest is handled in the `update` function
+        ClickOnSaveFile ->
+            m
+
+        FromElmDep _ ->
+            m
+
+        ClickOnGetElmDepButton ->
+            m
+
 
 
 -- SUBSCRIPTIONS
@@ -1760,6 +1925,9 @@ animationFrame m =
 toKeyDownMsg : Key -> Msg
 toKeyDownMsg key =
     case key of
+        Character ' ' ->
+            ActivateHandTool
+
         Character '[' ->
             FocusPreviousFile
 
@@ -1768,9 +1936,6 @@ toKeyDownMsg key =
 
         Character 'a' ->
             ClickOnDistractionFreeButton
-
-        Character 'h' ->
-            ClickOnHandTool
 
         Character 's' ->
             ClickOnSelectTool
@@ -1787,6 +1952,9 @@ toKeyDownMsg key =
         Control "Alt" ->
             KeyDownAlt
 
+        Control "Control" ->
+            KeyDownCtrl
+
         Control "Shift" ->
             KeyDownShift
 
@@ -1797,8 +1965,14 @@ toKeyDownMsg key =
 toKeyUpMsg : Key -> Msg
 toKeyUpMsg key =
     case key of
+        Character ' ' ->
+            DeactivateHandTool
+
         Control "Alt" ->
             KeyUpAlt
+
+        Control "Control" ->
+            KeyUpCtrl
 
         Control "Shift" ->
             KeyUpShift
@@ -1960,6 +2134,7 @@ guiColumns m =
                 editedStyle =
                     if vizDatum.isEdited then
                         [ Font.italic
+                        , Font.color Colors.editedFileName
                         ]
 
                     else
@@ -1983,7 +2158,7 @@ guiColumns m =
                            , El.paddingXY 16 0
                            ]
                     )
-                    [ El.el [ El.alignLeft, El.width (El.px 100), El.clip ]
+                    [ El.el [ El.alignLeft, El.width (El.px 80), El.clip ]
                         (El.text vizDatum.name)
                     , if vizDatum.isTheFocused then
                         El.el [ El.alignRight ]
@@ -2350,6 +2525,7 @@ commonCellProperties =
     , Font.center
     , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
     , Border.color Colors.menuBorder
+    , El.scrollbarX
     ]
 
 
@@ -2532,7 +2708,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ id, label } ->
                                 cell id <|
-                                    El.text (String.fromFloat label.radius)
+                                    El.text (String.fromInt (round label.radius))
                       }
                     , { header = columnHeader " "
                       , width = El.px 8
@@ -2742,6 +2918,40 @@ leftBarContentForGraphQueries m =
         }
 
 
+buttonWithIconAndText :
+    { iconPath : String
+    , text : String
+    , onClickMsg : Msg
+    , disabled : Bool
+    }
+    -> Element Msg
+buttonWithIconAndText p =
+    let
+        commonAttributes =
+            [ Border.width 1
+            , Border.color Colors.menuBorder
+            , Border.rounded 16
+            , El.padding 4
+            ]
+
+        occasionalAttributes =
+            if p.disabled then
+                [ El.alpha 0.1
+                ]
+
+            else
+                [ El.pointer
+                , El.mouseDown [ Background.color Colors.selectedItem ]
+                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+                , Events.onClick p.onClickMsg
+                ]
+    in
+    El.row (commonAttributes ++ occasionalAttributes)
+        [ El.html (Icons.draw24px p.iconPath)
+        , El.el [ El.paddingXY 10 0 ] (El.text p.text)
+        ]
+
+
 leftBarContentForGraphGenerators : Model -> Element Msg
 leftBarContentForGraphGenerators m =
     let
@@ -2757,92 +2967,209 @@ leftBarContentForGraphGenerators m =
                 , Events.onClick msg
                 ]
                 (El.html (Icons.draw24px Icons.icons.lightning))
+
+        listOfFileNames : List String -> Element Msg
+        listOfFileNames l =
+            El.column [ El.padding 10 ]
+                (List.map (\n -> El.el [] (El.text ("- " ++ n))) l)
     in
     El.column [ El.width El.fill ]
-        [ menu
-            { headerText = "Basic Graphs"
+        [ --    menu
+          --    { headerText = "Basic Graphs"
+          --    , isOn = True
+          --    , headerItems = []
+          --    , toggleMsg = NoOp
+          --    , contentItems =
+          --        [ El.row [ El.padding 10, El.spacing 5 ]
+          --            [ generateButton ClickOnGenerateStarGraphButton
+          --            , El.el
+          --                [ Font.bold ]
+          --                (El.text "Star Graph")
+          --            ]
+          --        , textInput
+          --            { labelText = "Number of Leaves"
+          --            , labelWidth = 100
+          --            , inputWidth = 40
+          --            , text = "TODO"
+          --            , onChange = always NoOp
+          --            }
+          --        ]
+          --    }
+          --,
+          menu
+            { headerText = "Elm Module Dependency Graph"
             , isOn = True
             , headerItems = []
             , toggleMsg = NoOp
             , contentItems =
-                [ El.row [ El.padding 10, El.spacing 5 ]
-                    [ generateButton ClickOnGenerateStarGraphButton
-                    , El.el
-                        [ Font.bold ]
-                        (El.text "Star Graph")
-                    ]
+                [ El.column [ El.width El.fill, El.spacing 16, El.padding 16 ]
+                    [ El.paragraph []
+                        [ El.text "To see the module dependency graph of an "
+                        , El.newTabLink
+                            [ Font.underline
+                            , Font.italic
 
-                --, textInput
-                --    { labelText = "Number of Leaves"
-                --    , labelWidth = 100
-                --    , inputWidth = 40
-                --    , text = "TODO"
-                --    , onChange = always NoOp
-                --    }
+                            --, Font.color Colors.linkBlue
+                            ]
+                            { url = "https://elm-lang.org/"
+                            , label =
+                                El.text "Elm"
+                            }
+                        , El.text " project, enter its github repository path and hit the button below."
+                        ]
+                    , textInput
+                        { labelText = "https://github.com/"
+                        , labelWidth = 90
+                        , inputWidth = 120
+                        , text = m.elmDep.repoName
+                        , onChange = ElmDep.ChangeRepo >> FromElmDep
+                        }
+                    , El.el [ El.centerX ]
+                        (buttonWithIconAndText
+                            { iconPath = Icons.icons.elmLogo
+                            , text = "Get Module Dependency Graph!"
+                            , onClickMsg = ClickOnGetElmDepButton
+                            , disabled =
+                                case ElmDep.stateVizData m.elmDep of
+                                    ElmDep.DownloadingViz _ ->
+                                        True
+
+                                    _ ->
+                                        False
+                            }
+                        )
+                    , case ElmDep.stateVizData m.elmDep of
+                        ElmDep.WaitingForUserInputViz ->
+                            El.none
+
+                        ElmDep.DownloadingViz { numberOfModules, namesOfDownloadedModules } ->
+                            El.textColumn []
+                                [ El.paragraph []
+                                    [ El.text "Downloading files: "
+                                    , El.text
+                                        (String.fromInt
+                                            (List.length namesOfDownloadedModules)
+                                        )
+                                    , El.text "/"
+                                    , El.text (String.fromInt numberOfModules)
+                                    ]
+                                , El.paragraph [] [ listOfFileNames namesOfDownloadedModules ]
+                                ]
+
+                        ElmDep.DownloadFinishedViz { namesOfDownloadedModules } ->
+                            El.textColumn []
+                                [ El.paragraph []
+                                    [ El.text "Finished downloading all "
+                                    , El.text (String.fromInt (List.length namesOfDownloadedModules))
+                                    , El.text " files:"
+                                    ]
+                                , El.paragraph [] [ listOfFileNames namesOfDownloadedModules ]
+                                ]
+
+                        ElmDep.ErrorViz str ->
+                            El.paragraph []
+                                [ El.el [ Font.color Colors.red ]
+                                    (El.text str)
+                                ]
+                    ]
                 ]
             }
-        , menu
-            { headerText = "Random Graphs (coming soon)"
-            , isOn = False
-            , headerItems = []
-            , toggleMsg = NoOp
-            , contentItems = []
-            }
+
+        --, menu
+        --    { headerText = "Random Graphs (coming soon)"
+        --    , isOn = False
+        --    , headerItems = []
+        --    , toggleMsg = NoOp
+        --    , contentItems = []
+        --    }
         ]
+
+
+runButton : Msg -> Element Msg
+runButton msg =
+    El.el
+        [ El.htmlAttribute (HA.title "Run!")
+        , El.alignRight
+        , Border.rounded 4
+        , El.mouseDown [ Background.color Colors.selectedItem ]
+        , El.mouseOver [ Background.color Colors.mouseOveredItem ]
+        , El.pointer
+        , Events.onClick msg
+        ]
+        (El.html (Icons.draw24px Icons.icons.lightning))
 
 
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
 leftBarContentForAlgorithmVisualizations m =
-    let
-        runButton : Msg -> Element Msg
-        runButton msg =
-            El.el
-                [ El.htmlAttribute (HA.title "Run!")
-                , El.alignRight
-                , Border.rounded 4
-                , El.mouseDown [ Background.color Colors.selectedItem ]
-                , El.mouseOver [ Background.color Colors.mouseOveredItem ]
-                , El.pointer
-                , Events.onClick msg
-                ]
-                (El.html (Icons.draw24px Icons.icons.lightning))
-    in
-    menu
-        { headerText = "Dijsktra's Shortest Path"
-        , isOn = True
-        , headerItems = []
-        , toggleMsg = NoOp
-        , contentItems =
-            [ El.textColumn [ El.width El.fill, El.padding 24, El.spacing 10 ]
-                [ El.paragraph []
-                    [ El.text
-                        "When you hit the lightning button, "
-                    , El.el
-                        [ El.alignLeft
-                        ]
-                        (runButton ClickOnRunDijsktraButton)
-                    , El.newTabLink
-                        [ Font.underline
-                        , Font.italic
+    El.column []
+        [ menu
+            { headerText = "Dijsktra's Shortest Path"
+            , isOn = True
+            , headerItems = []
+            , toggleMsg = NoOp
+            , contentItems =
+                [ El.textColumn [ El.width El.fill, El.padding 16, El.spacing 10 ]
+                    [ El.paragraph []
+                        [ El.text
+                            "When you hit the lightning button, "
+                        , El.el
+                            [ El.alignLeft
+                            ]
+                            (runButton ClickOnRunDijsktraButton)
+                        , El.newTabLink
+                            [ Font.underline
+                            , Font.italic
 
-                        --, Font.color Colors.linkBlue
+                            --, Font.color Colors.linkBlue
+                            ]
+                            { url =
+                                "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm"
+                            , label =
+                                El.text "Dijkstra's Shortest Path Algorithm"
+                            }
+                        , El.text
+                            " is going to run on the current graph."
                         ]
-                        { url =
-                            "https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm"
-                        , label =
-                            El.text "Dijkstra's Shortest Path Algorithm"
-                        }
-                    , El.text
-                        " is going to run on the current graph."
-                    ]
-                , El.paragraph []
-                    [ El.text "If an edge is labeled by a number, that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1." ]
-                , El.paragraph []
-                    [ El.text "If there is vertex labeled with \"start\", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id."
+                    , El.paragraph []
+                        [ El.text "If an edge is labeled by a number, that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1." ]
+                    , El.paragraph []
+                        [ El.text "If there is vertex labeled with \"start\", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id."
+                        ]
                     ]
                 ]
-            ]
-        }
+            }
+        , menu
+            { headerText = "Topological Sorting"
+            , isOn = True
+            , headerItems = []
+            , toggleMsg = NoOp
+            , contentItems =
+                [ El.textColumn [ El.width El.fill, El.padding 16, El.spacing 10 ]
+                    [ El.paragraph []
+                        [ El.text
+                            "When you hit the lightning button, "
+                        , El.el
+                            [ El.alignLeft
+                            ]
+                            (runButton ClickOnRunTopoSort)
+                        , El.newTabLink
+                            [ Font.underline
+                            , Font.italic
+
+                            --, Font.color Colors.linkBlue
+                            ]
+                            { url =
+                                "https://en.wikipedia.org/wiki/Topological_sorting#Kahn's_algorithm"
+                            , label =
+                                El.text "Kahn's algorithm"
+                            }
+                        , El.text
+                            " is going to run on the current graph."
+                        ]
+                    ]
+                ]
+            }
+        ]
 
 
 leftBarContentForGamesOnGraphs : Model -> Element Msg
@@ -3008,7 +3335,7 @@ toolButtons m =
                 ]
             , radioButtonGroup
                 [ radioButton
-                    { title = "Hand (H)"
+                    { title = "Hand (Hold Down Space Key)"
                     , iconPath = Icons.icons.hand
                     , onClickMsg = ClickOnHandTool
                     , state =
@@ -3216,6 +3543,50 @@ checkbox { labelText, labelWidth, state, onChange } =
             , Events.onClick (onChange b)
             ]
             (El.el [ El.centerX, El.centerY ] icon)
+        ]
+
+
+labelPositionInput : LabelPosition -> Element Msg
+labelPositionInput labelPosToShow =
+    let
+        box : LabelPosition -> Element Msg
+        box lP =
+            El.el
+                [ Background.color
+                    (if lP == labelPosToShow then
+                        Colors.icon
+
+                     else
+                        Colors.inputBackground
+                    )
+                , El.width (El.px 6)
+                , El.height (El.px 6)
+                , Events.onClick (InputVertexLabelPosition lP)
+                , El.pointer
+                ]
+                El.none
+
+        boxesColumn =
+            El.column [ El.padding 1, El.spacing 1 ]
+
+        boxesRow =
+            El.row [ El.spacing 1 ]
+
+        nineBoxes =
+            boxesColumn
+                [ boxesRow
+                    [ box LabelTopLeft, box LabelTop, box LabelTopRight ]
+                , boxesRow
+                    [ box LabelLeft, box LabelCenter, box LabelRight ]
+                , boxesRow
+                    [ box LabelBottomLeft, box LabelBottom, box LabelBottomRight ]
+                ]
+    in
+    El.row
+        [ El.spacing 8
+        ]
+        [ El.el (labelAttr 95) (El.text "Label Position")
+        , El.el [ El.centerX, El.centerY ] nineBoxes
         ]
 
 
@@ -3641,6 +4012,29 @@ vertexPreferences m =
                     , onChange = InputVertexRadius
                     }
                 ]
+            , sliderInput
+                { labelText = "Opacity"
+                , labelWidth = 80
+                , totalWidth = 240
+                , value =
+                    let
+                        defaultVertexOpacity =
+                            present m
+                                |> GF.getDefaultVertexProperties
+                                |> .opacity
+                    in
+                    if Set.isEmpty m.selectedVertices then
+                        defaultVertexOpacity
+
+                    else
+                        present m
+                            |> GF.getCommonVertexProperty m.selectedVertices .opacity
+                            |> Maybe.withDefault defaultVertexOpacity
+                , min = 0.05
+                , max = 1
+                , step = 0.05
+                , onChange = InputVertexOpacity
+                }
             , El.row []
                 [ textInput
                     { labelText = "Label"
@@ -3702,22 +4096,20 @@ vertexPreferences m =
                                     ""
                     , onChange = InputVertexLabelSize
                     }
-                , checkbox
-                    { labelText = "Label Above"
-                    , labelWidth = 98
-                    , state =
-                        if Set.isEmpty m.selectedVertices then
-                            Just
-                                (present m
-                                    |> GF.getDefaultVertexProperties
-                                    |> .labelAbove
-                                )
+                , labelPositionInput
+                    (if Set.isEmpty m.selectedVertices then
+                        present m
+                            |> GF.getDefaultVertexProperties
+                            |> .labelPosition
 
-                        else
-                            present m
-                                |> GF.getCommonVertexProperty m.selectedVertices .labelAbove
-                    , onChange = InputVertexLabelAbove
-                    }
+                     else
+                        case present m |> GF.getCommonVertexProperty m.selectedVertices .labelPosition of
+                            Just lP ->
+                                lP
+
+                            Nothing ->
+                                LabelCenter
+                    )
                 ]
             , El.row []
                 [ checkbox
@@ -3789,17 +4181,17 @@ vertexPreferences m =
                 , onChange = InputVertexCharge
                 }
             , sliderInput
-                { labelText = "Gravity"
+                { labelText = "GravityX"
                 , labelWidth = 80
                 , totalWidth = 240
                 , value =
                     if Set.isEmpty m.selectedVertices then
                         present m
                             |> GF.getDefaultVertexProperties
-                            |> .gravityStrength
+                            |> .gravityStrengthX
 
                     else
-                        case present m |> GF.getCommonVertexProperty m.selectedVertices .gravityStrength of
+                        case present m |> GF.getCommonVertexProperty m.selectedVertices .gravityStrengthX of
                             Just gS ->
                                 gS
 
@@ -3808,7 +4200,29 @@ vertexPreferences m =
                 , min = 0
                 , max = 1
                 , step = 0.05
-                , onChange = InputVertexGravityStrength
+                , onChange = InputVertexGravityStrengthX
+                }
+            , sliderInput
+                { labelText = "GravityY"
+                , labelWidth = 80
+                , totalWidth = 240
+                , value =
+                    if Set.isEmpty m.selectedVertices then
+                        present m
+                            |> GF.getDefaultVertexProperties
+                            |> .gravityStrengthY
+
+                    else
+                        case present m |> GF.getCommonVertexProperty m.selectedVertices .gravityStrengthY of
+                            Just gS ->
+                                gS
+
+                            Nothing ->
+                                0.1
+                , min = 0
+                , max = 1
+                , step = 0.05
+                , onChange = InputVertexGravityStrengthY
                 }
             ]
         }
@@ -3874,6 +4288,29 @@ edgePreferences m =
                     , onChange = InputEdgeThickness
                     }
                 ]
+            , sliderInput
+                { labelText = "Opacity"
+                , labelWidth = 80
+                , totalWidth = 240
+                , value =
+                    let
+                        defaultEdgeOpacity =
+                            present m
+                                |> GF.getDefaultEdgeProperties
+                                |> .opacity
+                    in
+                    if Set.isEmpty m.selectedEdges then
+                        defaultEdgeOpacity
+
+                    else
+                        present m
+                            |> GF.getCommonEdgeProperty m.selectedEdges .opacity
+                            |> Maybe.withDefault defaultEdgeOpacity
+                , min = 0.05
+                , max = 1
+                , step = 0.05
+                , onChange = InputEdgeOpacity
+                }
             , El.row []
                 [ textInput
                     { labelText = "Label"
@@ -4063,7 +4500,7 @@ mainSvg m =
         , HE.on "wheel" (JD.map WheelDeltaY wheelDeltaY)
         ]
         [ maybeGravityLines m.selectedTool gFToShow
-        , pageA4WithRuler m.zoom
+        , viewMapScale m.zoom
         , viewHulls gFToShow
         , maybeBrushedEdge m.selectedTool m.svgMousePosition gFToShow
         , transparentInteractionRect
@@ -4098,51 +4535,60 @@ maybeGravityLines tool graphFile =
             emptySvgElement
 
 
-pageA4WithRuler : Float -> Html Msg
-pageA4WithRuler zoom =
+viewMapScale : Float -> Html Msg
+viewMapScale zoom =
     let
-        a4HeightByWidth =
-            297 / 210
-
-        backgroundPageWidth =
-            600
+        thinLine : ( Float, Float ) -> ( Float, Float ) -> Html Msg
+        thinLine startCoordinates endCoordinates =
+            Geometry.Svg.lineSegment2d
+                [ SA.stroke (Colors.toString Colors.svgLine)
+                , SA.strokeWidth (String.fromFloat (1 / zoom))
+                , SA.opacity "0.5"
+                ]
+                (LineSegment2d.from
+                    (Point2d.fromCoordinates startCoordinates)
+                    (Point2d.fromCoordinates endCoordinates)
+                )
     in
     S.g []
-        [ S.rect
-            [ SA.x "0"
-            , SA.y "0"
-            , SA.width (String.fromFloat backgroundPageWidth)
-            , SA.height (String.fromFloat (backgroundPageWidth * a4HeightByWidth))
-            , SA.stroke (Colors.toString Colors.svgLine)
-            , SA.fill "none"
-            , SA.strokeWidth (String.fromFloat (1 / zoom))
-            ]
-            []
-        , S.line
-            [ SA.x1 "100"
-            , SA.y1 "0"
-            , SA.x2 "100"
-            , SA.y2 (String.fromFloat (-5 / zoom))
-            , SA.stroke (Colors.toString Colors.svgLine)
-            , SA.strokeWidth (String.fromFloat (1 / zoom))
-            ]
-            []
+        [ thinLine ( 0, 0 ) ( 0, -5 / zoom )
+        , thinLine ( 0, 0 ) ( 100, 0 )
+        , thinLine ( 100, 0 ) ( 100, -5 / zoom )
         , S.text_
-            [ SA.x "100"
+            [ SA.x "50"
             , SA.y (String.fromFloat (-24 / zoom))
             , SA.fill (Colors.toString Colors.svgLine)
             , SA.textAnchor "middle"
             , SA.fontSize (String.fromFloat (12 / zoom))
+            , SA.opacity "0.5"
             ]
             [ S.text <| String.fromInt (round (100 * zoom)) ++ "%" ]
         , S.text_
-            [ SA.x "100"
+            [ SA.x "50"
             , SA.y (String.fromFloat (-10 / zoom))
             , SA.fill (Colors.toString Colors.svgLine)
             , SA.textAnchor "middle"
             , SA.fontSize (String.fromFloat (12 / zoom))
+            , SA.opacity "0.5"
             ]
             [ S.text <| "100px" ]
+
+        --, let
+        --    a4HeightByWidth =
+        --        297 / 210
+        --    backgroundPageWidth =
+        --        600
+        --  in
+        --  S.rect
+        --    [ SA.x "0"
+        --    , SA.y "0"
+        --    , SA.width (String.fromFloat backgroundPageWidth)
+        --    , SA.height (String.fromFloat (backgroundPageWidth * a4HeightByWidth))
+        --    , SA.stroke (Colors.toString Colors.svgLine)
+        --    , SA.fill "none"
+        --    , SA.strokeWidth (String.fromFloat (1 / zoom))
+        --    ]
+        --    []
         ]
 
 
@@ -4421,7 +4867,8 @@ viewEdges graphFile =
                     in
                     ( edgeIdToString ( from, to )
                     , S.g
-                        [ SE.onMouseDown (MouseDownOnEdge ( from, to ))
+                        [ SA.opacity (String.fromFloat label.opacity)
+                        , SE.onMouseDown (MouseDownOnEdge ( from, to ))
                         , SE.onMouseUp (MouseUpOnEdge ( from, to ))
                         , SE.onMouseOver (MouseOverEdge ( from, to ))
                         , SE.onMouseOut (MouseOutEdge ( from, to ))
@@ -4464,19 +4911,70 @@ viewVertices graphFile =
                 ( x, y ) =
                     Point2d.coordinates label.position
 
+                ( labelAnchor, labelX, labelY ) =
+                    case label.labelPosition of
+                        GF.LabelTopLeft ->
+                            ( "end"
+                            , -label.radius - 4
+                            , -label.radius - 4
+                            )
+
+                        GF.LabelTop ->
+                            ( "middle"
+                            , 0
+                            , -label.radius - 4
+                            )
+
+                        GF.LabelTopRight ->
+                            ( "start"
+                            , label.radius + 4
+                            , -label.radius - 4
+                            )
+
+                        GF.LabelCenter ->
+                            ( "middle"
+                            , 0
+                            , 0.39 * label.labelSize
+                            )
+
+                        GF.LabelLeft ->
+                            ( "end"
+                            , -label.radius - 4
+                            , 0.39 * label.labelSize
+                            )
+
+                        GF.LabelRight ->
+                            ( "start"
+                            , label.radius + 4
+                            , 0.39 * label.labelSize
+                            )
+
+                        GF.LabelBottomLeft ->
+                            ( "end"
+                            , -label.radius - 4
+                            , label.radius + label.labelSize
+                            )
+
+                        GF.LabelBottom ->
+                            ( "middle"
+                            , 0
+                            , label.radius + label.labelSize
+                            )
+
+                        GF.LabelBottomRight ->
+                            ( "start"
+                            , label.radius + 4
+                            , label.radius + label.labelSize
+                            )
+
                 vertexLabel =
                     if label.labelIsVisible then
                         S.text_
                             [ SA.fill (Colors.toString label.labelColor)
-                            , SA.textAnchor "middle"
                             , SA.fontSize (String.fromFloat label.labelSize)
-                            , SA.y <|
-                                String.fromFloat <|
-                                    if label.labelAbove then
-                                        -(label.radius + 4)
-
-                                    else
-                                        0.4 * label.labelSize
+                            , SA.textAnchor labelAnchor
+                            , SA.x (String.fromFloat labelX)
+                            , SA.y (String.fromFloat labelY)
                             ]
                             [ S.text <|
                                 case label.label of
@@ -4505,6 +5003,7 @@ viewVertices graphFile =
             ( String.fromInt id
             , S.g
                 [ SA.transform <| "translate(" ++ String.fromFloat x ++ "," ++ String.fromFloat y ++ ")"
+                , SA.opacity (String.fromFloat label.opacity)
                 , SE.onMouseDown (MouseDownOnVertex id)
                 , SE.onMouseUp (MouseUpOnVertex id)
                 , SE.onMouseOver (MouseOverVertex id)

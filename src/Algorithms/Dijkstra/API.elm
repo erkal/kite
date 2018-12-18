@@ -1,7 +1,7 @@
 module Algorithms.Dijkstra.API exposing (run)
 
 import Algorithm
-import Algorithms.Dijkstra as Dijkstra exposing (Distance(..), InputData, StepData)
+import Algorithms.Dijkstra as Dijkstra exposing (Distance(..), Input, State)
 import Colors
 import Dict exposing (Dict)
 import Graph
@@ -13,18 +13,18 @@ import Set exposing (Set)
 
 run : GraphFile -> List GraphFile
 run inputGF =
+    let
+        runOnMyGraph : MyGraph -> List MyGraph
+        runOnMyGraph inputGraph =
+            inputGraph
+                |> toInputData
+                |> Algorithm.run Dijkstra.algorithm
+                |> List.map (toMyGraph inputGraph)
+    in
     inputGF
         |> GF.getGraph
         |> runOnMyGraph
         |> List.map (\g -> GF.setGraph g inputGF)
-
-
-runOnMyGraph : MyGraph -> List MyGraph
-runOnMyGraph inputGraph =
-    inputGraph
-        |> toInputData
-        |> Algorithm.run Dijkstra.algorithm
-        |> List.map (toMyGraph inputGraph)
 
 
 {-| If the the edges are labeled by numbers that number will be treated as the edge distance. Otherwise, the edge will be assigned the default distance, which is 1.
@@ -32,7 +32,7 @@ runOnMyGraph inputGraph =
 If there is vertex labeled with "start", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id.
 
 -}
-toInputData : MyGraph -> InputData
+toInputData : MyGraph -> Input
 toInputData g =
     { startVertex =
         let
@@ -78,8 +78,8 @@ toInputData g =
     }
 
 
-toMyGraph : MyGraph -> StepData -> MyGraph
-toMyGraph inputGraph stepData =
+toMyGraph : MyGraph -> State -> MyGraph
+toMyGraph inputGraph state =
     let
         styleVertices =
             let
@@ -112,7 +112,7 @@ toMyGraph inputGraph stepData =
                         |> setLabel d.currentBestDistance
                         |> markVisited d.hasBeenVisited
             in
-            Graph.Extra.updateNodesBy (IntDict.toList stepData) up
+            Graph.Extra.updateNodesBy (IntDict.toList state) up
 
         --
         markPredecessorEdges =
@@ -121,7 +121,7 @@ toMyGraph inputGraph stepData =
                     Maybe.map (\pred -> ( pred, id )) maybePredecessor
 
                 predEdges =
-                    stepData
+                    state
                         |> IntDict.toList
                         |> List.filterMap takePred
                         |> Set.fromList
@@ -137,7 +137,7 @@ toMyGraph inputGraph stepData =
 
         --
         markNextVertexToHandle =
-            case Dijkstra.nextVertexToHandle stepData of
+            case Dijkstra.nextVertexToHandle state of
                 Just id ->
                     Graph.Extra.mapNode id
                         (\vP ->

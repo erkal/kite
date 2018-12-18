@@ -11,6 +11,7 @@ module Graph.Extra exposing
     , insertNode
     , mapNode
     , removeEdge
+    , rootNodeIds
     , union
     , updateEdges
     , updateEdgesBy
@@ -21,6 +22,19 @@ module Graph.Extra exposing
 import Graph exposing (Edge, Graph, Node, NodeId)
 import IntDict
 import Set exposing (Set)
+
+
+rootNodeIds : Graph n e -> List NodeId
+rootNodeIds =
+    let
+        addIdIfIsRoot ctx acc =
+            if IntDict.isEmpty ctx.incoming then
+                ctx.node.id :: acc
+
+            else
+                acc
+    in
+    Graph.fold addIdIfIsRoot []
 
 
 hasEdge : ( NodeId, NodeId ) -> Graph n e -> Bool

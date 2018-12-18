@@ -1,6 +1,6 @@
 module GraphFile exposing
     ( GraphFile
-    , MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
+    , MyGraph, VertexId, VertexProperties, LabelPosition(..), EdgeId, EdgeProperties
     , Bag, BagDict, BagId, BagProperties
     , default, defaultVertexProp, defaultEdgeProp
     , decoder
@@ -13,6 +13,7 @@ module GraphFile exposing
     , addStarGraph
     , duplicateSubgraph
     , setCentroidX, setCentroidY, setVertexPositions
+    , topologicalSort
     , getGraph
     , getVertices, getVertexProperties, getVerticesInBag, getVertexIdsWithPositions, pullCentersWithVertices
     , getEdges
@@ -23,7 +24,6 @@ module GraphFile exposing
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
     , forceTick, transitionGraphFile
-    --, decoder
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -33,7 +33,7 @@ This module also contains operations acting on graphs needed bei the Main module
 # Definition
 
 @docs GraphFile
-@docs MyGraph, VertexId, VertexProperties, EdgeId, EdgeProperties
+@docs MyGraph, VertexId, VertexProperties, LabelPosition, EdgeId, EdgeProperties
 @docs Bag, BagDict, BagId, BagProperties
 
 
@@ -62,6 +62,7 @@ This module also contains operations acting on graphs needed bei the Main module
 @docs addStarGraph
 @docs duplicateSubgraph
 @docs setCentroidX, setCentroidY, setVertexPositions
+@docs topologicalSort
 
 
 # Graph Queries
@@ -105,6 +106,7 @@ import Graph.Encode
 import Graph.Extra
 import Graph.Force as Force exposing (Force, ForceGraph)
 import Graph.Generators
+import Graph.Layout
 import IntDict exposing (IntDict)
 import Json.Decode as JD exposing (Decoder, Value)
 import Json.Decode.Pipeline as JDP
@@ -143,21 +145,35 @@ type alias EdgeId =
 type alias VertexProperties =
     { label : Maybe String
     , labelSize : Float
-    , labelAbove : Bool
+    , labelPosition : LabelPosition
     , labelColor : Color
     , labelIsVisible : Bool
     , position : Point2d
     , velocity : Vector2d
     , manyBodyStrength : Float
     , gravityCenter : Point2d
-    , gravityStrength : Float
+    , gravityStrengthX : Float
+    , gravityStrengthY : Float
     , fixed : Bool
     , color : Color
     , radius : Float
     , borderColor : Color
     , borderWidth : Float
+    , opacity : Float
     , inBags : Set BagId
     }
+
+
+type LabelPosition
+    = LabelTopLeft
+    | LabelTop
+    | LabelTopRight
+    | LabelLeft
+    | LabelCenter
+    | LabelRight
+    | LabelBottomLeft
+    | LabelBottom
+    | LabelBottomRight
 
 
 type alias EdgeProperties =
@@ -169,6 +185,7 @@ type alias EdgeProperties =
     , strength : Float
     , thickness : Float
     , color : Color
+    , opacity : Float
     }
 
 
@@ -213,18 +230,20 @@ defaultVertexProp : VertexProperties
 defaultVertexProp =
     { label = Nothing
     , labelSize = 12
-    , labelAbove = False
+    , labelPosition = LabelTop
     , labelColor = Colors.white
     , labelIsVisible = True
     , position = Point2d.origin
     , velocity = Vector2d.zero
     , gravityCenter = Point2d.fromCoordinates ( 300, 200 )
-    , gravityStrength = 0.05
-    , manyBodyStrength = -300
+    , gravityStrengthX = 0.05
+    , gravityStrengthY = 0.05
+    , manyBodyStrength = -100
     , color = Colors.darkGray
     , radius = 8
     , borderColor = Colors.mainSvgBackground
     , borderWidth = 0
+    , opacity = 1
     , inBags = Set.empty
     , fixed = False
     }
@@ -240,6 +259,7 @@ defaultEdgeProp =
     , thickness = 3
     , distance = 50
     , strength = 0.7
+    , opacity = 1
     }
 
 
@@ -297,21 +317,55 @@ encodeVertexProperties vP =
     JE.object
         [ ( "label", encodeMaybeString vP.label )
         , ( "labelSize", JE.float vP.labelSize )
-        , ( "labelAbove", JE.bool vP.labelAbove )
+        , ( "labelPosition", encodeLabelPosition vP.labelPosition )
         , ( "labelColor", Colors.encode vP.labelColor )
         , ( "labelIsVisible", JE.bool vP.labelIsVisible )
         , ( "position", encodePoint2d vP.position )
         , ( "velocity", encodeVector2d vP.velocity )
         , ( "manyBodyStrength", JE.float vP.manyBodyStrength )
         , ( "gravityCenter", encodePoint2d vP.gravityCenter )
-        , ( "gravityStrength", JE.float vP.gravityStrength )
+        , ( "gravityStrengthX", JE.float vP.gravityStrengthX )
+        , ( "gravityStrengthY", JE.float vP.gravityStrengthY )
         , ( "fixed", JE.bool vP.fixed )
         , ( "color", Colors.encode vP.color )
         , ( "radius", JE.float vP.radius )
         , ( "borderColor", Colors.encode vP.color )
         , ( "borderWidth", JE.float vP.borderWidth )
+        , ( "opacity", JE.float vP.opacity )
         , ( "inBags", JE.list JE.int (Set.toList vP.inBags) )
         ]
+
+
+encodeLabelPosition : LabelPosition -> Value
+encodeLabelPosition lP =
+    JE.string <|
+        case lP of
+            LabelTopLeft ->
+                "LabelTopLeft"
+
+            LabelTop ->
+                "LabelTop"
+
+            LabelTopRight ->
+                "LabelTopRight"
+
+            LabelLeft ->
+                "LabelLeft"
+
+            LabelCenter ->
+                "LabelCenter"
+
+            LabelRight ->
+                "LabelRight"
+
+            LabelBottomLeft ->
+                "LabelBottomLeft"
+
+            LabelBottom ->
+                "LabelBottom"
+
+            LabelBottomRight ->
+                "LabelBottomRight"
 
 
 encodeEdgeProperties : EdgeProperties -> Value
@@ -325,6 +379,7 @@ encodeEdgeProperties eP =
         , ( "strength", JE.float eP.strength )
         , ( "thickness", JE.float eP.thickness )
         , ( "color", Colors.encode eP.color )
+        , ( "opacity", JE.float eP.opacity )
         ]
 
 
@@ -409,33 +464,75 @@ vertexPropertiesDecoder =
     JD.succeed VertexProperties
         |> JDP.required "label" (JD.nullable JD.string)
         |> JDP.required "labelSize" JD.float
-        |> JDP.required "labelAbove" JD.bool
+        |> JDP.required "labelPosition" labelPositionDecoder
         |> JDP.required "labelColor" Colors.decoder
         |> JDP.required "labelIsVisible" JD.bool
         |> JDP.required "position" point2dDecoder
         |> JDP.required "velocity" vector2dDecoder
         |> JDP.required "manyBodyStrength" JD.float
         |> JDP.required "gravityCenter" point2dDecoder
-        |> JDP.required "gravityStrength" JD.float
+        |> JDP.required "gravityStrengthX" JD.float
+        |> JDP.required "gravityStrengthY" JD.float
         |> JDP.required "fixed" JD.bool
         |> JDP.required "color" Colors.decoder
         |> JDP.required "radius" JD.float
         |> JDP.required "borderColor" Colors.decoder
         |> JDP.required "borderWidth" JD.float
+        |> JDP.required "opacity" JD.float
         |> JDP.required "inBags" (JD.map Set.fromList (JD.list JD.int))
+
+
+labelPositionDecoder : Decoder LabelPosition
+labelPositionDecoder =
+    JD.map
+        (\str ->
+            case str of
+                "LabelTopLeft" ->
+                    LabelTopLeft
+
+                "LabelTop" ->
+                    LabelTop
+
+                "LabelTopRight" ->
+                    LabelTopRight
+
+                "LabelLeft" ->
+                    LabelLeft
+
+                "LabelCenter" ->
+                    LabelCenter
+
+                "LabelRight" ->
+                    LabelRight
+
+                "LabelBottomLeft" ->
+                    LabelBottomLeft
+
+                "LabelBottom" ->
+                    LabelBottom
+
+                "LabelBottomRight" ->
+                    LabelBottomRight
+
+                _ ->
+                    -- This never happens
+                    LabelBottomLeft
+        )
+        JD.string
 
 
 edgePropertiesDecoder : Decoder EdgeProperties
 edgePropertiesDecoder =
-    JD.map8 EdgeProperties
-        (JD.field "label" (JD.nullable JD.string))
-        (JD.field "labelSize" JD.float)
-        (JD.field "labelColor" Colors.decoder)
-        (JD.field "labelIsVisible" JD.bool)
-        (JD.field "distance" JD.float)
-        (JD.field "strength" JD.float)
-        (JD.field "thickness" JD.float)
-        (JD.field "color" Colors.decoder)
+    JD.succeed EdgeProperties
+        |> JDP.required "label" (JD.nullable JD.string)
+        |> JDP.required "labelSize" JD.float
+        |> JDP.required "labelColor" Colors.decoder
+        |> JDP.required "labelIsVisible" JD.bool
+        |> JDP.required "distance" JD.float
+        |> JDP.required "strength" JD.float
+        |> JDP.required "thickness" JD.float
+        |> JDP.required "color" Colors.decoder
+        |> JDP.required "opacity" JD.float
 
 
 point2dDecoder : Decoder Point2d
@@ -849,13 +946,41 @@ divideEdge coordinates ( s, t ) user =
 
 setVertexPositionsForGraph : List ( VertexId, Point2d ) -> MyGraph -> MyGraph
 setVertexPositionsForGraph l =
-    -- This is internal.
+    -- TODO: This should be done by PositionedGraph
     Graph.Extra.updateNodesBy l (\pos vP -> { vP | position = pos })
 
 
 setVertexPositions : List ( VertexId, Point2d ) -> GraphFile -> GraphFile
 setVertexPositions l =
     mapGraph (setVertexPositionsForGraph l)
+
+
+topologicalSort : GraphFile -> GraphFile
+topologicalSort =
+    let
+        lineToSortAlong =
+            LineSegment2d.fromEndpoints
+                ( Point2d.fromCoordinates ( 50, 50 )
+                , Point2d.fromCoordinates ( 50, 750 )
+                )
+
+        assignGravity =
+            Graph.mapNodes
+                (\vP ->
+                    { vP
+                        | gravityCenter =
+                            Point2d.fromCoordinates
+                                ( 300
+                                , Point2d.yCoordinate vP.position
+                                )
+                        , gravityStrengthX = 0.005
+                        , gravityStrengthY = 0.2
+                        , manyBodyStrength = -100
+                    }
+                )
+                >> Graph.mapEdges (\eP -> { eP | strength = 0.01 })
+    in
+    mapGraph (Graph.Layout.topological lineToSortAlong >> assignGravity)
 
 
 unionWithNewGraph :
@@ -1079,6 +1204,9 @@ vertexTransition eTR startVertex endVertex =
             Colors.linearTransition eTR
                 startVertex.borderColor
                 endVertex.borderColor
+        , opacity =
+            startVertex.opacity
+                + (eTR * (endVertex.opacity - startVertex.opacity))
         , color =
             Colors.linearTransition eTR
                 startVertex.color
@@ -1114,4 +1242,7 @@ edgeTransition eTR startEdge endEdge =
                 endEdge.labelColor
         , color =
             Colors.linearTransition eTR startEdge.color endEdge.color
+        , opacity =
+            startEdge.opacity
+                + (eTR * (endEdge.opacity - startEdge.opacity))
     }
