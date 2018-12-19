@@ -2520,9 +2520,7 @@ columnHeader headerText =
 
 commonCellProperties =
     [ El.padding 2
-    , El.width (El.fill |> El.maximum 300)
     , El.height (El.px 16)
-    , Font.center
     , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
     , Border.color Colors.menuBorder
     , El.scrollbarX
@@ -2614,8 +2612,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                         content
             in
             El.table
-                [ El.width El.fill
-                , El.height El.fill
+                [ El.height El.fill
                 ]
                 { data = GF.getVertices (present m)
                 , columns =
@@ -2627,7 +2624,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                     El.text (String.fromInt id)
                       }
                     , { header = columnHeader "Label"
-                      , width = El.fill
+                      , width = El.px 78
                       , view =
                             \{ id, label } ->
                                 cell id <|
@@ -2638,7 +2635,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                         Nothing ->
                                             El.el
                                                 [ El.alpha 0.2
-                                                , El.width El.fill
+                                                , El.width (El.px 40)
                                                 ]
                                                 (El.text "no label")
                       }
@@ -2774,7 +2771,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                                     El.text (edgeIdToString ( from, to ))
                       }
                     , { header = columnHeader "Label"
-                      , width = El.fill
+                      , width = El.px 78
                       , view =
                             \{ from, to, label } ->
                                 cell ( from, to ) <|
@@ -3821,7 +3818,7 @@ bags m =
                                     El.text (String.fromInt bagId)
                       }
                     , { header = columnHeader "Label"
-                      , width = El.fill
+                      , width = El.px 136
                       , view =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
