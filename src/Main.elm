@@ -2520,7 +2520,7 @@ columnHeader headerText =
 
 commonCellProperties =
     [ El.padding 2
-    , El.width El.fill
+    , El.width (El.fill |> El.maximum 300)
     , El.height (El.px 16)
     , Font.center
     , Border.widthEach { top = 0, right = 0, bottom = 1, left = 1 }
