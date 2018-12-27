@@ -3020,7 +3020,7 @@ leftBarContentForGraphGenerators m =
                         { labelText = "https://github.com/"
                         , labelWidth = 90
                         , inputWidth = 120
-                        , text = m.elmDep.repoName
+                        , text = m.elmDep.repoNameInput
                         , onChange = ElmDep.ChangeRepo >> FromElmDep
                         }
                     , El.el [ El.centerX ]
