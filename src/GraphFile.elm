@@ -946,8 +946,29 @@ divideEdge coordinates ( s, t ) user =
 
 setVertexPositionsForGraph : List ( VertexId, Point2d ) -> MyGraph -> MyGraph
 setVertexPositionsForGraph l =
-    -- TODO: This should be done by PositionedGraph
-    Graph.Extra.updateNodesBy l (\pos vP -> { vP | position = pos })
+    Graph.Extra.updateNodesBy l
+        --(\pos vP ->
+        --    { label = vP.label
+        --    , labelSize = vP.labelSize
+        --    , labelPosition = vP.labelPosition
+        --    , labelColor = vP.labelColor
+        --    , labelIsVisible = vP.labelIsVisible
+        --    , position = pos
+        --    , velocity = vP.velocity
+        --    , gravityCenter = vP.gravityCenter
+        --    , gravityStrengthX = vP.gravityStrengthX
+        --    , gravityStrengthY = vP.gravityStrengthY
+        --    , manyBodyStrength = vP.manyBodyStrength
+        --    , color = vP.color
+        --    , radius = vP.radius
+        --    , borderColor = vP.borderColor
+        --    , borderWidth = vP.borderWidth
+        --    , opacity = vP.opacity
+        --    , inBags = vP.inBags
+        --    , fixed = vP.fixed
+        --    }
+        --)
+        (\pos vP -> { vP | position = pos })
 
 
 setVertexPositions : List ( VertexId, Point2d ) -> GraphFile -> GraphFile

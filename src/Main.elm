@@ -171,7 +171,8 @@ update msg m =
 
 
 type alias Model =
-    { files : Files ( String, GraphFile )
+    { love : Bool
+    , files : Files ( String, GraphFile )
 
     --
     , distractionFree : Bool
@@ -326,7 +327,8 @@ defaultGraphFiles =
 
 initialModel : Maybe (Files ( String, GraphFile )) -> Model
 initialModel maybeSavedFiles =
-    { files = maybeSavedFiles |> Maybe.withDefault defaultGraphFiles
+    { love = True
+    , files = maybeSavedFiles |> Maybe.withDefault defaultGraphFiles
 
     --
     , distractionFree = False
@@ -3018,7 +3020,7 @@ leftBarContentForGraphGenerators m =
                         { labelText = "https://github.com/"
                         , labelWidth = 90
                         , inputWidth = 120
-                        , text = m.elmDep.repoName
+                        , text = m.elmDep.repoNameInput
                         , onChange = ElmDep.ChangeRepo >> FromElmDep
                         }
                     , El.el [ El.centerX ]
