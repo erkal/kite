@@ -4631,8 +4631,8 @@ maybeHighlightsOnSelectedEdges selectedEdges graphFile =
                         (LineSegment2d.from v.position w.position)
 
                 _ ->
-                    -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
-                    emptySvgElement
+                    Debug.todo "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
+                        emptySvgElement
     in
     S.g []
         (graphFile
@@ -4659,8 +4659,8 @@ maybeHighlightOnMouseOveredEdges highlightedEdges graphFile =
                         (LineSegment2d.from v.position w.position)
 
                 _ ->
-                    -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
-                    emptySvgElement
+                    Debug.todo "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
+                        emptySvgElement
     in
     S.g []
         (graphFile
@@ -4885,8 +4885,8 @@ viewEdges graphFile =
                     )
 
                 _ ->
-                    -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
-                    ( "", emptySvgElement )
+                    Debug.todo "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
+                        ( "", emptySvgElement )
     in
     Svg.Keyed.node "g" [] (graphFile |> GF.getEdges |> List.map edgeWithKey)
 
