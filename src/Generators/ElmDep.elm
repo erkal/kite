@@ -1,5 +1,6 @@
 port module Generators.ElmDep exposing (Model, Msg(..), StateVizData(..), finishedDownloadingWith, getPathsOfElmFiles, initialModel, stateVizData, toGraphFile, update)
 
+import Base64
 import Char
 import Colors
 import Dict exposing (Dict)
@@ -15,6 +16,7 @@ import Set exposing (Set)
 
 type alias Model =
     { repoNameInput : String
+    , token : String
     , state : State
     }
 
@@ -57,6 +59,7 @@ type alias Name =
 initialModel : Model
 initialModel =
     { repoNameInput = "elm/core"
+    , token = ""
     , state = WaitingForUserInput
     }
 
@@ -100,38 +103,43 @@ fromRawToElmFile { path, raw } =
                 ]
                 |. Parser.spaces
     in
-    ElmFile
-        { path = path
-        , maybeModuleName =
-            let
-                moduleNameParseResult =
-                    Parser.run (modulePrefixParser |= moduleNameParser)
-            in
-            lines
-                |> List.filterMap (moduleNameParseResult >> Result.toMaybe)
-                |> List.head
-        , dependencies =
-            lines
-                |> List.filterMap
-                    (Parser.run
-                        (Parser.succeed identity
-                            |. Parser.keyword "import"
-                            |. Parser.spaces
-                            |= moduleNameParser
+        ElmFile
+            { path = path
+            , maybeModuleName =
+                let
+                    moduleNameParseResult =
+                        Parser.run (modulePrefixParser |= moduleNameParser)
+                in
+                    lines
+                        |> List.filterMap (moduleNameParseResult >> Result.toMaybe)
+                        |> List.head
+            , dependencies =
+                lines
+                    |> List.filterMap
+                        (Parser.run
+                            (Parser.succeed identity
+                                |. Parser.keyword "import"
+                                |. Parser.spaces
+                                |= moduleNameParser
+                            )
+                            >> Result.toMaybe
                         )
-                        >> Result.toMaybe
-                    )
-        , loc = List.length lines
-        }
+            , loc = List.length lines
+            }
 
 
-getPathsOfElmFiles : Model -> Cmd Msg
-getPathsOfElmFiles m =
+getPathsOfElmFiles : Model -> String -> Cmd Msg
+getPathsOfElmFiles m token =
     Http.get
         { url =
             "https://api.github.com/repos/"
                 ++ m.repoNameInput
                 ++ "/git/trees/master?recursive=1"
+                ++ (if String.length token > 0 then
+                        "&access_token=" ++ token
+                    else
+                        ""
+                   )
         , expect = Http.expectJson GotPathsOfElmFiles pathsOfElmFilesDecoder
         }
 
@@ -155,6 +163,58 @@ type Msg
     = GotPathsOfElmFiles (Result Http.Error (List String))
     | GotRawElmFile (Result Http.Error String)
     | ChangeRepo String
+    | ChangeToken String
+
+
+getGitHubFile : String -> String -> String -> String -> Cmd Msg
+getGitHubFile owner repo token filePath =
+    Http.request
+        { method = "GET"
+        , headers =
+            if String.length token > 0 then
+                [ Http.header "Authorization" ("Token " ++ token) ]
+            else
+                []
+        , url =
+            String.join "/"
+                [ "https://api.github.com/repos"
+                , owner
+                , repo
+                , "contents"
+                , filePath
+                ]
+        , body = Http.emptyBody
+        , expect =
+            Http.expectJson
+                (\result ->
+                    result
+                        |> Result.map
+                            (\str ->
+                                str
+                                    |> String.filter (\c -> c /= '\n')
+                                    |> Base64.decode
+                                    |> Result.withDefault ""
+                            )
+                        |> GotRawElmFile
+                )
+                (JD.field "content" JD.string)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+splitOwnerRepo : Model -> (String -> String -> ( Model, Cmd Msg )) -> ( Model, Cmd Msg )
+splitOwnerRepo model success =
+    case String.split "/" model.repoNameInput of
+        [ owner, repo ] ->
+            success owner repo
+
+        _ ->
+            ( { model
+                | state = Error "Malformed GitHub URL"
+              }
+            , Cmd.none
+            )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -162,6 +222,14 @@ update msg m =
     case msg of
         ChangeRepo str ->
             ( { m | repoNameInput = str, state = WaitingForUserInput }
+            , Cmd.none
+            )
+
+        ChangeToken str ->
+            ( { m
+                | token = str
+                , state = WaitingForUserInput
+              }
             , Cmd.none
             )
 
@@ -173,23 +241,22 @@ update msg m =
                 _ ->
                     case httpResult of
                         Ok (p :: ps) ->
-                            ( { m
-                                | state =
-                                    Downloading
-                                        { downloadedElmFiles = []
-                                        , pathToDownload = p
-                                        , waitingPaths = ps
-                                        }
-                              }
-                            , Http.get
-                                { url =
-                                    "https://raw.githubusercontent.com/"
-                                        ++ m.repoNameInput
-                                        ++ "/master/"
-                                        ++ p
-                                , expect = Http.expectString GotRawElmFile
-                                }
-                            )
+                            splitOwnerRepo m
+                                (\owner repo ->
+                                    ( { m
+                                        | state =
+                                            Downloading
+                                                { downloadedElmFiles = []
+                                                , pathToDownload = p
+                                                , waitingPaths = ps
+                                                }
+                                      }
+                                    , getGitHubFile owner
+                                        repo
+                                        m.token
+                                        p
+                                    )
+                                )
 
                         Ok [] ->
                             ( { m
@@ -221,34 +288,32 @@ update msg m =
                                     newlyDownloadedFile
                                         :: old.downloadedElmFiles
                             in
-                            case old.waitingPaths of
-                                p :: ps ->
-                                    ( { m
-                                        | state =
-                                            Downloading
-                                                { downloadedElmFiles = newDownloadedElmFiles
-                                                , pathToDownload = p
-                                                , waitingPaths = ps
-                                                }
-                                      }
-                                    , Http.get
-                                        { url =
-                                            "https://raw.githubusercontent.com/"
-                                                ++ m.repoNameInput
-                                                ++ "/master/"
-                                                ++ p
-                                        , expect =
-                                            Http.expectString GotRawElmFile
-                                        }
-                                    )
+                                case old.waitingPaths of
+                                    p :: ps ->
+                                        splitOwnerRepo m
+                                            (\owner repo ->
+                                                ( { m
+                                                    | state =
+                                                        Downloading
+                                                            { downloadedElmFiles = newDownloadedElmFiles
+                                                            , pathToDownload = p
+                                                            , waitingPaths = ps
+                                                            }
+                                                  }
+                                                , getGitHubFile owner
+                                                    repo
+                                                    m.token
+                                                    p
+                                                )
+                                            )
 
-                                [] ->
-                                    ( { m
-                                        | state =
-                                            DownloadFinished newDownloadedElmFiles
-                                      }
-                                    , Cmd.none
-                                    )
+                                    [] ->
+                                        ( { m
+                                            | state =
+                                                DownloadFinished newDownloadedElmFiles
+                                          }
+                                        , Cmd.none
+                                        )
 
                         _ ->
                             ( { m | state = Error "" }
