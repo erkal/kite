@@ -821,8 +821,8 @@ lineSegmentOf ( from, to ) user =
             LineSegment2d.from p q
 
         _ ->
-            -- Debug.log "The Gui shouldn't allow this"
-            LineSegment2d.from Point2d.origin Point2d.origin
+            Debug.todo "The Gui shouldn't allow this" <|
+                LineSegment2d.from Point2d.origin Point2d.origin
 
 
 edgeIdsIntersectiongLineSegment : LineSegment2d -> GraphFile -> Set ( VertexId, VertexId )
@@ -1074,7 +1074,8 @@ transitionGraphFile : Float -> { start : GraphFile, end : GraphFile } -> GraphFi
 transitionGraphFile elapsedTimeRatio { start, end } =
     let
         eTR =
-            -- in order to prevent flickering at the very end of tranition.
+            -- elapsed time
+            -- in order to prevent flickering at the very end of tranition we clamp it.
             clamp 0 1 elapsedTimeRatio
 
         { result, nodeSeparation, edgeSeparation } =

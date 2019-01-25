@@ -149,16 +149,16 @@ update msg m =
                         Nothing ->
                             identity
             in
-            ( { m
-                | elmDep = newElmDep
-                , files = addGraphFileIfDownloadFinished m.files
-              }
-                |> reheatForce
-            , Cmd.map FromElmDep elmDepCmd
-            )
+                ( { m
+                    | elmDep = newElmDep
+                    , files = addGraphFileIfDownloadFinished m.files
+                  }
+                    |> reheatForce
+                , Cmd.map FromElmDep elmDepCmd
+                )
 
         ClickOnGetElmDepButton ->
-            ( m, Cmd.map FromElmDep (ElmDep.getPathsOfElmFiles m.elmDep) )
+            ( m, Cmd.map FromElmDep (ElmDep.getPathsOfElmFiles m.elmDep m.elmDep.token) )
 
         _ ->
             ( updateHelper msg m
@@ -2972,116 +2972,125 @@ leftBarContentForGraphGenerators m =
             El.column [ El.padding 10 ]
                 (List.map (\n -> El.el [] (El.text ("- " ++ n))) l)
     in
-    El.column [ El.width El.fill ]
-        [ --    menu
-          --    { headerText = "Basic Graphs"
-          --    , isOn = True
-          --    , headerItems = []
-          --    , toggleMsg = NoOp
-          --    , contentItems =
-          --        [ El.row [ El.padding 10, El.spacing 5 ]
-          --            [ generateButton ClickOnGenerateStarGraphButton
-          --            , El.el
-          --                [ Font.bold ]
-          --                (El.text "Star Graph")
-          --            ]
-          --        , textInput
-          --            { labelText = "Number of Leaves"
-          --            , labelWidth = 100
-          --            , inputWidth = 40
-          --            , text = "TODO"
-          --            , onChange = always NoOp
-          --            }
-          --        ]
-          --    }
-          --,
-          menu
-            { headerText = "Elm Module Dependency Graph"
-            , isOn = True
-            , headerItems = []
-            , toggleMsg = NoOp
-            , contentItems =
-                [ El.column [ El.width El.fill, El.spacing 16, El.padding 16 ]
-                    [ El.paragraph []
-                        [ El.text "To see the module dependency graph of an "
-                        , El.newTabLink
-                            [ Font.underline
-                            , Font.italic
+        El.column [ El.width El.fill ]
+            [ --    menu
+              --    { headerText = "Basic Graphs"
+              --    , isOn = True
+              --    , headerItems = []
+              --    , toggleMsg = NoOp
+              --    , contentItems =
+              --        [ El.row [ El.padding 10, El.spacing 5 ]
+              --            [ generateButton ClickOnGenerateStarGraphButton
+              --            , El.el
+              --                [ Font.bold ]
+              --                (El.text "Star Graph")
+              --            ]
+              --        , textInput
+              --            { labelText = "Number of Leaves"
+              --            , labelWidth = 100
+              --            , inputWidth = 40
+              --            , text = "TODO"
+              --            , onChange = always NoOp
+              --            }
+              --        ]
+              --    }
+              --,
+              menu
+                { headerText = "Elm Module Dependency Graph"
+                , isOn = True
+                , headerItems = []
+                , toggleMsg = NoOp
+                , contentItems =
+                    [ El.column [ El.width El.fill, El.spacing 16, El.padding 16 ]
+                        [ El.paragraph []
+                            [ El.text "To see the module dependency graph of an "
+                            , El.newTabLink
+                                [ Font.underline
+                                , Font.italic
 
-                            --, Font.color Colors.linkBlue
+                                --, Font.color Colors.linkBlue
+                                ]
+                                { url = "https://elm-lang.org/"
+                                , label =
+                                    El.text "Elm"
+                                }
+                            , El.text " project, enter its github repository path and hit the button below."
                             ]
-                            { url = "https://elm-lang.org/"
-                            , label =
-                                El.text "Elm"
+                        , textInput
+                            { labelText = "https://github.com/"
+                            , labelWidth = 90
+                            , inputWidth = 120
+                            , text = m.elmDep.repoNameInput
+                            , onChange = ElmDep.ChangeRepo >> FromElmDep
                             }
-                        , El.text " project, enter its github repository path and hit the button below."
+                        , textInput
+                            { labelText = "Access token (optional)"
+                            , labelWidth = 110
+                            , inputWidth = 100
+
+                            --, text = m.elmDep.repoNameInput
+                            , text = m.elmDep.token
+                            , onChange = ElmDep.ChangeToken >> FromElmDep
+                            }
+                        , El.el [ El.centerX ]
+                            (buttonWithIconAndText
+                                { iconPath = Icons.icons.elmLogo
+                                , text = "Get Module Dependency Graph!"
+                                , onClickMsg = ClickOnGetElmDepButton
+                                , disabled =
+                                    case ElmDep.stateVizData m.elmDep of
+                                        ElmDep.DownloadingViz _ ->
+                                            True
+
+                                        _ ->
+                                            False
+                                }
+                            )
+                        , case ElmDep.stateVizData m.elmDep of
+                            ElmDep.WaitingForUserInputViz ->
+                                El.none
+
+                            ElmDep.DownloadingViz { numberOfModules, namesOfDownloadedModules } ->
+                                El.textColumn []
+                                    [ El.paragraph []
+                                        [ El.text "Downloading files: "
+                                        , El.text
+                                            (String.fromInt
+                                                (List.length namesOfDownloadedModules)
+                                            )
+                                        , El.text "/"
+                                        , El.text (String.fromInt numberOfModules)
+                                        ]
+                                    , El.paragraph [] [ listOfFileNames namesOfDownloadedModules ]
+                                    ]
+
+                            ElmDep.DownloadFinishedViz { namesOfDownloadedModules } ->
+                                El.textColumn []
+                                    [ El.paragraph []
+                                        [ El.text "Finished downloading all "
+                                        , El.text (String.fromInt (List.length namesOfDownloadedModules))
+                                        , El.text " files:"
+                                        ]
+                                    , El.paragraph [] [ listOfFileNames namesOfDownloadedModules ]
+                                    ]
+
+                            ElmDep.ErrorViz str ->
+                                El.paragraph []
+                                    [ El.el [ Font.color Colors.red ]
+                                        (El.text str)
+                                    ]
                         ]
-                    , textInput
-                        { labelText = "https://github.com/"
-                        , labelWidth = 90
-                        , inputWidth = 120
-                        , text = m.elmDep.repoNameInput
-                        , onChange = ElmDep.ChangeRepo >> FromElmDep
-                        }
-                    , El.el [ El.centerX ]
-                        (buttonWithIconAndText
-                            { iconPath = Icons.icons.elmLogo
-                            , text = "Get Module Dependency Graph!"
-                            , onClickMsg = ClickOnGetElmDepButton
-                            , disabled =
-                                case ElmDep.stateVizData m.elmDep of
-                                    ElmDep.DownloadingViz _ ->
-                                        True
-
-                                    _ ->
-                                        False
-                            }
-                        )
-                    , case ElmDep.stateVizData m.elmDep of
-                        ElmDep.WaitingForUserInputViz ->
-                            El.none
-
-                        ElmDep.DownloadingViz { numberOfModules, namesOfDownloadedModules } ->
-                            El.textColumn []
-                                [ El.paragraph []
-                                    [ El.text "Downloading files: "
-                                    , El.text
-                                        (String.fromInt
-                                            (List.length namesOfDownloadedModules)
-                                        )
-                                    , El.text "/"
-                                    , El.text (String.fromInt numberOfModules)
-                                    ]
-                                , El.paragraph [] [ listOfFileNames namesOfDownloadedModules ]
-                                ]
-
-                        ElmDep.DownloadFinishedViz { namesOfDownloadedModules } ->
-                            El.textColumn []
-                                [ El.paragraph []
-                                    [ El.text "Finished downloading all "
-                                    , El.text (String.fromInt (List.length namesOfDownloadedModules))
-                                    , El.text " files:"
-                                    ]
-                                , El.paragraph [] [ listOfFileNames namesOfDownloadedModules ]
-                                ]
-
-                        ElmDep.ErrorViz str ->
-                            El.paragraph []
-                                [ El.el [ Font.color Colors.red ]
-                                    (El.text str)
-                                ]
                     ]
-                ]
-            }
+                }
 
-        --, menu
-        --    { headerText = "Random Graphs (coming soon)"
-        --    , isOn = False
-        --    , headerItems = []
-        --    , toggleMsg = NoOp
-        --    , contentItems = []
-        --    }
-        ]
+            --, menu
+            --    { headerText = "Random Graphs (coming soon)"
+            --    , isOn = False
+            --    , headerItems = []
+            --    , toggleMsg = NoOp
+            --    , contentItems = []
+            --    }
+            ]
 
 
 runButton : Msg -> Element Msg
@@ -4631,8 +4640,8 @@ maybeHighlightsOnSelectedEdges selectedEdges graphFile =
                         (LineSegment2d.from v.position w.position)
 
                 _ ->
-                    -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
-                    emptySvgElement
+                    Debug.todo "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
+                        emptySvgElement
     in
     S.g []
         (graphFile
@@ -4659,8 +4668,8 @@ maybeHighlightOnMouseOveredEdges highlightedEdges graphFile =
                         (LineSegment2d.from v.position w.position)
 
                 _ ->
-                    -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
-                    emptySvgElement
+                    Debug.todo "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
+                        emptySvgElement
     in
     S.g []
         (graphFile
@@ -4885,8 +4894,8 @@ viewEdges graphFile =
                     )
 
                 _ ->
-                    -- Debug.log "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
-                    ( "", emptySvgElement )
+                    Debug.todo "GUI ALLOWED SOMETHING IMPOSSIBLE" <|
+                        ( "", emptySvgElement )
     in
     Svg.Keyed.node "g" [] (graphFile |> GF.getEdges |> List.map edgeWithKey)
 

@@ -4,15 +4,15 @@
 
 ***An Interactive Visualization Tool for Graph Theory***
 
+[Click here to launch the app](https://erkal.github.io/kite/).
+It works best in Chrome.
+
 This is work in progress, still in **pre-alpha**.
 See the [road map](https://github.com/erkal/kite/projects/1).
 
 [Here is a short video](https://youtu.be/LeTDfFwZv3s) showing the basic usage in an old version of Kite.
 
 [Here is another short video](https://youtu.be/b4sfzHJeHsI) showing how to use Kite to visualize the module dependency graph of your elm projects.
-
-[An up-to-date **demo** can be found here](https://erkal.github.io/kite/).
-It works best in Chrome.
 
 Kite is entirely written in [Elm](http://elm-lang.org/).
 
