@@ -821,8 +821,8 @@ lineSegmentOf ( from, to ) user =
             LineSegment2d.from p q
 
         _ ->
-            Debug.todo "The Gui shouldn't allow this" <|
-                LineSegment2d.from Point2d.origin Point2d.origin
+            --Debug.todo "The Gui shouldn't allow this" <|
+            LineSegment2d.from Point2d.origin Point2d.origin
 
 
 edgeIdsIntersectiongLineSegment : LineSegment2d -> GraphFile -> Set ( VertexId, VertexId )
