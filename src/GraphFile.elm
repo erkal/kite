@@ -1074,7 +1074,8 @@ transitionGraphFile : Float -> { start : GraphFile, end : GraphFile } -> GraphFi
 transitionGraphFile elapsedTimeRatio { start, end } =
     let
         eTR =
-            -- in order to prevent flickering at the very end of tranition.
+            -- elapsed time
+            -- in order to prevent flickering at the very end of tranition we clamp it.
             clamp 0 1 elapsedTimeRatio
 
         { result, nodeSeparation, edgeSeparation } =
