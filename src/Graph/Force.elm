@@ -101,12 +101,12 @@ applyForce alpha force forceGraph =
                             }
 
                         _ ->
-                            Debug.todo "This shouldn't happen!" <|
-                                { id = 0
-                                , degree = 0
-                                , position = Point2d.origin
-                                , velocity = Vector2d.zero
-                                }
+                            --Debug.todo "This shouldn't happen!" <|
+                            { id = 0
+                            , degree = 0
+                            , position = Point2d.origin
+                            , velocity = Vector2d.zero
+                            }
 
                 toLinkParam : Edge (ForceEdge e) -> Link.Param
                 toLinkParam { from, to, label } =

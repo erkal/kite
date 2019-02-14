@@ -239,7 +239,7 @@ defaultVertexProp =
     , gravityStrengthX = 0.05
     , gravityStrengthY = 0.05
     , manyBodyStrength = -100
-    , color = Colors.darkGray
+    , color = Colors.lightGray
     , radius = 8
     , borderColor = Colors.mainSvgBackground
     , borderWidth = 0
@@ -255,7 +255,7 @@ defaultEdgeProp =
     , labelSize = 12
     , labelColor = Colors.lightGray
     , labelIsVisible = True
-    , color = Colors.darkGray
+    , color = Colors.lightGray
     , thickness = 3
     , distance = 50
     , strength = 0.7
@@ -821,8 +821,8 @@ lineSegmentOf ( from, to ) user =
             LineSegment2d.from p q
 
         _ ->
-            Debug.todo "The Gui shouldn't allow this" <|
-                LineSegment2d.from Point2d.origin Point2d.origin
+            --Debug.todo "The Gui shouldn't allow this" <|
+            LineSegment2d.from Point2d.origin Point2d.origin
 
 
 edgeIdsIntersectiongLineSegment : LineSegment2d -> GraphFile -> Set ( VertexId, VertexId )
