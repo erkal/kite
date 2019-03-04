@@ -3085,12 +3085,22 @@ leftBarContentForGraphGenerators m =
                                 [ El.el [ Font.color Colors.red ]
                                     (El.text str)
                                 ]
-                    , El.el [] <|
-                        El.newTabLink []
-                            { url = "data:text/plain;base64," ++ Base64.encode dotFile
-                            , label = El.text "DOT"
-                            }
                     ]
+                , menu
+                    { headerText = "Export"
+                    , isOn = True
+                    , headerItems = []
+                    , toggleMsg = NoOp
+                    , contentItems =
+                        [ El.column [ El.width El.fill, El.spacing 16, El.padding 16 ]
+                            [ El.el [] <|
+                                El.newTabLink []
+                                    { url = "data:text/plain;base64," ++ Base64.encode dotFile
+                                    , label = El.text "DOT"
+                                    }
+                            ]
+                        ]
+                    }
                 ]
             }
 
