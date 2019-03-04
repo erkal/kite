@@ -2976,8 +2976,8 @@ leftBarContentForGraphGenerators m =
 
         dotFile : String
         dotFile =
-            Graph.DOT.output (\_ -> Nothing)
-                (\_ -> Nothing)
+            Graph.DOT.output .label
+                .label
                 (GF.getGraph (Tuple.second (Files.present m.files)))
     in
     El.column [ El.width El.fill ]
