@@ -1960,6 +1960,12 @@ toKeyDownMsg key =
         Control "Shift" ->
             KeyDownShift
 
+        Control "Delete" ->
+            ClickOnVertexTrash
+
+        Control "Backspace" ->
+            ClickOnVertexTrash
+
         _ ->
             NoOp
 
