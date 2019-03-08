@@ -2468,7 +2468,7 @@ menu { headerText, isOn, headerItems, toggleMsg, contentItems } =
             <|
                 [ onOffButton
                 , El.text headerText
-                , El.row [ El.spacing 6, El.alignRight ] headerItems
+                , El.row [ El.spacing 6, El.paddingXY 10 0, El.alignRight ] headerItems
                 ]
 
         content =
@@ -2503,15 +2503,6 @@ menuHeaderButton { title, onClickMsg, iconPath } =
         , El.pointer
         ]
         (El.html (Icons.draw14px iconPath))
-
-
-pointToString : Point2d -> String
-pointToString p =
-    "("
-        ++ String.fromInt (round (Point2d.xCoordinate p))
-        ++ ", "
-        ++ String.fromInt (round (Point2d.yCoordinate p))
-        ++ ")"
 
 
 columnHeader : String -> Element Msg
@@ -2877,7 +2868,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             , isOn = m.tableOfVerticesIsOn
             , headerItems =
                 [ menuHeaderButton
-                    { title = "Remove Selected Vertices"
+                    { title = "Remove Selected Vertices (Delete)"
                     , onClickMsg = ClickOnVertexTrash
                     , iconPath = Icons.icons.trash
                     }
