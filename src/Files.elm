@@ -278,7 +278,7 @@ If there is no file before, then the file just after the deleted file gets the f
 
 -}
 delete : Files data -> Files data
-delete ((Files { before, focused, after }) as files) =
+delete ((Files { before, after }) as files) =
     case before of
         x :: xs ->
             Files

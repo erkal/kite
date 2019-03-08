@@ -676,15 +676,6 @@ setCentroidY vs newCentroidY user =
     user |> updateVertices vs shiftPos
 
 
-setLabelSize : Set VertexId -> Float -> GraphFile -> GraphFile
-setLabelSize vs newLabelSize user =
-    let
-        up vP =
-            { vP | labelSize = newLabelSize }
-    in
-    user |> updateVertices vs up
-
-
 getVerticesInBag : BagId -> GraphFile -> Set VertexId
 getVerticesInBag bagId (GraphFile { graph }) =
     let
@@ -1037,7 +1028,7 @@ addStarGraph { numberOfLeaves } user =
 
 
 duplicateSubgraph : Set VertexId -> Set ( VertexId, VertexId ) -> GraphFile -> ( GraphFile, Set VertexId, Set ( VertexId, VertexId ) )
-duplicateSubgraph vs es ((GraphFile p) as user) =
+duplicateSubgraph vs es (GraphFile p) =
     let
         ( newGraph, nvs, nes ) =
             p.graph |> Graph.Extra.duplicateSubgraph vs es

@@ -3,7 +3,6 @@ module Algorithms.Dijkstra.API exposing (run)
 import Algorithm
 import Algorithms.Dijkstra as Dijkstra exposing (Distance(..), Input, State)
 import Colors
-import Dict exposing (Dict)
 import Graph
 import Graph.Extra
 import GraphFile as GF exposing (GraphFile, MyGraph)

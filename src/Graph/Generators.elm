@@ -1,9 +1,7 @@
 module Graph.Generators exposing (star)
 
 import Graph exposing (Graph, NodeId)
-import IntDict
 import Point2d exposing (Point2d)
-import Set exposing (Set)
 import Vector2d exposing (Vector2d)
 
 

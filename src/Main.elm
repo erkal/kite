@@ -16,17 +16,15 @@ import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Element.Keyed
 import Files exposing (Files)
 import Generators.ElmDep as ElmDep
 import Geometry.Svg
 import Graph.Force as Force exposing (Force)
 import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, LabelPosition(..), VertexId, VertexProperties)
-import Html as H exposing (Html, div)
+import Html as H exposing (Html)
 import Html.Attributes as HA
 import Html.Events as HE
-import Http
-import Icons exposing (icons)
+import Icons
 import IntDict exposing (IntDict)
 import Json.Decode as JD exposing (Decoder, Value)
 import Json.Encode as JE
@@ -2047,29 +2045,12 @@ vertexIdToString =
     String.fromInt
 
 
-bagIdToString : BagId -> String
-bagIdToString =
-    String.fromInt
-
-
 vertexIdsToString : List VertexId -> String
 vertexIdsToString vs =
     let
         inside =
             vs
                 |> List.map (\vertexId -> vertexIdToString vertexId ++ ", ")
-                |> String.concat
-                |> String.dropRight 2
-    in
-    "{ " ++ inside ++ " }"
-
-
-edgeIdsToString : List EdgeId -> String
-edgeIdsToString es =
-    let
-        inside =
-            es
-                |> List.map (\edgeId -> edgeIdToString edgeId ++ ", ")
                 |> String.concat
                 |> String.dropRight 2
     in
@@ -4489,8 +4470,8 @@ mainSvg m =
             m.windowSize.height
 
         svgViewBoxFromPanAndZoom pan zoom =
-            [ Point2d.xCoordinate m.pan
-            , Point2d.yCoordinate m.pan
+            [ Point2d.xCoordinate pan
+            , Point2d.yCoordinate pan
             , toFloat mainSvgWidth / zoom
             , toFloat mainSvgHeight / zoom
             ]

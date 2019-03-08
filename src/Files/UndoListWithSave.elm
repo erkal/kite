@@ -1,7 +1,7 @@
 module Files.UndoListWithSave exposing
     ( UndoListWithSave
     , fresh
-    , undo, redo, new, setPresent, mapPresent
+    , undo, redo, new, mapPresent
     , getSavedState, savePresent, resetToSaved
     , presentIsTheLastSaved
     , present, hasPast, lengthPast, hasFuture
@@ -162,11 +162,6 @@ mapPresent up =
     mapUL (UL.mapPresent up)
 
 
-setPresent : a -> UndoListWithSave a -> UndoListWithSave a
-setPresent newState =
-    mapPresent (always newState)
-
-
 
 -------------------------------
 -- Saving Related Operations --
@@ -174,7 +169,7 @@ setPresent newState =
 
 
 savePresent : UndoListWithSave a -> UndoListWithSave a
-savePresent (UndoListWithSave { savedAt, savedState, uL }) =
+savePresent (UndoListWithSave { uL }) =
     UndoListWithSave
         { savedAt = Just (UL.lengthPast uL)
         , savedState = uL.present
