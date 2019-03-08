@@ -434,6 +434,8 @@ type Msg
     | KeyUpCtrl
     | KeyDownShift
     | KeyUpShift
+    | KeyDownDelete
+    | KeyDownBackspace
       --
     | ActivateHandTool
     | DeactivateHandTool
@@ -724,6 +726,20 @@ updateHelper msg m =
 
         KeyUpShift ->
             { m | shiftIsDown = False }
+
+        KeyDownDelete ->
+            if m.shiftIsDown then
+                updateHelper ClickOnEdgeTrash m
+
+            else
+                updateHelper ClickOnVertexTrash m
+
+        KeyDownBackspace ->
+            if m.shiftIsDown then
+                updateHelper ClickOnEdgeTrash m
+
+            else
+                updateHelper ClickOnVertexTrash m
 
         ActivateHandTool ->
             case m.handToolActivatedWhen of
@@ -1961,10 +1977,10 @@ toKeyDownMsg key =
             KeyDownShift
 
         Control "Delete" ->
-            ClickOnVertexTrash
+            KeyDownDelete
 
         Control "Backspace" ->
-            ClickOnVertexTrash
+            KeyDownBackspace
 
         _ ->
             NoOp
@@ -2881,7 +2897,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
             , isOn = m.tableOfEdgesIsOn
             , headerItems =
                 [ menuHeaderButton
-                    { title = "Remove Selected Edges"
+                    { title = "Remove Selected Edges (Shift + Delete)"
                     , onClickMsg = ClickOnEdgeTrash
                     , iconPath = Icons.icons.trash
                     }
