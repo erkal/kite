@@ -2,6 +2,7 @@ port module Main exposing (main)
 
 import Algorithms.Dijkstra.API
 import Algorithms.TopologicalSorting.API
+import Base64
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser exposing (Document)
 import Browser.Dom as Dom
@@ -19,6 +20,7 @@ import Element.Input as Input
 import Files exposing (Files)
 import Generators.ElmDep as ElmDep
 import Geometry.Svg
+import Graph.DOT
 import Graph.Force as Force exposing (Force)
 import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, LabelPosition(..), VertexId, VertexProperties)
 import Html as H exposing (Html)
@@ -2965,6 +2967,12 @@ leftBarContentForGraphGenerators m =
         listOfFileNames l =
             El.column [ El.padding 10 ]
                 (List.map (\n -> El.el [] (El.text ("- " ++ n))) l)
+
+        dotFile : String
+        dotFile =
+            Graph.DOT.output .label
+                .label
+                (GF.getGraph (Tuple.second (Files.present m.files)))
     in
     El.column [ El.width El.fill ]
         [ --    menu
@@ -3021,8 +3029,6 @@ leftBarContentForGraphGenerators m =
                         { labelText = "Access token (optional)"
                         , labelWidth = 110
                         , inputWidth = 100
-
-                        --, text = m.elmDep.repoNameInput
                         , text = m.elmDep.token
                         , onChange = ElmDep.ChangeToken >> FromElmDep
                         }
@@ -3074,6 +3080,21 @@ leftBarContentForGraphGenerators m =
                                     (El.text str)
                                 ]
                     ]
+                , menu
+                    { headerText = "Export"
+                    , isOn = True
+                    , headerItems = []
+                    , toggleMsg = NoOp
+                    , contentItems =
+                        [ El.column [ El.width El.fill, El.spacing 16, El.padding 16 ]
+                            [ El.el [] <|
+                                El.newTabLink []
+                                    { url = "data:text/plain;base64," ++ Base64.encode dotFile
+                                    , label = El.text "DOT"
+                                    }
+                            ]
+                        ]
+                    }
                 ]
             }
 
