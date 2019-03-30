@@ -2,7 +2,6 @@ port module Main exposing (main)
 
 import Algorithms.Dijkstra.API
 import Algorithms.TopologicalSorting.API
-import Base64
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser exposing (Document)
 import Browser.Dom as Dom
@@ -20,9 +19,12 @@ import Element.Input as Input
 import Files exposing (Files)
 import Generators.ElmDep as ElmDep
 import Geometry.Svg
-import Graph.DOT
 import Graph.Force as Force exposing (Force)
 import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, LabelPosition(..), VertexId, VertexProperties)
+import GraphFile.DotLang.Decode
+import GraphFile.DotLang.Encode
+import GraphFile.Json.Decode
+import GraphFile.Json.Encode
 import Html as H exposing (Html)
 import Html.Attributes as HA
 import Html.Events as HE
@@ -79,7 +81,7 @@ graphFilesDecoder =
                 (JD.field "description"
                     (JD.succeed "Loaded the graph from local storage")
                 )
-                (JD.field "graphFile" GF.decoder)
+                (JD.field "graphFile" GraphFile.Json.Decode.decode)
     in
     Files.decoder fileDecoder
 
@@ -113,7 +115,7 @@ encodeGraphFiles graphFiles =
         encodeFileData ( _, graphFile ) =
             JE.object
                 [ ( "description", JE.null )
-                , ( "graphFile", GF.encode graphFile )
+                , ( "graphFile", GraphFile.Json.Encode.encode graphFile )
                 ]
     in
     Files.encode encodeFileData graphFiles
@@ -179,7 +181,7 @@ type alias Model =
 
     --
     , focusIsOnSomeTextInput :
-        -- This is needed for preventing keypresses to trigger keyboard shortcuts
+        -- This is needed for preventing key presses to trigger keyboard shortcuts
         Bool
 
     --
@@ -1250,14 +1252,7 @@ updateHelper msg m =
         InputBagLabel bagId str ->
             let
                 updateLabel bag =
-                    { bag
-                        | label =
-                            if str == "" then
-                                Nothing
-
-                            else
-                                Just str
-                    }
+                    { bag | label = str }
 
                 newGF =
                     present m |> GF.updateBag bagId updateLabel
@@ -1439,12 +1434,7 @@ updateHelper msg m =
             let
                 updateLabel v =
                     { v
-                        | label =
-                            if str == "" then
-                                Nothing
-
-                            else
-                                Just str
+                        | label = str
                     }
 
                 newGF =
@@ -1511,14 +1501,7 @@ updateHelper msg m =
         InputEdgeLabel str ->
             let
                 updateLabel v =
-                    { v
-                        | label =
-                            if str == "" then
-                                Nothing
-
-                            else
-                                Just str
-                    }
+                    { v | label = str }
 
                 newGF =
                     if Set.isEmpty m.selectedEdges then
@@ -2626,16 +2609,15 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ id, label } ->
                                 cell id <|
-                                    case label.label of
-                                        Just l ->
-                                            El.text l
+                                    if label.label == "" then
+                                        El.el
+                                            [ El.alpha 0.2
+                                            , El.width (El.px 40)
+                                            ]
+                                            (El.text "no label")
 
-                                        Nothing ->
-                                            El.el
-                                                [ El.alpha 0.2
-                                                , El.width (El.px 40)
-                                                ]
-                                                (El.text "no label")
+                                    else
+                                        El.text label.label
                       }
                     , { header = columnHeader "Fix"
                       , width = El.px 20
@@ -2773,16 +2755,15 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ from, to, label } ->
                                 cell ( from, to ) <|
-                                    case label.label of
-                                        Just l ->
-                                            El.text l
+                                    if label.label == "" then
+                                        El.el
+                                            [ El.alpha 0.2
+                                            , El.width El.fill
+                                            ]
+                                            (El.text "no label")
 
-                                        Nothing ->
-                                            El.el
-                                                [ El.alpha 0.2
-                                                , El.width El.fill
-                                                ]
-                                                (El.text "no label")
+                                    else
+                                        El.text label.label
                       }
                     , { header = columnHeader "Str"
                       , width = El.px 30
@@ -2967,12 +2948,6 @@ leftBarContentForGraphGenerators m =
         listOfFileNames l =
             El.column [ El.padding 10 ]
                 (List.map (\n -> El.el [] (El.text ("- " ++ n))) l)
-
-        dotFile : String
-        dotFile =
-            Graph.DOT.output .label
-                .label
-                (GF.getGraph (Tuple.second (Files.present m.files)))
     in
     El.column [ El.width El.fill ]
         [ --    menu
@@ -3080,21 +3055,6 @@ leftBarContentForGraphGenerators m =
                                     (El.text str)
                                 ]
                     ]
-                , menu
-                    { headerText = "Export"
-                    , isOn = True
-                    , headerItems = []
-                    , toggleMsg = NoOp
-                    , contentItems =
-                        [ El.column [ El.width El.fill, El.spacing 16, El.padding 16 ]
-                            [ El.el [] <|
-                                El.newTabLink []
-                                    { url = "data:text/plain;base64," ++ Base64.encode dotFile
-                                    , label = El.text "DOT"
-                                    }
-                            ]
-                        ]
-                    }
                 ]
             }
 
@@ -3848,16 +3808,15 @@ bags m =
                       , view =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
-                                    case bagProperties.label of
-                                        Just l ->
-                                            El.text l
+                                    if bagProperties.label == "" then
+                                        El.el
+                                            [ El.alpha 0.2
+                                            , El.width El.fill
+                                            ]
+                                            (El.text "no label")
 
-                                        Nothing ->
-                                            El.el
-                                                [ El.alpha 0.2
-                                                , El.width El.fill
-                                                ]
-                                                (El.text "no label")
+                                    else
+                                        El.text bagProperties.label
                       }
                     , { header = columnHeader "Elements"
                       , width = El.px 60
@@ -3942,7 +3901,6 @@ bags m =
                             , text =
                                 GF.getBagProperties idOfTheSelectedBag (present m)
                                     |> Maybe.map .label
-                                    |> Maybe.withDefault Nothing
                                     |> Maybe.withDefault ""
                             , onChange = InputBagLabel idOfTheSelectedBag
                             }
@@ -4068,15 +4026,11 @@ vertexPreferences m =
                             present m
                                 |> GF.getDefaultVertexProperties
                                 |> .label
-                                |> Maybe.withDefault ""
 
                         else
-                            case present m |> GF.getCommonVertexProperty m.selectedVertices .label of
-                                Just (Just l) ->
-                                    l
-
-                                _ ->
-                                    ""
+                            present m
+                                |> GF.getCommonVertexProperty m.selectedVertices .label
+                                |> Maybe.withDefault ""
                     , onChange = InputVertexLabel
                     }
                 , checkbox
@@ -4344,15 +4298,11 @@ edgePreferences m =
                             present m
                                 |> GF.getDefaultEdgeProperties
                                 |> .label
-                                |> Maybe.withDefault ""
 
                         else
-                            case present m |> GF.getCommonEdgeProperty m.selectedEdges .label of
-                                Just (Just l) ->
-                                    l
-
-                                _ ->
-                                    ""
+                            present m
+                                |> GF.getCommonEdgeProperty m.selectedEdges .label
+                                |> Maybe.withDefault ""
                     , onChange = InputEdgeLabel
                     }
                 , checkbox
@@ -4864,14 +4814,7 @@ viewEdges graphFile =
                                 , SA.fontSize (String.fromFloat label.labelSize)
                                 , SA.fill (Colors.toString label.labelColor)
                                 ]
-                                [ S.text <|
-                                    case label.label of
-                                        Just l ->
-                                            l
-
-                                        Nothing ->
-                                            ""
-                                ]
+                                [ S.text label.label ]
 
                         edgeLabel =
                             if label.labelIsVisible then
@@ -4999,13 +4942,7 @@ viewVertices graphFile =
                             , SA.x (String.fromFloat labelX)
                             , SA.y (String.fromFloat labelY)
                             ]
-                            [ S.text <|
-                                case label.label of
-                                    Just l ->
-                                        l
-
-                                    Nothing ->
-                                        ""
+                            [ S.text label.label
                             ]
 
                     else

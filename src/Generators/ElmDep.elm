@@ -6,7 +6,7 @@ import Colors
 import Dict exposing (Dict)
 import Graph exposing (Edge, Node)
 import Graph.Layout
-import GraphFile as GF exposing (EdgeProperties, GraphFile, MyGraph, VertexId, VertexProperties)
+import GraphFile as GF exposing (EdgeProperties, GraphFile, KiteGraph, VertexId, VertexProperties)
 import Http
 import Json.Decode as JD exposing (Decoder, Value)
 import Parser exposing ((|.), (|=), Parser)
@@ -322,10 +322,10 @@ toGraphFile : List ElmFile -> GraphFile
 toGraphFile listOfElmFiles =
     let
         dVP =
-            GF.defaultVertexProp
+            GF.kitesDefaultVertexProp
 
         dEP =
-            GF.defaultEdgeProp
+            GF.kitesDefaultEdgeProp
 
         idDict : Dict String VertexId
         idDict =
@@ -348,7 +348,7 @@ toGraphFile listOfElmFiles =
         handleElmFile ((ElmFile { loc, dependencies }) as elmFile) =
             ( Node (safeGetId (moduleNameOrPath elmFile))
                 { dVP
-                    | label = Just (moduleNameOrPath elmFile)
+                    | label = moduleNameOrPath elmFile
                     , radius = 0.5 * sqrt (toFloat loc)
                     , color = Colors.blue
                 }

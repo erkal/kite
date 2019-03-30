@@ -1,4 +1,4 @@
-module Transition exposing (State(..), elapsedTimeRatio, hasFinished, initialState, update)
+module Transition exposing (State, elapsedTimeRatio, hasFinished, initialState, update)
 
 
 type State

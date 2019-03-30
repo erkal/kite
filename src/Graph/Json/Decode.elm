@@ -1,11 +1,11 @@
-module Graph.Decode exposing (graph)
+module Graph.Json.Decode exposing (decode)
 
 import Graph exposing (Edge, Graph, Node)
 import Json.Decode as JD exposing (Decoder, Value)
 
 
-graph : Decoder n -> Decoder e -> Decoder (Graph n e)
-graph nodeLabel edgeLabel =
+decode : Decoder n -> Decoder e -> Decoder (Graph n e)
+decode nodeLabel edgeLabel =
     JD.map2 Graph.fromNodesAndEdges
         (JD.field "nodes" (JD.list (node nodeLabel)))
         (JD.field "edges" (JD.list (edge edgeLabel)))

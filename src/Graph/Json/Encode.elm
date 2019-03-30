@@ -1,11 +1,11 @@
-module Graph.Encode exposing (graph)
+module Graph.Json.Encode exposing (encode)
 
 import Graph exposing (Edge, Graph, Node)
 import Json.Encode as JE exposing (Value)
 
 
-graph : (n -> Value) -> (e -> Value) -> Graph n e -> Value
-graph nodeLabel edgeLabel g =
+encode : (n -> Value) -> (e -> Value) -> Graph n e -> Value
+encode nodeLabel edgeLabel g =
     JE.object
         [ ( "nodes", JE.list (node nodeLabel) (Graph.nodes g) )
         , ( "edges", JE.list (edge edgeLabel) (Graph.edges g) )

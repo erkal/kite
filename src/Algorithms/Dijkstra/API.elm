@@ -5,7 +5,7 @@ import Algorithms.Dijkstra as Dijkstra exposing (Distance(..), Input, State)
 import Colors
 import Graph
 import Graph.Extra
-import GraphFile as GF exposing (GraphFile, MyGraph)
+import GraphFile as GF exposing (GraphFile, KiteGraph)
 import IntDict exposing (IntDict)
 import Set exposing (Set)
 
@@ -13,16 +13,16 @@ import Set exposing (Set)
 run : GraphFile -> List GraphFile
 run inputGF =
     let
-        runOnMyGraph : MyGraph -> List MyGraph
-        runOnMyGraph inputGraph =
+        runOnKiteGraph : KiteGraph -> List KiteGraph
+        runOnKiteGraph inputGraph =
             inputGraph
                 |> toInputData
                 |> Algorithm.run Dijkstra.algorithm
-                |> List.map (toMyGraph inputGraph)
+                |> List.map (toKiteGraph inputGraph)
     in
     inputGF
         |> GF.getGraph
-        |> runOnMyGraph
+        |> runOnKiteGraph
         |> List.map (\g -> GF.setGraph g inputGF)
 
 
@@ -31,13 +31,13 @@ run inputGF =
 If there is vertex labeled with "start", then this vertex will be the start vertex, otherwise the start vertex will be the vertex with the smallest id.
 
 -}
-toInputData : MyGraph -> Input
+toInputData : KiteGraph -> Input
 toInputData g =
     { startVertex =
         let
             maybeVertexWithLabelStart =
                 Graph.nodes g
-                    |> List.filter (\{ label } -> label.label == Just "start")
+                    |> List.filter (\{ label } -> label.label == "start")
                     |> List.head
         in
         case maybeVertexWithLabelStart of
@@ -57,7 +57,7 @@ toInputData g =
                 ( from
                 , to
                 , label.label
-                    |> Maybe.andThen String.toInt
+                    |> String.toInt
                     |> Maybe.withDefault 1
                 )
 
@@ -77,8 +77,8 @@ toInputData g =
     }
 
 
-toMyGraph : MyGraph -> State -> MyGraph
-toMyGraph inputGraph state =
+toKiteGraph : KiteGraph -> State -> KiteGraph
+toKiteGraph inputGraph state =
     let
         styleVertices =
             let
@@ -89,10 +89,10 @@ toMyGraph inputGraph state =
                         , label =
                             case currentBestDistance of
                                 Finite dist ->
-                                    Just (String.fromInt dist)
+                                    String.fromInt dist
 
                                 Infinity ->
-                                    Just "∞"
+                                    "∞"
                     }
 
                 markVisited hasBeenVisited vP =
