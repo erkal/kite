@@ -140,9 +140,14 @@ vertexProperties default =
                 ( ID "opacity", ID v ) ->
                     { vP | opacity = String.toFloat v |> Maybe.withDefault default.opacity }
 
-                --                ( ID "inBags", ID v ) ->
-                --                 TODO
-                --                    { vP | inBags = Set.fromList (JD.decodeString (JD.list JD.int v)) }
+                ( ID "inBags", ID v ) ->
+                    { vP
+                        | inBags =
+                            JD.decodeString (JD.list JD.int) v
+                                |> Result.withDefault []
+                                |> Set.fromList
+                    }
+
                 _ ->
                     vP
     in
