@@ -17,6 +17,7 @@ import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
 import Files exposing (Files)
+import Files.UndoListWithSave exposing (ActionDescription(..))
 import Generators.ElmDep as ElmDep
 import Geometry.Svg
 import Graph.Force as Force exposing (Force)
@@ -73,17 +74,9 @@ init maybeValue =
     )
 
 
-graphFilesDecoder : Decoder (Files ( String, GraphFile ))
+graphFilesDecoder : Decoder (Files GraphFile)
 graphFilesDecoder =
-    let
-        fileDecoder =
-            JD.map2 Tuple.pair
-                (JD.field "description"
-                    (JD.succeed "Loaded the graph from local storage")
-                )
-                (JD.field "graphFile" GraphFile.Json.Decode.decode)
-    in
-    Files.decoder fileDecoder
+    Files.decoder GraphFile.Json.Decode.decode
 
 
 getWindowSize viewPort =
@@ -109,16 +102,9 @@ view m =
     }
 
 
-encodeGraphFiles : Files ( String, GraphFile ) -> Value
+encodeGraphFiles : Files GraphFile -> Value
 encodeGraphFiles graphFiles =
-    let
-        encodeFileData ( _, graphFile ) =
-            JE.object
-                [ ( "description", JE.null )
-                , ( "graphFile", GraphFile.Json.Encode.encode graphFile )
-                ]
-    in
-    Files.encode encodeFileData graphFiles
+    Files.encode GraphFile.Json.Encode.encode graphFiles
 
 
 {-| Here, we only handle cases where Cmd is needed.
@@ -143,10 +129,7 @@ update msg m =
                 addGraphFileIfDownloadFinished =
                     case ElmDep.finishedDownloadingWith newElmDep of
                         Just l ->
-                            Files.newFile "Elm Dependency"
-                                ( "Created elm module dependency graph"
-                                , ElmDep.toGraphFile l
-                                )
+                            Files.newFile "Elm Dependency" (ElmDep.toGraphFile l)
 
                         Nothing ->
                             identity
@@ -174,7 +157,7 @@ update msg m =
 
 type alias Model =
     { love : Bool
-    , files : Files ( String, GraphFile )
+    , files : Files GraphFile
 
     --
     , distractionFree : Bool
@@ -321,13 +304,14 @@ type GravityState
     | GravityDragging
 
 
-defaultGraphFiles : Files ( String, GraphFile )
+defaultGraphFiles : Files GraphFile
 defaultGraphFiles =
     Files.singleton "my-first-graph"
-        ( "Started with empty graph", GF.default )
+        (ActionDescription "Started with empty graph")
+        GF.default
 
 
-initialModel : Maybe (Files ( String, GraphFile )) -> Model
+initialModel : Maybe (Files GraphFile) -> Model
 initialModel maybeSavedFiles =
     { love = True
     , files = maybeSavedFiles |> Maybe.withDefault defaultGraphFiles
@@ -595,20 +579,17 @@ stopAnimation m =
 
 present : Model -> GraphFile
 present m =
-    Tuple.second (Files.present m.files)
+    Files.present m.files
 
 
 new : GraphFile -> String -> Model -> Model
-new newGF description m =
-    { m | files = m.files |> Files.new ( description, newGF ) }
+new newGF str m =
+    { m | files = m.files |> Files.new (ActionDescription str) newGF }
 
 
 setPresentWithoutrecording : GraphFile -> Model -> Model
 setPresentWithoutrecording newGF m =
-    { m
-        | files =
-            m.files |> Files.mapPresent (Tuple.mapSecond (always newGF))
-    }
+    { m | files = m.files |> Files.mapPresent (always newGF) }
 
 
 withNewGravityCenter : Model -> GraphFile
@@ -972,8 +953,7 @@ updateHelper msg m =
 
                 Gravity GravityDragging ->
                     { m | selectedTool = Gravity GravityIdle }
-                        |> new (withNewGravityCenter m)
-                            "Changed vertex gravity center"
+                        |> new (withNewGravityCenter m) "Changed vertex gravity center"
 
                 _ ->
                     m
@@ -1032,8 +1012,7 @@ updateHelper msg m =
                 Gravity GravityIdle ->
                     { m | selectedTool = Gravity GravityDragging }
                         |> reheatForce
-                        |> new (withNewGravityCenter m)
-                            "Changed vertex gravity center"
+                        |> new (withNewGravityCenter m) "Changed vertex gravity center"
 
                 _ ->
                     m
@@ -1757,12 +1736,7 @@ updateHelper msg m =
             m |> new newGF "Added a generated graph"
 
         ClickOnNewFile ->
-            { m
-                | files =
-                    Files.newFile "New Graph"
-                        ( "Started with empty graph", GF.default )
-                        m.files
-            }
+            { m | files = Files.newFile "New Graph" GF.default m.files }
                 |> stopAnimation
 
         ClickOnDuplicateFile ->
@@ -1787,7 +1761,7 @@ updateHelper msg m =
                 , animation =
                     TransitionAnimation
                         { startGraph = present m
-                        , endGraph = Files.present newFiles |> Tuple.second
+                        , endGraph = Files.present newFiles
                         , transitionState = Transition.initialState
                         }
             }
@@ -1802,7 +1776,7 @@ updateHelper msg m =
                 , animation =
                     TransitionAnimation
                         { startGraph = present m
-                        , endGraph = Files.present newFiles |> Tuple.second
+                        , endGraph = Files.present newFiles
                         , transitionState = Transition.initialState
                         }
             }
@@ -1817,7 +1791,7 @@ updateHelper msg m =
                 , animation =
                     TransitionAnimation
                         { startGraph = present m
-                        , endGraph = Files.present newFiles |> Tuple.second
+                        , endGraph = Files.present newFiles
                         , transitionState = Transition.initialState
                         }
             }
@@ -1829,15 +1803,7 @@ updateHelper msg m =
                         |> Algorithms.Dijkstra.API.run
                         |> List.indexedMap Tuple.pair
                         |> List.foldl
-                            (\( i, gF ) ->
-                                Files.newFile
-                                    ("Dijsktra step-" ++ String.fromInt i)
-                                    ( "Generated as step "
-                                        ++ String.fromInt i
-                                        ++ " of Dijsktra's Algorithm."
-                                    , gF
-                                    )
-                            )
+                            (\( i, gF ) -> Files.newFile ("Dijsktra step-" ++ String.fromInt i) gF)
                             m.files
                 , selectedMode = GraphsFolder
             }
@@ -1849,15 +1815,7 @@ updateHelper msg m =
                         |> Algorithms.TopologicalSorting.API.run
                         |> List.indexedMap Tuple.pair
                         |> List.foldl
-                            (\( i, gF ) ->
-                                Files.newFile
-                                    ("Topological Sort step-" ++ String.fromInt i)
-                                    ( "Generated as step "
-                                        ++ String.fromInt i
-                                        ++ " of Topological Sorting Algorithm."
-                                    , gF
-                                    )
-                            )
+                            (\( i, gF ) -> Files.newFile ("Topological Sort step-" ++ String.fromInt i) gF)
                             m.files
                 , selectedMode = GraphsFolder
             }
@@ -3671,8 +3629,8 @@ history m =
             else
                 El.alpha 0.3 :: commonAttributes i
 
-        item i ( descriptionText, _ ) =
-            El.el (attributes i) (El.text descriptionText)
+        item i (ActionDescription actionDescription) =
+            El.el (attributes i) (El.text actionDescription)
 
         itemList =
             m.files
