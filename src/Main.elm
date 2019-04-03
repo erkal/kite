@@ -2,6 +2,7 @@ port module Main exposing (main)
 
 import Algorithms.Dijkstra.API
 import Algorithms.TopologicalSorting.API
+import Animation
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser exposing (Document)
 import Browser.Dom as Dom
@@ -10,12 +11,16 @@ import Circle2d exposing (Circle2d)
 import Colors
 import Dict exposing (Dict)
 import Direction2d exposing (Direction2d)
+import DotLang exposing (Config(..))
 import Element as El exposing (Color, Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
+import File exposing (File)
+import File.Download
+import File.Select as Select
 import Files exposing (Files)
 import Files.UndoListWithSave exposing (ActionDescription(..))
 import Generators.ElmDep as ElmDep
@@ -43,7 +48,6 @@ import Svg.Events as SE
 import Svg.Keyed
 import Task
 import Time
-import Transition
 import Triangle2d exposing (Triangle2d)
 import Vector2d exposing (Vector2d)
 
@@ -63,10 +67,14 @@ port setStorage : String -> Cmd msg
 
 init : Maybe Value -> ( Model, Cmd Msg )
 init maybeValue =
+    let
+        tODODELETETHIS =
+            DotLang.fromString "digraph { yyy [ label = yyy pos = \"10,10!\" ]}"
+                |> Debug.log "LALA: "
+    in
     ( case maybeValue of
         Just value ->
-            initialModel
-                (Result.toMaybe (JD.decodeValue graphFilesDecoder value))
+            initialModel (Result.toMaybe (JD.decodeValue graphFilesDecoder value))
 
         Nothing ->
             initialModel Nothing
@@ -76,7 +84,13 @@ init maybeValue =
 
 graphFilesDecoder : Decoder (Files GraphFile)
 graphFilesDecoder =
-    Files.decoder GraphFile.Json.Decode.decode
+    Files.decoder
+        (DotLang.fromString
+            >> Debug.log "DotLang.fromString returns: "
+            >> Result.map GraphFile.DotLang.Decode.fromDot
+            -- TODO: This `withDefault` is not good.
+            >> Result.withDefault GF.default
+        )
 
 
 getWindowSize viewPort =
@@ -103,8 +117,14 @@ view m =
 
 
 encodeGraphFiles : Files GraphFile -> Value
-encodeGraphFiles graphFiles =
-    Files.encode GraphFile.Json.Encode.encode graphFiles
+encodeGraphFiles =
+    let
+        graphFileToString =
+            GraphFile.DotLang.Encode.toDot
+                >> DotLang.toString
+                >> Debug.log "LOLO"
+    in
+    Files.encode graphFileToString
 
 
 {-| Here, we only handle cases where Cmd is needed.
@@ -112,6 +132,27 @@ encodeGraphFiles graphFiles =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
+        ClickOnImportDotFile ->
+            ( m
+            , Select.file [ "text/vnd.graphviz" ] DotFileSelected
+            )
+
+        DotFileSelected file ->
+            let
+                withName fileContent =
+                    { fileName =
+                        if String.endsWith ".dot" (File.name file) then
+                            String.dropRight 4 (File.name file)
+
+                        else
+                            File.name file
+                    , fileContent = fileContent
+                    }
+            in
+            ( m
+            , Task.perform DotFileLoaded (Task.map withName (File.toString file))
+            )
+
         ClickOnSaveFile ->
             let
                 newFiles =
@@ -119,6 +160,13 @@ update msg m =
             in
             ( { m | files = newFiles }
             , setStorage (JE.encode 4 (encodeGraphFiles newFiles))
+            )
+
+        ClickOnExportDotFile ->
+            ( m
+            , File.Download.string (Files.getName m.files ++ ".dot")
+                "text/vnd.graphviz"
+                (DotLang.toString (GraphFile.DotLang.Encode.toDot (present m)))
             )
 
         FromElmDep elmDepMsg ->
@@ -242,7 +290,7 @@ type Animation
     | TransitionAnimation
         { startGraph : GraphFile
         , endGraph : GraphFile
-        , transitionState : Transition.State
+        , transitionState : Animation.State
         }
 
 
@@ -402,6 +450,11 @@ initialPan =
 
 type Msg
     = NoOp
+      --
+    | ClickOnExportDotFile
+    | ClickOnImportDotFile
+    | DotFileSelected File
+    | DotFileLoaded { fileName : String, fileContent : String }
       --
     | ForceTick Time.Posix
       --
@@ -613,6 +666,28 @@ updateHelper msg m =
         NoOp ->
             m
 
+        ClickOnExportDotFile ->
+            -- is handled in `update`
+            m
+
+        ClickOnImportDotFile ->
+            -- is handled in `update`
+            m
+
+        DotFileSelected file ->
+            -- is handled in `update`
+            m
+
+        DotFileLoaded { fileName, fileContent } ->
+            let
+                gF =
+                    fileContent
+                        |> DotLang.fromString
+                        |> Result.map GraphFile.DotLang.Decode.fromDot
+                        |> Result.withDefault GF.default
+            in
+            { m | files = Files.newFile fileName gF m.files }
+
         ForceTick t ->
             case m.animation of
                 ForceAnimation forceState ->
@@ -653,7 +728,7 @@ updateHelper msg m =
         TransitionTimeDelta timeDelta ->
             case m.animation of
                 TransitionAnimation tA ->
-                    if Transition.hasFinished tA.transitionState then
+                    if Animation.hasFinished tA.transitionState then
                         { m | animation = NoAnimation }
 
                     else
@@ -662,7 +737,7 @@ updateHelper msg m =
                                 TransitionAnimation
                                     { tA
                                         | transitionState =
-                                            Transition.update timeDelta
+                                            Animation.update timeDelta
                                                 tA.transitionState
                                     }
                         }
@@ -1762,7 +1837,7 @@ updateHelper msg m =
                     TransitionAnimation
                         { startGraph = present m
                         , endGraph = Files.present newFiles
-                        , transitionState = Transition.initialState
+                        , transitionState = Animation.initialState
                         }
             }
 
@@ -1777,7 +1852,7 @@ updateHelper msg m =
                     TransitionAnimation
                         { startGraph = present m
                         , endGraph = Files.present newFiles
-                        , transitionState = Transition.initialState
+                        , transitionState = Animation.initialState
                         }
             }
 
@@ -1792,7 +1867,7 @@ updateHelper msg m =
                     TransitionAnimation
                         { startGraph = present m
                         , endGraph = Files.present newFiles
-                        , transitionState = Transition.initialState
+                        , transitionState = Animation.initialState
                         }
             }
 
@@ -3246,6 +3321,18 @@ toolButtons m =
             ]
             [ oneClickButtonGroup
                 [ oneClickButton
+                    { title = "Import"
+                    , iconPath = Icons.icons.importFile
+                    , onClickMsg = ClickOnImportDotFile
+                    , disabled = False
+                    }
+                , oneClickButton
+                    { title = "Export"
+                    , iconPath = Icons.icons.exportFile
+                    , onClickMsg = ClickOnExportDotFile
+                    , disabled = False
+                    }
+                , oneClickButton
                     { title = "Save"
                     , iconPath = Icons.icons.save
                     , onClickMsg = ClickOnSaveFile
@@ -4412,7 +4499,7 @@ mainSvg m =
             case m.animation of
                 TransitionAnimation { startGraph, endGraph, transitionState } ->
                     GF.transitionGraphFile
-                        (Transition.elapsedTimeRatio transitionState)
+                        (Animation.elapsedTimeRatio transitionState)
                         { start = startGraph
                         , end = endGraph
                         }

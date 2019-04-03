@@ -3,10 +3,10 @@ module GraphFile.DotLang.Encode exposing (toDot)
 import Colors
 import DotLang exposing (Attr(..), AttrStmtType(..), Dot(..), EdgeRHS(..), EdgeType(..), ID(..), NodeId(..), Stmt(..))
 import Graph exposing (Edge, Node)
-import GraphFile as GF exposing (Bag, BagProperties, EdgeProperties, GraphFile, KiteGraph, LabelPosition(..), VertexProperties)
+import GraphFile as GF exposing (Bag, BagId, BagProperties, EdgeProperties, GraphFile, KiteGraph, LabelPosition(..), VertexProperties)
 import Json.Encode as JE exposing (Value)
 import Point2d exposing (Point2d)
-import Set
+import Set exposing (Set)
 import Vector2d exposing (Vector2d)
 
 
@@ -40,25 +40,49 @@ defaults gF =
 
 nodeAttrs : VertexProperties -> List Attr
 nodeAttrs vP =
-    [ Attr (ID "label") (ID vP.label)
-    , Attr (ID "labelSize") (ID (String.fromFloat vP.labelSize))
+    [ Attr (ID "label") (ID (encodeLabel vP.label))
+    , Attr (ID "labelSize") (NumeralID vP.labelSize)
     , Attr (ID "labelPosition") (ID (labelPosition vP.labelPosition))
-    , Attr (ID "labelColor") (ID (JE.encode 0 (Colors.encode vP.labelColor)))
+    , Attr (ID "labelColor") (ID (Colors.toHexRGBA vP.labelColor))
     , Attr (ID "labelIsVisible") (ID (JE.encode 0 (JE.bool vP.labelIsVisible)))
     , Attr (ID "position") (ID (point2d vP.position))
     , Attr (ID "velocity") (ID (vector2d vP.velocity))
-    , Attr (ID "manyBodyStrength") (ID (String.fromFloat vP.manyBodyStrength))
+    , Attr (ID "manyBodyStrength") (NumeralID vP.manyBodyStrength)
     , Attr (ID "gravityCenter") (ID (point2d vP.gravityCenter))
-    , Attr (ID "gravityStrengthX") (ID (String.fromFloat vP.gravityStrengthX))
-    , Attr (ID "gravityStrengthY") (ID (String.fromFloat vP.gravityStrengthY))
+    , Attr (ID "gravityStrengthX") (NumeralID vP.gravityStrengthX)
+    , Attr (ID "gravityStrengthY") (NumeralID vP.gravityStrengthY)
     , Attr (ID "fixed") (ID (JE.encode 0 (JE.bool vP.fixed)))
-    , Attr (ID "color") (ID (JE.encode 0 (Colors.encode vP.color)))
-    , Attr (ID "radius") (ID (String.fromFloat vP.radius))
-    , Attr (ID "borderColor") (ID (JE.encode 0 (Colors.encode vP.color)))
-    , Attr (ID "borderWidth") (ID (String.fromFloat vP.borderWidth))
-    , Attr (ID "opacity") (ID (String.fromFloat vP.opacity))
-    , Attr (ID "inBags") (ID (JE.encode 0 (JE.list JE.int (Set.toList vP.inBags))))
+    , Attr (ID "color") (ID (Colors.toHexRGBA vP.color))
+    , Attr (ID "radius") (NumeralID vP.radius)
+    , Attr (ID "borderColor") (ID (Colors.toHexRGBA vP.color))
+    , Attr (ID "borderWidth") (NumeralID vP.borderWidth)
+    , Attr (ID "opacity") (NumeralID vP.opacity)
+    , Attr (ID "inBags") (ID (encodeInBags vP.inBags))
     ]
+
+
+encodeLabel : String -> String
+encodeLabel str =
+    -- Such encoding is necessary, because DotLang.fromString does not work with the empty String here.
+    if str == "" then
+        "____NO_LABEL____"
+
+    else
+        str
+
+
+encodeInBags : Set BagId -> String
+encodeInBags setOfBagIds =
+    if Set.isEmpty setOfBagIds then
+        -- Such encoding is necessary, because DotLang.fromString does not work with the empty String here.
+        "____IN_NO_BAG____"
+
+    else
+        setOfBagIds
+            |> Set.toList
+            |> List.map String.fromInt
+            |> List.intersperse " "
+            |> String.concat
 
 
 labelPosition : LabelPosition -> String
@@ -94,33 +118,33 @@ labelPosition lP =
 
 point2d : Point2d -> String
 point2d p =
-    JE.encode 0 <|
-        JE.object
-            [ ( "xCoordinate", JE.float (Point2d.xCoordinate p) )
-            , ( "yCoordinate", JE.float (Point2d.yCoordinate p) )
-            ]
+    String.concat
+        [ String.fromFloat (Point2d.xCoordinate p)
+        , " "
+        , String.fromFloat (Point2d.yCoordinate p)
+        ]
 
 
 vector2d : Vector2d -> String
 vector2d v =
-    JE.encode 0 <|
-        JE.object
-            [ ( "xComponent", JE.float (Vector2d.xComponent v) )
-            , ( "yComponent", JE.float (Vector2d.yComponent v) )
-            ]
+    String.concat
+        [ String.fromFloat (Vector2d.xComponent v)
+        , " "
+        , String.fromFloat (Vector2d.yComponent v)
+        ]
 
 
 edgeAttrs : EdgeProperties -> List Attr
 edgeAttrs eP =
-    [ Attr (ID "label") (ID eP.label)
-    , Attr (ID "labelSize") (ID (String.fromFloat eP.labelSize))
-    , Attr (ID "labelColor") (ID (JE.encode 0 (Colors.encode eP.labelColor)))
+    [ Attr (ID "label") (ID (encodeLabel eP.label))
+    , Attr (ID "labelSize") (NumeralID eP.labelSize)
+    , Attr (ID "labelColor") (ID (Colors.toHexRGBA eP.labelColor))
     , Attr (ID "labelIsVisible") (ID (JE.encode 0 (JE.bool eP.labelIsVisible)))
-    , Attr (ID "distance") (ID (String.fromFloat eP.distance))
-    , Attr (ID "strength") (ID (String.fromFloat eP.strength))
-    , Attr (ID "thickness") (ID (String.fromFloat eP.thickness))
-    , Attr (ID "color") (ID (JE.encode 0 (Colors.encode eP.color)))
-    , Attr (ID "opacity") (ID (String.fromFloat eP.opacity))
+    , Attr (ID "distance") (NumeralID eP.distance)
+    , Attr (ID "strength") (NumeralID eP.strength)
+    , Attr (ID "thickness") (NumeralID eP.thickness)
+    , Attr (ID "color") (ID (Colors.toHexRGBA eP.color))
+    , Attr (ID "opacity") (NumeralID eP.opacity)
     ]
 
 
@@ -172,6 +196,6 @@ bagStmt bag =
     AttrStmt AttrGraph
         [ Attr (ID "bagId") (ID (String.fromInt bag.bagId))
         , Attr (ID "label") (ID bag.bagProperties.label)
-        , Attr (ID "color") (ID (JE.encode 0 (Colors.encode bag.bagProperties.color)))
+        , Attr (ID "color") (ID (Colors.toHexRGBA bag.bagProperties.color))
         , Attr (ID "hasConvexHull") (ID (JE.encode 0 (JE.bool bag.bagProperties.hasConvexHull)))
         ]

@@ -93,11 +93,11 @@ type alias Name =
 -------------
 
 
-encode : (data -> Value) -> Files data -> Value
-encode encodeFileData (Files { before, focused, after }) =
+encode : (data -> String) -> Files data -> Value
+encode fileDataToString (Files { before, focused, after }) =
     let
         enc =
-            encodeFile encodeFileData
+            encodeFile fileDataToString
     in
     JE.object
         [ ( "before", JE.list enc before )
@@ -106,11 +106,11 @@ encode encodeFileData (Files { before, focused, after }) =
         ]
 
 
-encodeFile : (data -> Value) -> File data -> Value
-encodeFile encodeFileData (File f) =
+encodeFile : (data -> String) -> File data -> Value
+encodeFile fileDataToString (File f) =
     JE.object
         [ ( "name", JE.string f.name )
-        , ( "savedData", encodeFileData (ULWS.getSavedState f.uLWS) )
+        , ( "savedData", JE.string (fileDataToString (ULWS.getSavedState f.uLWS)) )
         ]
 
 
@@ -120,11 +120,11 @@ encodeFile encodeFileData (File f) =
 -------------
 
 
-decoder : Decoder data -> Decoder (Files data)
-decoder dataDecoder =
+decoder : (String -> data) -> Decoder (Files data)
+decoder dataFromString =
     let
         dec =
-            fileDecoder dataDecoder
+            fileDecoder dataFromString
 
         setIsOpen b (File f) =
             File { f | isOpen = b }
@@ -142,8 +142,8 @@ decoder dataDecoder =
         (JD.field "after" (JD.list dec))
 
 
-fileDecoder : Decoder data -> Decoder (File data)
-fileDecoder dataDecoder =
+fileDecoder : (String -> data) -> Decoder (File data)
+fileDecoder dataFromString =
     JD.map2
         (\n d ->
             File
@@ -153,7 +153,7 @@ fileDecoder dataDecoder =
                 }
         )
         (JD.field "name" JD.string)
-        (JD.field "savedData" dataDecoder)
+        (JD.field "savedData" (JD.map dataFromString JD.string))
 
 
 
