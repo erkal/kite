@@ -67,11 +67,6 @@ port setStorage : String -> Cmd msg
 
 init : Maybe Value -> ( Model, Cmd Msg )
 init maybeValue =
-    let
-        tODODELETETHIS =
-            DotLang.fromString "digraph { yyy [ label = yyy pos = \"10,10!\" ]}"
-                |> Debug.log "LALA: "
-    in
     ( case maybeValue of
         Just value ->
             initialModel (Result.toMaybe (JD.decodeValue graphFilesDecoder value))
@@ -86,7 +81,6 @@ graphFilesDecoder : Decoder (Files GraphFile)
 graphFilesDecoder =
     Files.decoder
         (DotLang.fromString
-            >> Debug.log "DotLang.fromString returns: "
             >> Result.map GraphFile.DotLang.Decode.fromDot
             -- TODO: This `withDefault` is not good.
             >> Result.withDefault GF.default
@@ -118,13 +112,7 @@ view m =
 
 encodeGraphFiles : Files GraphFile -> Value
 encodeGraphFiles =
-    let
-        graphFileToString =
-            GraphFile.DotLang.Encode.toDot
-                >> DotLang.toString
-                >> Debug.log "LOLO"
-    in
-    Files.encode graphFileToString
+    Files.encode (GraphFile.DotLang.Encode.toDot >> DotLang.toString)
 
 
 {-| Here, we only handle cases where Cmd is needed.

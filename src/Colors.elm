@@ -91,8 +91,7 @@ toHexRGBA color =
         hex num =
             Hex.toString (round (num * 255))
     in
-    --     TODO: Add `#` to start, after brandly fixes the issue.
-    hex o.red ++ hex o.green ++ hex o.blue ++ hex o.alpha
+    "#" ++ hex o.red ++ hex o.green ++ hex o.blue ++ hex o.alpha
 
 
 
@@ -112,19 +111,18 @@ decoder =
 
 fromHexRGBA : String -> Color
 fromHexRGBA hexRGBA =
-    --     TODO: Correct after brandly fixes the issue with `#`. (Increase all numbers by 1.)
     let
         r =
-            hexRGBA |> String.slice 0 2 |> Hex.fromString |> Result.withDefault 0
+            hexRGBA |> String.slice 1 3 |> Hex.fromString |> Result.withDefault 0
 
         g =
-            hexRGBA |> String.slice 2 4 |> Hex.fromString |> Result.withDefault 0
+            hexRGBA |> String.slice 3 5 |> Hex.fromString |> Result.withDefault 0
 
         b =
-            hexRGBA |> String.slice 4 6 |> Hex.fromString |> Result.withDefault 0
+            hexRGBA |> String.slice 5 7 |> Hex.fromString |> Result.withDefault 0
 
         a =
-            hexRGBA |> String.slice 6 8 |> Hex.fromString |> Result.withDefault 255 |> toFloat |> (/) 255
+            hexRGBA |> String.slice 7 9 |> Hex.fromString |> Result.withDefault 255 |> toFloat |> (/) 255
     in
     El.rgba255 r g b a
 

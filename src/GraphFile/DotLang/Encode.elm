@@ -40,7 +40,7 @@ defaults gF =
 
 nodeAttrs : VertexProperties -> List Attr
 nodeAttrs vP =
-    [ Attr (ID "label") (ID (encodeLabel vP.label))
+    [ Attr (ID "label") (ID vP.label)
     , Attr (ID "labelSize") (NumeralID vP.labelSize)
     , Attr (ID "labelPosition") (ID (labelPosition vP.labelPosition))
     , Attr (ID "labelColor") (ID (Colors.toHexRGBA vP.labelColor))
@@ -61,28 +61,12 @@ nodeAttrs vP =
     ]
 
 
-encodeLabel : String -> String
-encodeLabel str =
-    -- Such encoding is necessary, because DotLang.fromString does not work with the empty String here.
-    if str == "" then
-        "____NO_LABEL____"
-
-    else
-        str
-
-
 encodeInBags : Set BagId -> String
 encodeInBags setOfBagIds =
-    if Set.isEmpty setOfBagIds then
-        -- Such encoding is necessary, because DotLang.fromString does not work with the empty String here.
-        "____IN_NO_BAG____"
-
-    else
-        setOfBagIds
-            |> Set.toList
-            |> List.map String.fromInt
-            |> List.intersperse " "
-            |> String.concat
+    setOfBagIds
+        |> Set.toList
+        |> JE.list JE.int
+        |> JE.encode 0
 
 
 labelPosition : LabelPosition -> String
@@ -136,7 +120,7 @@ vector2d v =
 
 edgeAttrs : EdgeProperties -> List Attr
 edgeAttrs eP =
-    [ Attr (ID "label") (ID (encodeLabel eP.label))
+    [ Attr (ID "label") (ID eP.label)
     , Attr (ID "labelSize") (NumeralID eP.labelSize)
     , Attr (ID "labelColor") (ID (Colors.toHexRGBA eP.labelColor))
     , Attr (ID "labelIsVisible") (ID (JE.encode 0 (JE.bool eP.labelIsVisible)))

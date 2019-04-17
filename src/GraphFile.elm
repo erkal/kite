@@ -22,7 +22,7 @@ module GraphFile exposing
     , getDefaultEdgeProperties, getDefaultVertexProperties
     , updateDefaultEdgeProperties, updateDefaultVertexProperties
     , forceTick, transitionGraphFile
-    , new
+    , kitesDefaultBagProperties, new
     )
 
 {-| This module separates the graph data from the GUI state. All the graph data which is not a GUI state lives here. In addition the default vertex and edge properties live in the same `GraphFile` type.
@@ -253,6 +253,14 @@ kitesDefaultEdgeProp =
     }
 
 
+kitesDefaultBagProperties : BagProperties
+kitesDefaultBagProperties =
+    { label = ""
+    , color = Colors.white
+    , hasConvexHull = True
+    }
+
+
 
 --
 
@@ -420,13 +428,7 @@ addBag vs ((GraphFile p) as user) =
     in
     ( user
         |> mapGraph (Graph.Extra.updateNodesBy l insertToBag)
-        |> mapBags
-            (Dict.insert idOfTheNewBag
-                { label = ""
-                , color = Colors.white
-                , hasConvexHull = True
-                }
-            )
+        |> mapBags (Dict.insert idOfTheNewBag kitesDefaultBagProperties)
     , idOfTheNewBag
     )
 

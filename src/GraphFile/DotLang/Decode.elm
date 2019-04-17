@@ -64,11 +64,10 @@ fromDot (Dot _ _ stmtList) =
                                 :: p.edges
                     }
 
-                AttrStmt AttrGraph _ ->
+                AttrStmt AttrGraph attrList ->
                     { p
                         | bags =
-                            -- TODO
-                            p.bags
+                            insertBagWithId GF.kitesDefaultBagProperties attrList p.bags
                     }
 
                 _ ->
@@ -85,41 +84,61 @@ fromDot (Dot _ _ stmtList) =
         }
 
 
+insertBagWithId : BagProperties -> List Attr -> BagDict -> BagDict
+insertBagWithId default attrList =
+    let
+        bagId =
+            attrList
+                |> List.filterMap
+                    (\attr ->
+                        case attr of
+                            Attr (ID "bagId") (ID v) ->
+                                String.toInt v
+
+                            _ ->
+                                Nothing
+                    )
+                |> List.head
+                |> Maybe.withDefault 666
+
+        assign (Attr key value) bP =
+            case ( key, value ) of
+                ( ID "label", ID v ) ->
+                    { bP | label = v }
+
+                ( ID "hasConvexHull", ID v ) ->
+                    { bP | hasConvexHull = JD.decodeString JD.bool v |> Result.withDefault False }
+
+                ( ID "color", ID v ) ->
+                    { bP | color = Colors.fromHexRGBA v }
+
+                _ ->
+                    bP
+    in
+    Dict.insert bagId (List.foldl assign default attrList)
+
+
 vertexProperties : VertexProperties -> List Attr -> VertexProperties
 vertexProperties default =
     let
         assign (Attr key value) vP =
             case ( key, value ) of
                 ( ID "label", ID v ) ->
-                    { vP
-                        | label =
-                            if v == "____NO_LABEL____" then
-                                ""
-
-                            else
-                                v
-                    }
+                    { vP | label = v }
 
                 ( ID "labelSize", NumeralID v ) ->
                     { vP | labelSize = v }
 
                 ( ID "labelPosition", ID v ) ->
-                    { vP
-                        | labelPosition =
-                            labelPosition v
-                    }
+                    { vP | labelPosition = labelPosition v }
 
                 ( ID "labelColor", ID v ) ->
-                    { vP
-                        | labelColor =
-                            Colors.fromHexRGBA v
-                    }
+                    { vP | labelColor = Colors.fromHexRGBA v }
 
                 ( ID "labelIsVisible", ID v ) ->
                     { vP
                         | labelIsVisible =
-                            JD.decodeString JD.bool v
-                                |> Result.withDefault default.labelIsVisible
+                            JD.decodeString JD.bool v |> Result.withDefault default.labelIsVisible
                     }
 
                 ( ID "position", ID v ) ->
@@ -180,13 +199,9 @@ vertexProperties default =
                 ( ID "inBags", ID v ) ->
                     { vP
                         | inBags =
-                            if v == "____IN_NO_BAG____" then
-                                Set.empty
-
-                            else
-                                Parser.run intList v
-                                    |> Result.map Set.fromList
-                                    |> Result.withDefault default.inBags
+                            v
+                                |> JD.decodeString (JD.map Set.fromList (JD.list JD.int))
+                                |> Result.withDefault default.inBags
                     }
 
                 _ ->
@@ -202,18 +217,6 @@ floatPair =
         |= Parser.float
         |. Parser.spaces
         |= Parser.float
-
-
-intList : Parser (List Int)
-intList =
-    Parser.sequence
-        { start = ""
-        , separator = " "
-        , end = ""
-        , spaces = Parser.spaces
-        , item = Parser.int
-        , trailing = Forbidden -- demand a trailing semi-colon
-        }
 
 
 labelPosition : String -> LabelPosition
@@ -261,14 +264,7 @@ edgeProperties default =
         assign (Attr key value) eP =
             case ( key, value ) of
                 ( ID "label", ID v ) ->
-                    { eP
-                        | label =
-                            if v == "____NO_LABEL____" then
-                                ""
-
-                            else
-                                v
-                    }
+                    { eP | label = v }
 
                 ( ID "labelSize", NumeralID v ) ->
                     { eP | labelSize = v }
