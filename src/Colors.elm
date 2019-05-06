@@ -83,7 +83,7 @@ encode color =
 
 toHexRGBA : Color -> String
 toHexRGBA color =
-    -- See https://www.graphviz.org/doc/info/attrs.html#k:color
+    --  See https://www.graphviz.org/doc/info/attrs.html#k:color
     let
         o =
             El.toRgb color
