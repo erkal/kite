@@ -59,7 +59,7 @@ It behaves similar to most editors, namely:
 
 -}
 
-import Files.UndoListWithSave as ULWS exposing (UndoListWithSave)
+import Files.UndoListWithSave as ULWS exposing (ActionDescription(..), UndoListWithSave)
 import Json.Decode as JD exposing (Decoder, Value)
 import Json.Encode as JE exposing (Value)
 import Set exposing (Set)
@@ -93,11 +93,11 @@ type alias Name =
 -------------
 
 
-encode : (data -> Value) -> Files data -> Value
-encode encodeFileData (Files { before, focused, after }) =
+encode : (data -> String) -> Files data -> Value
+encode fileDataToString (Files { before, focused, after }) =
     let
         enc =
-            encodeFile encodeFileData
+            encodeFile fileDataToString
     in
     JE.object
         [ ( "before", JE.list enc before )
@@ -106,11 +106,11 @@ encode encodeFileData (Files { before, focused, after }) =
         ]
 
 
-encodeFile : (data -> Value) -> File data -> Value
-encodeFile encodeFileData (File f) =
+encodeFile : (data -> String) -> File data -> Value
+encodeFile fileDataToString (File f) =
     JE.object
         [ ( "name", JE.string f.name )
-        , ( "savedData", encodeFileData (ULWS.getSavedState f.uLWS) )
+        , ( "savedData", JE.string (fileDataToString (ULWS.getSavedState f.uLWS)) )
         ]
 
 
@@ -120,11 +120,11 @@ encodeFile encodeFileData (File f) =
 -------------
 
 
-decoder : Decoder data -> Decoder (Files data)
-decoder dataDecoder =
+decoder : (String -> data) -> Decoder (Files data)
+decoder dataFromString =
     let
         dec =
-            fileDecoder dataDecoder
+            fileDecoder dataFromString
 
         setIsOpen b (File f) =
             File { f | isOpen = b }
@@ -142,18 +142,18 @@ decoder dataDecoder =
         (JD.field "after" (JD.list dec))
 
 
-fileDecoder : Decoder data -> Decoder (File data)
-fileDecoder dataDecoder =
+fileDecoder : (String -> data) -> Decoder (File data)
+fileDecoder dataFromString =
     JD.map2
         (\n d ->
             File
                 { name = n
                 , isOpen = False
-                , uLWS = ULWS.fresh d
+                , uLWS = ULWS.fresh (ActionDescription "") d
                 }
         )
         (JD.field "name" JD.string)
-        (JD.field "savedData" dataDecoder)
+        (JD.field "savedData" (JD.map dataFromString JD.string))
 
 
 
@@ -164,15 +164,15 @@ fileDecoder dataDecoder =
 
 {-| This is the only constructor.
 -}
-singleton : Name -> data -> Files data
-singleton name data =
+singleton : Name -> ActionDescription -> data -> Files data
+singleton name actionDescription data =
     Files
         { before = []
         , focused =
             File
                 { name = name
                 , isOpen = True
-                , uLWS = ULWS.fresh data
+                , uLWS = ULWS.fresh actionDescription data
                 }
         , after = []
         }
@@ -188,7 +188,7 @@ newFile name d ((Files { before, focused, after }) as files) =
             File
                 { name = newNameFrom name files
                 , isOpen = True
-                , uLWS = ULWS.fresh d
+                , uLWS = ULWS.fresh (ActionDescription "") d
                 }
         , after = after
         }
@@ -255,9 +255,9 @@ goToInHistory i =
     mapULWS (ULWS.goTo i)
 
 
-new : data -> Files data -> Files data
-new newState =
-    mapULWS (ULWS.new newState)
+new : ActionDescription -> data -> Files data -> Files data
+new actionDescription newState =
+    mapULWS (ULWS.new actionDescription newState)
 
 
 mapPresent : (data -> data) -> Files data -> Files data
@@ -278,7 +278,7 @@ If there is no file before, then the file just after the deleted file gets the f
 
 -}
 delete : Files data -> Files data
-delete ((Files { before, focused, after }) as files) =
+delete ((Files { before, after }) as files) =
     case before of
         x :: xs ->
             Files
@@ -317,7 +317,7 @@ close : Files data -> Files data
 close =
     map
         (\(File f) ->
-            File { f | isOpen = False, uLWS = ULWS.resetToSaved f.uLWS }
+            File { f | isOpen = False, uLWS = ULWS.cleanHistoryAndResetToSaved f.uLWS }
         )
 
 
@@ -392,7 +392,7 @@ lengthPast =
     queryULWS ULWS.lengthPast
 
 
-uLWSVizData : Files data -> List data
+uLWSVizData : Files data -> List ActionDescription
 uLWSVizData =
     queryULWS ULWS.vizData
 

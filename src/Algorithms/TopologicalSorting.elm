@@ -70,7 +70,7 @@ init input =
 
 
 step : Input -> State -> Algorithm.Result State
-step input { edgesLeft, l, s } =
+step _ { edgesLeft, l, s } =
     case pick s of
         Just ( n, restOfS ) ->
             let
@@ -143,7 +143,7 @@ rootNodes adj =
 
         isRoot u =
             allEdges
-                |> Set.filter (\( s, t ) -> t == u)
+                |> Set.filter (\( _, t ) -> t == u)
                 |> Set.isEmpty
     in
     adj |> IntDict.keys |> List.filter isRoot

@@ -2,7 +2,6 @@ module Algorithms.Dijkstra exposing (Distance(..), Input, State, algorithm, next
 
 import Algorithm exposing (Algorithm, Result(..))
 import IntDict exposing (IntDict)
-import Set exposing (Set)
 
 
 algorithm : Algorithm Input State

@@ -5,12 +5,9 @@ module Graph.Force exposing
     , alphaTarget
     , defaultForceState
     , isCompleted
-    , reheat
-    , stop
     , tick
     )
 
-import Dict exposing (Dict)
 import Graph exposing (Edge, Graph, Node, NodeId)
 import Graph.Extra
 import Graph.Force.Gravity as Gravity
@@ -194,16 +191,6 @@ tick (State state) forceGraph =
         |> List.foldl (applyForce newAlpha) forceGraph
         |> Graph.mapNodes applyVelocity
     )
-
-
-reheat : State -> State
-reheat (State config) =
-    State { config | alpha = 1.0 }
-
-
-stop : State -> State
-stop (State config) =
-    State { config | alpha = 0 }
 
 
 alphaTarget : Float -> State -> State

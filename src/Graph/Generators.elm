@@ -1,21 +1,13 @@
 module Graph.Generators exposing (star)
 
 import Graph exposing (Graph, NodeId)
-import IntDict
 import Point2d exposing (Point2d)
-import Set exposing (Set)
 import Vector2d exposing (Vector2d)
 
 
 star :
-    { numberOfLeaves : Int
-    , vertexProperties : n
-    , edgeProperties : e
-    }
-    ->
-        { graph : Graph n e
-        , suggestedLayout : List ( NodeId, Point2d )
-        }
+    { numberOfLeaves : Int, vertexProperties : n, edgeProperties : e }
+    -> { graph : Graph n e, suggestedLayout : List ( NodeId, Point2d ) }
 star { numberOfLeaves, vertexProperties, edgeProperties } =
     let
         vertexList =

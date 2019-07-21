@@ -3,10 +3,9 @@ module Algorithms.TopologicalSorting.API exposing (run)
 import Algorithm
 import Algorithms.TopologicalSorting as TopologicalSorting exposing (Input, State)
 import Colors
-import Dict exposing (Dict)
 import Graph
 import Graph.Extra
-import GraphFile as GF exposing (GraphFile, MyGraph)
+import GraphFile as GF exposing (GraphFile, KiteGraph)
 import IntDict exposing (IntDict)
 import Point2d exposing (Point2d)
 import Set exposing (Set)
@@ -15,20 +14,20 @@ import Set exposing (Set)
 run : GraphFile -> List GraphFile
 run inputGF =
     let
-        runOnMyGraph : MyGraph -> List MyGraph
-        runOnMyGraph inputGraph =
+        runOnKiteGraph : KiteGraph -> List KiteGraph
+        runOnKiteGraph inputGraph =
             inputGraph
                 |> toInputData
                 |> Algorithm.run TopologicalSorting.algorithm
-                |> List.map (toMyGraph inputGraph)
+                |> List.map (toKiteGraph inputGraph)
     in
     inputGF
         |> GF.getGraph
-        |> runOnMyGraph
+        |> runOnKiteGraph
         |> List.map (\g -> GF.setGraph g inputGF)
 
 
-toInputData : MyGraph -> Input
+toInputData : KiteGraph -> Input
 toInputData g =
     let
         ins { from, to } acc =
@@ -48,8 +47,8 @@ toInputData g =
     List.foldr ins init (Graph.edges g)
 
 
-toMyGraph : MyGraph -> State -> MyGraph
-toMyGraph inputGraph { edgesLeft, l, s } =
+toKiteGraph : KiteGraph -> State -> KiteGraph
+toKiteGraph inputGraph { edgesLeft, l, s } =
     let
         n =
             Graph.size inputGraph

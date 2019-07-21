@@ -2,6 +2,7 @@ port module Main exposing (main)
 
 import Algorithms.Dijkstra.API
 import Algorithms.TopologicalSorting.API
+import Animation
 import BoundingBox2d exposing (BoundingBox2d)
 import Browser exposing (Document)
 import Browser.Dom as Dom
@@ -10,23 +11,30 @@ import Circle2d exposing (Circle2d)
 import Colors
 import Dict exposing (Dict)
 import Direction2d exposing (Direction2d)
+import DotLang exposing (Config(..))
 import Element as El exposing (Color, Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events as Events
 import Element.Font as Font
 import Element.Input as Input
-import Element.Keyed
+import File exposing (File)
+import File.Download
+import File.Select as Select
 import Files exposing (Files)
+import Files.UndoListWithSave exposing (ActionDescription(..))
 import Generators.ElmDep as ElmDep
 import Geometry.Svg
 import Graph.Force as Force exposing (Force)
 import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, LabelPosition(..), VertexId, VertexProperties)
-import Html as H exposing (Html, div)
+import GraphFile.DotLang.Decode
+import GraphFile.DotLang.Encode
+import GraphFile.Json.Decode
+import GraphFile.Json.Encode
+import Html as H exposing (Html)
 import Html.Attributes as HA
 import Html.Events as HE
-import Http
-import Icons exposing (icons)
+import Icons
 import IntDict exposing (IntDict)
 import Json.Decode as JD exposing (Decoder, Value)
 import Json.Encode as JE
@@ -40,7 +48,6 @@ import Svg.Events as SE
 import Svg.Keyed
 import Task
 import Time
-import Transition
 import Triangle2d exposing (Triangle2d)
 import Vector2d exposing (Vector2d)
 
@@ -62,8 +69,7 @@ init : Maybe Value -> ( Model, Cmd Msg )
 init maybeValue =
     ( case maybeValue of
         Just value ->
-            initialModel
-                (Result.toMaybe (JD.decodeValue graphFilesDecoder value))
+            initialModel (Result.toMaybe (JD.decodeValue graphFilesDecoder value))
 
         Nothing ->
             initialModel Nothing
@@ -71,17 +77,14 @@ init maybeValue =
     )
 
 
-graphFilesDecoder : Decoder (Files ( String, GraphFile ))
+graphFilesDecoder : Decoder (Files GraphFile)
 graphFilesDecoder =
-    let
-        fileDecoder =
-            JD.map2 Tuple.pair
-                (JD.field "description"
-                    (JD.succeed "Loaded the graph from local storage")
-                )
-                (JD.field "graphFile" GF.decoder)
-    in
-    Files.decoder fileDecoder
+    Files.decoder
+        (DotLang.fromString
+            >> Result.map GraphFile.DotLang.Decode.fromDot
+            -- TODO: This `withDefault` is not good.
+            >> Result.withDefault GF.default
+        )
 
 
 getWindowSize viewPort =
@@ -107,16 +110,9 @@ view m =
     }
 
 
-encodeGraphFiles : Files ( String, GraphFile ) -> Value
-encodeGraphFiles graphFiles =
-    let
-        encodeFileData ( _, graphFile ) =
-            JE.object
-                [ ( "description", JE.null )
-                , ( "graphFile", GF.encode graphFile )
-                ]
-    in
-    Files.encode encodeFileData graphFiles
+encodeGraphFiles : Files GraphFile -> Value
+encodeGraphFiles =
+    Files.encode (GraphFile.DotLang.Encode.toDot >> DotLang.toString)
 
 
 {-| Here, we only handle cases where Cmd is needed.
@@ -124,6 +120,27 @@ encodeGraphFiles graphFiles =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
+        ClickOnImportDotFile ->
+            ( m
+            , Select.file [ "text/vnd.graphviz" ] DotFileSelected
+            )
+
+        DotFileSelected file ->
+            let
+                withName fileContent =
+                    { fileName =
+                        if String.endsWith ".dot" (File.name file) then
+                            String.dropRight 4 (File.name file)
+
+                        else
+                            File.name file
+                    , fileContent = fileContent
+                    }
+            in
+            ( m
+            , Task.perform DotFileLoaded (Task.map withName (File.toString file))
+            )
+
         ClickOnSaveFile ->
             let
                 newFiles =
@@ -131,6 +148,13 @@ update msg m =
             in
             ( { m | files = newFiles }
             , setStorage (JE.encode 4 (encodeGraphFiles newFiles))
+            )
+
+        ClickOnExportDotFile ->
+            ( m
+            , File.Download.string (Files.getName m.files ++ ".dot")
+                "text/vnd.graphviz"
+                (DotLang.toString (GraphFile.DotLang.Encode.toDot (present m)))
             )
 
         FromElmDep elmDepMsg ->
@@ -141,10 +165,7 @@ update msg m =
                 addGraphFileIfDownloadFinished =
                     case ElmDep.finishedDownloadingWith newElmDep of
                         Just l ->
-                            Files.newFile "Elm Dependency"
-                                ( "Created elm module dependency graph"
-                                , ElmDep.toGraphFile l
-                                )
+                            Files.newFile "Elm Dependency" (ElmDep.toGraphFile l)
 
                         Nothing ->
                             identity
@@ -172,14 +193,14 @@ update msg m =
 
 type alias Model =
     { love : Bool
-    , files : Files ( String, GraphFile )
+    , files : Files GraphFile
 
     --
     , distractionFree : Bool
 
     --
     , focusIsOnSomeTextInput :
-        -- This is needed for preventing keypresses to trigger keyboard shortcuts
+        -- This is needed for preventing key presses to trigger keyboard shortcuts
         Bool
 
     --
@@ -257,7 +278,7 @@ type Animation
     | TransitionAnimation
         { startGraph : GraphFile
         , endGraph : GraphFile
-        , transitionState : Transition.State
+        , transitionState : Animation.State
         }
 
 
@@ -319,13 +340,14 @@ type GravityState
     | GravityDragging
 
 
-defaultGraphFiles : Files ( String, GraphFile )
+defaultGraphFiles : Files GraphFile
 defaultGraphFiles =
     Files.singleton "my-first-graph"
-        ( "Started with empty graph", GF.default )
+        (ActionDescription "Started with empty graph")
+        GF.default
 
 
-initialModel : Maybe (Files ( String, GraphFile )) -> Model
+initialModel : Maybe (Files GraphFile) -> Model
 initialModel maybeSavedFiles =
     { love = True
     , files = maybeSavedFiles |> Maybe.withDefault defaultGraphFiles
@@ -416,6 +438,11 @@ initialPan =
 
 type Msg
     = NoOp
+      --
+    | ClickOnExportDotFile
+    | ClickOnImportDotFile
+    | DotFileSelected File
+    | DotFileLoaded { fileName : String, fileContent : String }
       --
     | ForceTick Time.Posix
       --
@@ -593,20 +620,17 @@ stopAnimation m =
 
 present : Model -> GraphFile
 present m =
-    Tuple.second (Files.present m.files)
+    Files.present m.files
 
 
 new : GraphFile -> String -> Model -> Model
-new newGF description m =
-    { m | files = m.files |> Files.new ( description, newGF ) }
+new newGF str m =
+    { m | files = m.files |> Files.new (ActionDescription str) newGF }
 
 
 setPresentWithoutrecording : GraphFile -> Model -> Model
 setPresentWithoutrecording newGF m =
-    { m
-        | files =
-            m.files |> Files.mapPresent (Tuple.mapSecond (always newGF))
-    }
+    { m | files = m.files |> Files.mapPresent (always newGF) }
 
 
 withNewGravityCenter : Model -> GraphFile
@@ -629,6 +653,28 @@ updateHelper msg m =
     case msg of
         NoOp ->
             m
+
+        ClickOnExportDotFile ->
+            -- is handled in `update`
+            m
+
+        ClickOnImportDotFile ->
+            -- is handled in `update`
+            m
+
+        DotFileSelected file ->
+            -- is handled in `update`
+            m
+
+        DotFileLoaded { fileName, fileContent } ->
+            let
+                gF =
+                    fileContent
+                        |> DotLang.fromString
+                        |> Result.map GraphFile.DotLang.Decode.fromDot
+                        |> Result.withDefault GF.default
+            in
+            { m | files = Files.newFile fileName gF m.files }
 
         ForceTick t ->
             case m.animation of
@@ -670,7 +716,7 @@ updateHelper msg m =
         TransitionTimeDelta timeDelta ->
             case m.animation of
                 TransitionAnimation tA ->
-                    if Transition.hasFinished tA.transitionState then
+                    if Animation.hasFinished tA.transitionState then
                         { m | animation = NoAnimation }
 
                     else
@@ -679,7 +725,7 @@ updateHelper msg m =
                                 TransitionAnimation
                                     { tA
                                         | transitionState =
-                                            Transition.update timeDelta
+                                            Animation.update timeDelta
                                                 tA.transitionState
                                     }
                         }
@@ -970,8 +1016,7 @@ updateHelper msg m =
 
                 Gravity GravityDragging ->
                     { m | selectedTool = Gravity GravityIdle }
-                        |> new (withNewGravityCenter m)
-                            "Changed vertex gravity center"
+                        |> new (withNewGravityCenter m) "Changed vertex gravity center"
 
                 _ ->
                     m
@@ -1030,8 +1075,7 @@ updateHelper msg m =
                 Gravity GravityIdle ->
                     { m | selectedTool = Gravity GravityDragging }
                         |> reheatForce
-                        |> new (withNewGravityCenter m)
-                            "Changed vertex gravity center"
+                        |> new (withNewGravityCenter m) "Changed vertex gravity center"
 
                 _ ->
                     m
@@ -1250,14 +1294,7 @@ updateHelper msg m =
         InputBagLabel bagId str ->
             let
                 updateLabel bag =
-                    { bag
-                        | label =
-                            if str == "" then
-                                Nothing
-
-                            else
-                                Just str
-                    }
+                    { bag | label = str }
 
                 newGF =
                     present m |> GF.updateBag bagId updateLabel
@@ -1439,12 +1476,7 @@ updateHelper msg m =
             let
                 updateLabel v =
                     { v
-                        | label =
-                            if str == "" then
-                                Nothing
-
-                            else
-                                Just str
+                        | label = str
                     }
 
                 newGF =
@@ -1511,14 +1543,7 @@ updateHelper msg m =
         InputEdgeLabel str ->
             let
                 updateLabel v =
-                    { v
-                        | label =
-                            if str == "" then
-                                Nothing
-
-                            else
-                                Just str
-                    }
+                    { v | label = str }
 
                 newGF =
                     if Set.isEmpty m.selectedEdges then
@@ -1774,12 +1799,7 @@ updateHelper msg m =
             m |> new newGF "Added a generated graph"
 
         ClickOnNewFile ->
-            { m
-                | files =
-                    Files.newFile "New Graph"
-                        ( "Started with empty graph", GF.default )
-                        m.files
-            }
+            { m | files = Files.newFile "New Graph" GF.default m.files }
                 |> stopAnimation
 
         ClickOnDuplicateFile ->
@@ -1804,8 +1824,8 @@ updateHelper msg m =
                 , animation =
                     TransitionAnimation
                         { startGraph = present m
-                        , endGraph = Files.present newFiles |> Tuple.second
-                        , transitionState = Transition.initialState
+                        , endGraph = Files.present newFiles
+                        , transitionState = Animation.initialState
                         }
             }
 
@@ -1819,8 +1839,8 @@ updateHelper msg m =
                 , animation =
                     TransitionAnimation
                         { startGraph = present m
-                        , endGraph = Files.present newFiles |> Tuple.second
-                        , transitionState = Transition.initialState
+                        , endGraph = Files.present newFiles
+                        , transitionState = Animation.initialState
                         }
             }
 
@@ -1834,8 +1854,8 @@ updateHelper msg m =
                 , animation =
                     TransitionAnimation
                         { startGraph = present m
-                        , endGraph = Files.present newFiles |> Tuple.second
-                        , transitionState = Transition.initialState
+                        , endGraph = Files.present newFiles
+                        , transitionState = Animation.initialState
                         }
             }
 
@@ -1846,15 +1866,7 @@ updateHelper msg m =
                         |> Algorithms.Dijkstra.API.run
                         |> List.indexedMap Tuple.pair
                         |> List.foldl
-                            (\( i, gF ) ->
-                                Files.newFile
-                                    ("Dijsktra step-" ++ String.fromInt i)
-                                    ( "Generated as step "
-                                        ++ String.fromInt i
-                                        ++ " of Dijsktra's Algorithm."
-                                    , gF
-                                    )
-                            )
+                            (\( i, gF ) -> Files.newFile ("Dijsktra step-" ++ String.fromInt i) gF)
                             m.files
                 , selectedMode = GraphsFolder
             }
@@ -1866,15 +1878,7 @@ updateHelper msg m =
                         |> Algorithms.TopologicalSorting.API.run
                         |> List.indexedMap Tuple.pair
                         |> List.foldl
-                            (\( i, gF ) ->
-                                Files.newFile
-                                    ("Topological Sort step-" ++ String.fromInt i)
-                                    ( "Generated as step "
-                                        ++ String.fromInt i
-                                        ++ " of Topological Sorting Algorithm."
-                                    , gF
-                                    )
-                            )
+                            (\( i, gF ) -> Files.newFile ("Topological Sort step-" ++ String.fromInt i) gF)
                             m.files
                 , selectedMode = GraphsFolder
             }
@@ -2047,29 +2051,12 @@ vertexIdToString =
     String.fromInt
 
 
-bagIdToString : BagId -> String
-bagIdToString =
-    String.fromInt
-
-
 vertexIdsToString : List VertexId -> String
 vertexIdsToString vs =
     let
         inside =
             vs
                 |> List.map (\vertexId -> vertexIdToString vertexId ++ ", ")
-                |> String.concat
-                |> String.dropRight 2
-    in
-    "{ " ++ inside ++ " }"
-
-
-edgeIdsToString : List EdgeId -> String
-edgeIdsToString es =
-    let
-        inside =
-            es
-                |> List.map (\edgeId -> edgeIdToString edgeId ++ ", ")
                 |> String.concat
                 |> String.dropRight 2
     in
@@ -2643,16 +2630,15 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ id, label } ->
                                 cell id <|
-                                    case label.label of
-                                        Just l ->
-                                            El.text l
+                                    if label.label == "" then
+                                        El.el
+                                            [ El.alpha 0.2
+                                            , El.width (El.px 40)
+                                            ]
+                                            (El.text "no label")
 
-                                        Nothing ->
-                                            El.el
-                                                [ El.alpha 0.2
-                                                , El.width (El.px 40)
-                                                ]
-                                                (El.text "no label")
+                                    else
+                                        El.text label.label
                       }
                     , { header = columnHeader "Fix"
                       , width = El.px 20
@@ -2790,16 +2776,15 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                       , view =
                             \{ from, to, label } ->
                                 cell ( from, to ) <|
-                                    case label.label of
-                                        Just l ->
-                                            El.text l
+                                    if label.label == "" then
+                                        El.el
+                                            [ El.alpha 0.2
+                                            , El.width El.fill
+                                            ]
+                                            (El.text "no label")
 
-                                        Nothing ->
-                                            El.el
-                                                [ El.alpha 0.2
-                                                , El.width El.fill
-                                                ]
-                                                (El.text "no label")
+                                    else
+                                        El.text label.label
                       }
                     , { header = columnHeader "Str"
                       , width = El.px 30
@@ -3040,8 +3025,6 @@ leftBarContentForGraphGenerators m =
                         { labelText = "Access token (optional)"
                         , labelWidth = 110
                         , inputWidth = 100
-
-                        --, text = m.elmDep.repoNameInput
                         , text = m.elmDep.token
                         , onChange = ElmDep.ChangeToken >> FromElmDep
                         }
@@ -3326,6 +3309,18 @@ toolButtons m =
             ]
             [ oneClickButtonGroup
                 [ oneClickButton
+                    { title = "Import"
+                    , iconPath = Icons.icons.importFile
+                    , onClickMsg = ClickOnImportDotFile
+                    , disabled = False
+                    }
+                , oneClickButton
+                    { title = "Export"
+                    , iconPath = Icons.icons.exportFile
+                    , onClickMsg = ClickOnExportDotFile
+                    , disabled = False
+                    }
+                , oneClickButton
                     { title = "Save"
                     , iconPath = Icons.icons.save
                     , onClickMsg = ClickOnSaveFile
@@ -3709,8 +3704,8 @@ history m =
             else
                 El.alpha 0.3 :: commonAttributes i
 
-        item i ( descriptionText, _ ) =
-            El.el (attributes i) (El.text descriptionText)
+        item i (ActionDescription actionDescription) =
+            El.el (attributes i) (El.text actionDescription)
 
         itemList =
             m.files
@@ -3846,16 +3841,15 @@ bags m =
                       , view =
                             \{ bagId, bagProperties } ->
                                 cell bagId <|
-                                    case bagProperties.label of
-                                        Just l ->
-                                            El.text l
+                                    if bagProperties.label == "" then
+                                        El.el
+                                            [ El.alpha 0.2
+                                            , El.width El.fill
+                                            ]
+                                            (El.text "no label")
 
-                                        Nothing ->
-                                            El.el
-                                                [ El.alpha 0.2
-                                                , El.width El.fill
-                                                ]
-                                                (El.text "no label")
+                                    else
+                                        El.text bagProperties.label
                       }
                     , { header = columnHeader "Elements"
                       , width = El.px 60
@@ -3940,7 +3934,6 @@ bags m =
                             , text =
                                 GF.getBagProperties idOfTheSelectedBag (present m)
                                     |> Maybe.map .label
-                                    |> Maybe.withDefault Nothing
                                     |> Maybe.withDefault ""
                             , onChange = InputBagLabel idOfTheSelectedBag
                             }
@@ -4066,15 +4059,11 @@ vertexPreferences m =
                             present m
                                 |> GF.getDefaultVertexProperties
                                 |> .label
-                                |> Maybe.withDefault ""
 
                         else
-                            case present m |> GF.getCommonVertexProperty m.selectedVertices .label of
-                                Just (Just l) ->
-                                    l
-
-                                _ ->
-                                    ""
+                            present m
+                                |> GF.getCommonVertexProperty m.selectedVertices .label
+                                |> Maybe.withDefault ""
                     , onChange = InputVertexLabel
                     }
                 , checkbox
@@ -4342,15 +4331,11 @@ edgePreferences m =
                             present m
                                 |> GF.getDefaultEdgeProperties
                                 |> .label
-                                |> Maybe.withDefault ""
 
                         else
-                            case present m |> GF.getCommonEdgeProperty m.selectedEdges .label of
-                                Just (Just l) ->
-                                    l
-
-                                _ ->
-                                    ""
+                            present m
+                                |> GF.getCommonEdgeProperty m.selectedEdges .label
+                                |> Maybe.withDefault ""
                     , onChange = InputEdgeLabel
                     }
                 , checkbox
@@ -4489,8 +4474,8 @@ mainSvg m =
             m.windowSize.height
 
         svgViewBoxFromPanAndZoom pan zoom =
-            [ Point2d.xCoordinate m.pan
-            , Point2d.yCoordinate m.pan
+            [ Point2d.xCoordinate pan
+            , Point2d.yCoordinate pan
             , toFloat mainSvgWidth / zoom
             , toFloat mainSvgHeight / zoom
             ]
@@ -4502,7 +4487,7 @@ mainSvg m =
             case m.animation of
                 TransitionAnimation { startGraph, endGraph, transitionState } ->
                     GF.transitionGraphFile
-                        (Transition.elapsedTimeRatio transitionState)
+                        (Animation.elapsedTimeRatio transitionState)
                         { start = startGraph
                         , end = endGraph
                         }
@@ -4862,14 +4847,7 @@ viewEdges graphFile =
                                 , SA.fontSize (String.fromFloat label.labelSize)
                                 , SA.fill (Colors.toString label.labelColor)
                                 ]
-                                [ S.text <|
-                                    case label.label of
-                                        Just l ->
-                                            l
-
-                                        Nothing ->
-                                            ""
-                                ]
+                                [ S.text label.label ]
 
                         edgeLabel =
                             if label.labelIsVisible then
@@ -4997,13 +4975,7 @@ viewVertices graphFile =
                             , SA.x (String.fromFloat labelX)
                             , SA.y (String.fromFloat labelY)
                             ]
-                            [ S.text <|
-                                case label.label of
-                                    Just l ->
-                                        l
-
-                                    Nothing ->
-                                        ""
+                            [ S.text label.label
                             ]
 
                     else

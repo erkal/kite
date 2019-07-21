@@ -5,9 +5,8 @@ import Char
 import Colors
 import Dict exposing (Dict)
 import Graph exposing (Edge, Node)
-import Graph.Extra
 import Graph.Layout
-import GraphFile as GF exposing (EdgeProperties, GraphFile, MyGraph, VertexId, VertexProperties)
+import GraphFile as GF exposing (EdgeProperties, GraphFile, KiteGraph, VertexId, VertexProperties)
 import Http
 import Json.Decode as JD exposing (Decoder, Value)
 import Parser exposing ((|.), (|=), Parser)
@@ -103,29 +102,29 @@ fromRawToElmFile { path, raw } =
                 ]
                 |. Parser.spaces
     in
-        ElmFile
-            { path = path
-            , maybeModuleName =
-                let
-                    moduleNameParseResult =
-                        Parser.run (modulePrefixParser |= moduleNameParser)
-                in
-                    lines
-                        |> List.filterMap (moduleNameParseResult >> Result.toMaybe)
-                        |> List.head
-            , dependencies =
-                lines
-                    |> List.filterMap
-                        (Parser.run
-                            (Parser.succeed identity
-                                |. Parser.keyword "import"
-                                |. Parser.spaces
-                                |= moduleNameParser
-                            )
-                            >> Result.toMaybe
+    ElmFile
+        { path = path
+        , maybeModuleName =
+            let
+                moduleNameParseResult =
+                    Parser.run (modulePrefixParser |= moduleNameParser)
+            in
+            lines
+                |> List.filterMap (moduleNameParseResult >> Result.toMaybe)
+                |> List.head
+        , dependencies =
+            lines
+                |> List.filterMap
+                    (Parser.run
+                        (Parser.succeed identity
+                            |. Parser.keyword "import"
+                            |. Parser.spaces
+                            |= moduleNameParser
                         )
-            , loc = List.length lines
-            }
+                        >> Result.toMaybe
+                    )
+        , loc = List.length lines
+        }
 
 
 getPathsOfElmFiles : Model -> String -> Cmd Msg
@@ -137,6 +136,7 @@ getPathsOfElmFiles m token =
                 ++ "/git/trees/master?recursive=1"
                 ++ (if String.length token > 0 then
                         "&access_token=" ++ token
+
                     else
                         ""
                    )
@@ -148,15 +148,6 @@ pathsOfElmFilesDecoder : Decoder (List String)
 pathsOfElmFilesDecoder =
     JD.field "tree" (JD.list (JD.field "path" JD.string))
         |> JD.map (List.filter (String.endsWith ".elm"))
-
-
-getFileNameFromPath : String -> Name
-getFileNameFromPath path =
-    path
-        |> String.split "/"
-        |> List.reverse
-        |> List.head
-        |> Maybe.withDefault "ERROR reading filename from path"
 
 
 type Msg
@@ -173,6 +164,7 @@ getGitHubFile owner repo token filePath =
         , headers =
             if String.length token > 0 then
                 [ Http.header "Authorization" ("Token " ++ token) ]
+
             else
                 []
         , url =
@@ -288,32 +280,32 @@ update msg m =
                                     newlyDownloadedFile
                                         :: old.downloadedElmFiles
                             in
-                                case old.waitingPaths of
-                                    p :: ps ->
-                                        splitOwnerRepo m
-                                            (\owner repo ->
-                                                ( { m
-                                                    | state =
-                                                        Downloading
-                                                            { downloadedElmFiles = newDownloadedElmFiles
-                                                            , pathToDownload = p
-                                                            , waitingPaths = ps
-                                                            }
-                                                  }
-                                                , getGitHubFile owner
-                                                    repo
-                                                    m.token
-                                                    p
-                                                )
+                            case old.waitingPaths of
+                                p :: ps ->
+                                    splitOwnerRepo m
+                                        (\owner repo ->
+                                            ( { m
+                                                | state =
+                                                    Downloading
+                                                        { downloadedElmFiles = newDownloadedElmFiles
+                                                        , pathToDownload = p
+                                                        , waitingPaths = ps
+                                                        }
+                                              }
+                                            , getGitHubFile owner
+                                                repo
+                                                m.token
+                                                p
                                             )
-
-                                    [] ->
-                                        ( { m
-                                            | state =
-                                                DownloadFinished newDownloadedElmFiles
-                                          }
-                                        , Cmd.none
                                         )
+
+                                [] ->
+                                    ( { m
+                                        | state =
+                                            DownloadFinished newDownloadedElmFiles
+                                      }
+                                    , Cmd.none
+                                    )
 
                         _ ->
                             ( { m | state = Error "" }
@@ -330,10 +322,10 @@ toGraphFile : List ElmFile -> GraphFile
 toGraphFile listOfElmFiles =
     let
         dVP =
-            GF.defaultVertexProp
+            GF.kitesDefaultVertexProp
 
         dEP =
-            GF.defaultEdgeProp
+            GF.kitesDefaultEdgeProp
 
         idDict : Dict String VertexId
         idDict =
@@ -356,7 +348,7 @@ toGraphFile listOfElmFiles =
         handleElmFile ((ElmFile { loc, dependencies }) as elmFile) =
             ( Node (safeGetId (moduleNameOrPath elmFile))
                 { dVP
-                    | label = Just (moduleNameOrPath elmFile)
+                    | label = moduleNameOrPath elmFile
                     , radius = 0.5 * sqrt (toFloat loc)
                     , color = Colors.blue
                 }

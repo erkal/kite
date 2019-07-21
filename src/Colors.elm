@@ -6,6 +6,7 @@ module Colors exposing
     , decoder
     , editedFileName
     , encode
+    , fromHexRGBA
     , gray
     , highlightPink
     , icon
@@ -32,6 +33,7 @@ module Colors exposing
     , selectorStroke
     , sliderThumb
     , svgLine
+    , toHexRGBA
     , toString
     , turquoise
     , vertexAndEdgeColors
@@ -40,6 +42,7 @@ module Colors exposing
     )
 
 import Element as El exposing (Color, Element)
+import Hex
 import Json.Decode as JD exposing (Decoder, Value)
 import Json.Encode as JE exposing (Value)
 
@@ -78,6 +81,19 @@ encode color =
         ]
 
 
+toHexRGBA : Color -> String
+toHexRGBA color =
+    --  See https://www.graphviz.org/doc/info/attrs.html#k:color
+    let
+        o =
+            El.toRgb color
+
+        hex num =
+            Hex.toString (round (num * 255))
+    in
+    "#" ++ hex o.red ++ hex o.green ++ hex o.blue ++ hex o.alpha
+
+
 
 -------------
 -- Decoder --
@@ -91,6 +107,24 @@ decoder =
         (JD.field "green" JD.float)
         (JD.field "blue" JD.float)
         (JD.field "alpha" JD.float)
+
+
+fromHexRGBA : String -> Color
+fromHexRGBA hexRGBA =
+    let
+        r =
+            hexRGBA |> String.slice 1 3 |> Hex.fromString |> Result.withDefault 0
+
+        g =
+            hexRGBA |> String.slice 3 5 |> Hex.fromString |> Result.withDefault 0
+
+        b =
+            hexRGBA |> String.slice 5 7 |> Hex.fromString |> Result.withDefault 0
+
+        a =
+            hexRGBA |> String.slice 7 9 |> Hex.fromString |> Result.withDefault 255 |> toFloat |> (/) 255
+    in
+    El.rgba255 r g b a
 
 
 

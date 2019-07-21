@@ -1,12 +1,13 @@
 module Files.UndoListWithSave exposing
     ( UndoListWithSave
     , fresh
-    , undo, redo, new, setPresent, mapPresent
-    , getSavedState, savePresent, resetToSaved
+    , undo, redo, new, mapPresent
+    , getSavedState, savePresent
     , presentIsTheLastSaved
     , present, hasPast, lengthPast, hasFuture
     , goTo
     , vizData
+    , ActionDescription(..), cleanHistoryAndResetToSaved
     )
 
 {-| UndoList Data Structure keeping also track of the last saved state.
@@ -59,14 +60,23 @@ The terminology of functions is adapted to [elm-community/undo-redo](https://pac
 import UndoList as UL exposing (UndoList)
 
 
-{-| Note that the last saved state can lie in the past, present or in the future, or it can be lost. The latter happens because the future gets removed by `UndoList.new`.
+{-|
+
+     Note that the last saved state can lie in the past, present or in the future, or it can be lost.
+      The latter happens because the future gets removed by `UndoList.new`.
+
 -}
-type UndoListWithSave state
+type UndoListWithSave a
     = UndoListWithSave
         { savedAt : Maybe Int
-        , savedState : state
-        , uL : UndoList state
+        , savedState : a
+        , uL : UndoList a
+        , uLForActionDescriptions : UndoList ActionDescription
         }
+
+
+type ActionDescription
+    = ActionDescription String
 
 
 
@@ -76,12 +86,15 @@ type UndoListWithSave state
 
 
 mapUL : (UndoList a -> UndoList a) -> UndoListWithSave a -> UndoListWithSave a
-mapUL up (UndoListWithSave { savedAt, savedState, uL }) =
+mapUL up (UndoListWithSave p) =
     UndoListWithSave
-        { savedAt = savedAt
-        , savedState = savedState
-        , uL = up uL
-        }
+        { p | uL = up p.uL }
+
+
+mapULForActionDescriptions : (UndoList ActionDescription -> UndoList ActionDescription) -> UndoListWithSave a -> UndoListWithSave a
+mapULForActionDescriptions up (UndoListWithSave p) =
+    UndoListWithSave
+        { p | uLForActionDescriptions = up p.uLForActionDescriptions }
 
 
 goToHelper : Int -> UndoList a -> UndoList a
@@ -107,12 +120,13 @@ goToHelper i uL =
 -----------------
 
 
-fresh : a -> UndoListWithSave a
-fresh state =
+fresh : ActionDescription -> a -> UndoListWithSave a
+fresh actionDescription state =
     UndoListWithSave
         { savedAt = Just 0
         , savedState = state
         , uL = UL.fresh state
+        , uLForActionDescriptions = UL.fresh actionDescription
         }
 
 
@@ -124,47 +138,43 @@ fresh state =
 
 undo : UndoListWithSave a -> UndoListWithSave a
 undo =
-    mapUL UL.undo
+    mapUL UL.undo >> mapULForActionDescriptions UL.undo
 
 
 redo : UndoListWithSave a -> UndoListWithSave a
 redo =
-    mapUL UL.redo
+    mapUL UL.redo >> mapULForActionDescriptions UL.redo
 
 
 {-| Saved State Index gets lost if the saved state lies in the future!
 -}
-new : a -> UndoListWithSave a -> UndoListWithSave a
-new state (UndoListWithSave { savedAt, savedState, uL }) =
+new : ActionDescription -> a -> UndoListWithSave a -> UndoListWithSave a
+new actionDescription state (UndoListWithSave p) =
     UndoListWithSave
-        { savedAt =
-            let
-                savedStateLiesInTheFuture =
-                    case savedAt of
-                        Nothing ->
-                            False
+        { p
+            | savedAt =
+                let
+                    savedStateLiesInTheFuture =
+                        case p.savedAt of
+                            Nothing ->
+                                False
 
-                        Just i ->
-                            i > UL.lengthPast uL
-            in
-            if savedStateLiesInTheFuture then
-                Nothing
+                            Just i ->
+                                i > UL.lengthPast p.uL
+                in
+                if savedStateLiesInTheFuture then
+                    Nothing
 
-            else
-                savedAt
-        , savedState = savedState
-        , uL = UL.new state uL
+                else
+                    p.savedAt
+            , uL = UL.new state p.uL
+            , uLForActionDescriptions = UL.new actionDescription p.uLForActionDescriptions
         }
 
 
 mapPresent : (a -> a) -> UndoListWithSave a -> UndoListWithSave a
 mapPresent up =
     mapUL (UL.mapPresent up)
-
-
-setPresent : a -> UndoListWithSave a -> UndoListWithSave a
-setPresent newState =
-    mapPresent (always newState)
 
 
 
@@ -174,22 +184,22 @@ setPresent newState =
 
 
 savePresent : UndoListWithSave a -> UndoListWithSave a
-savePresent (UndoListWithSave { savedAt, savedState, uL }) =
+savePresent (UndoListWithSave p) =
     UndoListWithSave
-        { savedAt = Just (UL.lengthPast uL)
-        , savedState = uL.present
-        , uL = uL
+        { p
+            | savedAt = Just (UL.lengthPast p.uL)
+            , savedState = p.uL.present
         }
 
 
-resetToSaved : UndoListWithSave a -> UndoListWithSave a
-resetToSaved (UndoListWithSave { savedState }) =
-    fresh savedState
+cleanHistoryAndResetToSaved : UndoListWithSave a -> UndoListWithSave a
+cleanHistoryAndResetToSaved (UndoListWithSave p) =
+    fresh (ActionDescription "") p.savedState
 
 
 getSavedState : UndoListWithSave a -> a
-getSavedState (UndoListWithSave { savedState }) =
-    savedState
+getSavedState (UndoListWithSave p) =
+    p.savedState
 
 
 
@@ -201,10 +211,10 @@ getSavedState (UndoListWithSave { savedState }) =
 {-| This can be used in order to mark in the GUI, whether a file has changed after the last save.
 -}
 presentIsTheLastSaved : UndoListWithSave a -> Bool
-presentIsTheLastSaved (UndoListWithSave { savedAt, uL }) =
-    case savedAt of
+presentIsTheLastSaved (UndoListWithSave p) =
+    case p.savedAt of
         Just i ->
-            i == UL.lengthPast uL
+            i == UL.lengthPast p.uL
 
         Nothing ->
             False
@@ -217,29 +227,29 @@ presentIsTheLastSaved (UndoListWithSave { savedAt, uL }) =
 
 
 present : UndoListWithSave a -> a
-present (UndoListWithSave { uL }) =
-    uL.present
+present (UndoListWithSave p) =
+    p.uL.present
 
 
 {-| To determine whether the undo button should be disabled.
 -}
 hasPast : UndoListWithSave a -> Bool
-hasPast (UndoListWithSave { uL }) =
-    UL.hasPast uL
+hasPast (UndoListWithSave p) =
+    UL.hasPast p.uL
 
 
 {-| To determine whether the undo button should be disabled.
 -}
 lengthPast : UndoListWithSave a -> Int
-lengthPast (UndoListWithSave { uL }) =
-    UL.lengthPast uL
+lengthPast (UndoListWithSave p) =
+    UL.lengthPast p.uL
 
 
 {-| To determine whether the redo button should be disabled.
 -}
 hasFuture : UndoListWithSave a -> Bool
-hasFuture (UndoListWithSave { uL }) =
-    UL.hasFuture uL
+hasFuture (UndoListWithSave p) =
+    UL.hasFuture p.uL
 
 
 
@@ -252,7 +262,7 @@ hasFuture (UndoListWithSave { uL }) =
 -}
 goTo : Int -> UndoListWithSave a -> UndoListWithSave a
 goTo i =
-    mapUL (goToHelper i)
+    mapUL (goToHelper i) >> mapULForActionDescriptions (goToHelper i)
 
 
 
@@ -261,6 +271,6 @@ goTo i =
 -----------------
 
 
-vizData : UndoListWithSave a -> List a
-vizData (UndoListWithSave { uL }) =
-    uL |> UL.toList
+vizData : UndoListWithSave a -> List ActionDescription
+vizData (UndoListWithSave p) =
+    p.uLForActionDescriptions |> UL.toList
