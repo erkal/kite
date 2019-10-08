@@ -433,16 +433,22 @@ vizData (Files { before, focused, after }) =
 ---------------
 
 
+queryULWS : (UndoListWithSave data -> a) -> Files data -> a
 queryULWS q (Files { focused }) =
     focused
         |> (\(File f) -> f.uLWS)
         |> q
 
 
+mapULWS :
+    (UndoListWithSave data -> UndoListWithSave data)
+    -> Files data
+    -> Files data
 mapULWS up =
     map (\(File f) -> File { f | uLWS = up f.uLWS })
 
 
+map : (File data -> File data) -> Files data -> Files data
 map up (Files { before, focused, after }) =
     Files
         { before = before

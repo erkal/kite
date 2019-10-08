@@ -85,6 +85,7 @@ graphFilesDecoder =
         )
 
 
+getWindowSize : Dom.Viewport -> { width : Int, height : Int }
 getWindowSize viewPort =
     { width = round viewPort.scene.width
     , height = round viewPort.scene.height
@@ -423,6 +424,7 @@ initialModel maybeSavedFiles =
     }
 
 
+initialPan : Point2d
 initialPan =
     Point2d.fromCoordinates
         ( -layoutParams.leftStripeWidth - layoutParams.leftBarWidth - 50
@@ -2088,6 +2090,7 @@ viewHelper m =
             (guiColumns m)
 
 
+guiColumns : Model -> List (Element Msg)
 guiColumns m =
     let
         onlyYinYangInsteadOfLeftStripe =
@@ -2518,6 +2521,7 @@ columnHeader headerText =
         (El.text headerText)
 
 
+commonCellProperties : List (El.Attribute msg)
 commonCellProperties =
     [ El.padding 2
     , El.height (El.px 16)
@@ -3435,6 +3439,7 @@ rightBar m =
         ]
 
 
+labelAttr : Int -> List (El.Attribute msg)
 labelAttr labelWidth =
     [ El.centerY
     , El.width (El.px labelWidth)
@@ -4405,6 +4410,7 @@ wheelDeltaY =
     JD.field "deltaY" JD.int
 
 
+emptySvgElement : Svg msg
 emptySvgElement =
     S.g [] []
 
