@@ -355,17 +355,14 @@ toGraphFile listOfElmFiles =
             , dependencies
                 |> List.filterMap
                     (\importedModule ->
-                        case Dict.get importedModule idDict of
-                            Just j ->
-                                Just
-                                    (Edge
+                        Dict.get importedModule idDict
+                            |> Maybe.map
+                                (\j ->
+                                    Edge
                                         (safeGetId (moduleNameOrPath elmFile))
                                         j
                                         { dEP | color = Colors.purple }
-                                    )
-
-                            Nothing ->
-                                Nothing
+                                )
                     )
             )
 
