@@ -662,7 +662,7 @@ updateHelper msg m =
             -- is handled in `update`
             m
 
-        DotFileSelected file ->
+        DotFileSelected _ ->
             -- is handled in `update`
             m
 
@@ -2831,7 +2831,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     , { header = columnHeader " "
                       , width = El.px 8
                       , view =
-                            \{ from, to, label } ->
+                            \{ from, to } ->
                                 cell ( from, to ) <|
                                     El.el
                                         [ El.width El.fill
@@ -2848,7 +2848,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     , { header = columnHeader " "
                       , width = El.px 8
                       , view =
-                            \{ from, to, label } ->
+                            \{ from, to } ->
                                 cell ( from, to ) <|
                                     El.el
                                         [ El.width El.fill
@@ -2896,7 +2896,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
 
 
 leftBarContentForGraphOperations : Model -> Element Msg
-leftBarContentForGraphOperations m =
+leftBarContentForGraphOperations _ =
     menu
         { headerText = "Graph Operations (coming soon)"
         , isOn = True
@@ -2907,7 +2907,7 @@ leftBarContentForGraphOperations m =
 
 
 leftBarContentForGraphQueries : Model -> Element Msg
-leftBarContentForGraphQueries m =
+leftBarContentForGraphQueries _ =
     menu
         { headerText = "Graph Queries (coming soon)"
         , isOn = True
@@ -3106,7 +3106,7 @@ runButton msg =
 
 
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
-leftBarContentForAlgorithmVisualizations m =
+leftBarContentForAlgorithmVisualizations _ =
     El.column []
         [ menu
             { headerText = "Dijsktra's Shortest Path"
@@ -3179,7 +3179,7 @@ leftBarContentForAlgorithmVisualizations m =
 
 
 leftBarContentForGamesOnGraphs : Model -> Element Msg
-leftBarContentForGamesOnGraphs m =
+leftBarContentForGamesOnGraphs _ =
     menu
         { headerText = "Games on Graphs (coming soon)"
         , isOn = True
@@ -3190,7 +3190,7 @@ leftBarContentForGamesOnGraphs m =
 
 
 leftBarContentForPreferences : Model -> Element Msg
-leftBarContentForPreferences m =
+leftBarContentForPreferences _ =
     menu
         { headerText = "Preferences (coming soon)"
         , isOn = True
@@ -3857,7 +3857,7 @@ bags m =
                     , { header = columnHeader "Elements"
                       , width = El.px 60
                       , view =
-                            \{ bagId, bagProperties } ->
+                            \{ bagId } ->
                                 cell bagId <|
                                     El.text
                                         (present m
@@ -4531,7 +4531,7 @@ maybeGravityLines tool graphFile =
     case tool of
         Gravity _ ->
             let
-                viewGravityLine { id, label } =
+                viewGravityLine { label } =
                     Geometry.Svg.lineSegment2d
                         [ SA.strokeWidth "2"
                         , SA.stroke (Colors.toString Colors.highlightPink)
