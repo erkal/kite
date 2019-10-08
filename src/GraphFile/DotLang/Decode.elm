@@ -3,13 +3,13 @@ module GraphFile.DotLang.Decode exposing (fromDot)
 import Colors
 import Dict
 import DotLang exposing (Attr(..), AttrStmtType(..), Dot(..), EdgeRHS(..), ID(..), NodeId(..), Stmt(..))
-import Graph exposing (Node)
-import GraphFile as GF exposing (Bag, BagDict, BagId, BagProperties, EdgeProperties, GraphFile, KiteGraph, LabelPosition(..), VertexProperties)
-import Json.Decode as JD exposing (Error)
+import Graph
+import GraphFile as GF exposing (BagDict, BagProperties, EdgeProperties, GraphFile, LabelPosition(..), VertexProperties)
+import Json.Decode as JD
 import Parser exposing ((|.), (|=), Parser, Trailing(..))
-import Point2d exposing (Point2d)
+import Point2d
 import Set
-import Vector2d exposing (Vector2d)
+import Vector2d
 
 
 fromDot : Dot -> GraphFile

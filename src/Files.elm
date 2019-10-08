@@ -62,7 +62,7 @@ It behaves similar to most editors, namely:
 import Files.UndoListWithSave as ULWS exposing (ActionDescription(..), UndoListWithSave)
 import Json.Decode as JD exposing (Decoder, Value)
 import Json.Encode as JE exposing (Value)
-import Set exposing (Set)
+import Set
 
 
 {-| Main data structure.
