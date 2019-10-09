@@ -2,7 +2,7 @@ module Graph.Generators exposing (star)
 
 import Graph exposing (Graph, NodeId)
 import Point2d exposing (Point2d)
-import Vector2d exposing (Vector2d)
+import Vector2d
 
 
 star :

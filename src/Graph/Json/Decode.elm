@@ -1,7 +1,7 @@
 module Graph.Json.Decode exposing (decode)
 
 import Graph exposing (Edge, Graph, Node)
-import Json.Decode as JD exposing (Decoder, Value)
+import Json.Decode as JD exposing (Decoder)
 
 
 decode : Decoder n -> Decoder e -> Decoder (Graph n e)

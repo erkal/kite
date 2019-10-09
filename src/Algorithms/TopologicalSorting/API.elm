@@ -6,9 +6,9 @@ import Colors
 import Graph
 import Graph.Extra
 import GraphFile as GF exposing (GraphFile, KiteGraph)
-import IntDict exposing (IntDict)
-import Point2d exposing (Point2d)
-import Set exposing (Set)
+import IntDict
+import Point2d
+import Set
 
 
 run : GraphFile -> List GraphFile

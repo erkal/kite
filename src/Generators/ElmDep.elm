@@ -6,11 +6,11 @@ import Colors
 import Dict exposing (Dict)
 import Graph exposing (Edge, Node)
 import Graph.Layout
-import GraphFile as GF exposing (EdgeProperties, GraphFile, KiteGraph, VertexId, VertexProperties)
+import GraphFile as GF exposing (EdgeProperties, GraphFile, VertexId, VertexProperties)
 import Http
-import Json.Decode as JD exposing (Decoder, Value)
+import Json.Decode as JD exposing (Decoder)
 import Parser exposing ((|.), (|=), Parser)
-import Set exposing (Set)
+import Set
 
 
 type alias Model =
@@ -355,17 +355,14 @@ toGraphFile listOfElmFiles =
             , dependencies
                 |> List.filterMap
                     (\importedModule ->
-                        case Dict.get importedModule idDict of
-                            Just j ->
-                                Just
-                                    (Edge
+                        Dict.get importedModule idDict
+                            |> Maybe.map
+                                (\j ->
+                                    Edge
                                         (safeGetId (moduleNameOrPath elmFile))
                                         j
                                         { dEP | color = Colors.purple }
-                                    )
-
-                            Nothing ->
-                                Nothing
+                                )
                     )
             )
 

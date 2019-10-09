@@ -263,7 +263,7 @@ updateEdges edgeSetToUpdate up graph =
                 |> List.map
                     (\({ from, to, label } as edge) ->
                         if Set.member ( from, to ) edgeSetToUpdate then
-                            { edge | label = up edge.label }
+                            { edge | label = up label }
 
                         else
                             edge
@@ -371,6 +371,6 @@ inducedEdges : Set NodeId -> Graph n e -> Set ( NodeId, NodeId )
 inducedEdges vs graph =
     graph
         |> Graph.edges
-        |> List.filter (\{ from, to, label } -> Set.member from vs && Set.member to vs)
+        |> List.filter (\{ from, to } -> Set.member from vs && Set.member to vs)
         |> List.map (\{ from, to } -> ( from, to ))
         |> Set.fromList

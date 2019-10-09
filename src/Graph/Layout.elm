@@ -1,11 +1,11 @@
 module Graph.Layout exposing (circular, topological)
 
 import Direction2d
-import Graph exposing (Edge, Graph, Node, NodeId)
+import Graph exposing (Graph)
 import Graph.Extra
 import LineSegment2d exposing (LineSegment2d)
 import Point2d exposing (Point2d)
-import Vector2d exposing (Vector2d)
+import Vector2d
 
 
 type alias PositionedGraph n e =

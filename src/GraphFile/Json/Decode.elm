@@ -3,8 +3,8 @@ module GraphFile.Json.Decode exposing (decode)
 import Colors
 import Dict
 import Graph.Json.Decode
-import GraphFile as GF exposing (Bag, BagDict, BagId, BagProperties, EdgeProperties, GraphFile, KiteGraph, LabelPosition(..), VertexProperties)
-import Json.Decode as JD exposing (Decoder, Value)
+import GraphFile as GF exposing (BagDict, BagId, BagProperties, EdgeProperties, GraphFile, KiteGraph, LabelPosition(..), VertexProperties)
+import Json.Decode as JD exposing (Decoder)
 import Json.Decode.Pipeline as JDP
 import Point2d exposing (Point2d)
 import Set

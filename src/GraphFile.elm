@@ -83,15 +83,15 @@ unionWithNewGraph, setVertexPositionsForGraph
 -}
 
 import BoundingBox2d exposing (BoundingBox2d)
-import Circle2d exposing (Circle2d)
+import Circle2d
 import Colors
 import Dict exposing (Dict)
 import Dict.Extra
-import Ease exposing (Easing)
+import Ease
 import Element exposing (Color)
-import Graph exposing (Edge, Graph, Node, NodeContext, NodeId)
+import Graph exposing (Edge, Node, NodeId)
 import Graph.Extra
-import Graph.Force as Force exposing (Force, ForceGraph)
+import Graph.Force as Force exposing (ForceGraph)
 import Graph.Generators
 import Graph.Layout
 import IntDict exposing (IntDict)

@@ -3,14 +3,14 @@ port module Main exposing (main)
 import Algorithms.Dijkstra.API
 import Algorithms.TopologicalSorting.API
 import Animation
-import BoundingBox2d exposing (BoundingBox2d)
+import BoundingBox2d
 import Browser exposing (Document)
 import Browser.Dom as Dom
 import Browser.Events exposing (Visibility(..))
-import Circle2d exposing (Circle2d)
+import Circle2d
 import Colors
-import Dict exposing (Dict)
-import Direction2d exposing (Direction2d)
+import Dict
+import Direction2d
 import DotLang exposing (Config(..))
 import Element as El exposing (Color, Element)
 import Element.Background as Background
@@ -25,13 +25,11 @@ import Files exposing (Files)
 import Files.UndoListWithSave exposing (ActionDescription(..))
 import Generators.ElmDep as ElmDep
 import Geometry.Svg
-import Graph.Force as Force exposing (Force)
-import GraphFile as GF exposing (BagId, BagProperties, EdgeId, EdgeProperties, GraphFile, LabelPosition(..), VertexId, VertexProperties)
+import Graph.Force as Force
+import GraphFile as GF exposing (BagId, EdgeId, GraphFile, LabelPosition(..), VertexId)
 import GraphFile.DotLang.Decode
 import GraphFile.DotLang.Encode
-import GraphFile.Json.Decode
-import GraphFile.Json.Encode
-import Html as H exposing (Html)
+import Html exposing (Html)
 import Html.Attributes as HA
 import Html.Events as HE
 import Icons
@@ -40,7 +38,7 @@ import Json.Decode as JD exposing (Decoder, Value)
 import Json.Encode as JE
 import LineSegment2d exposing (LineSegment2d)
 import Point2d exposing (Point2d)
-import Polygon2d exposing (Polygon2d)
+import Polygon2d
 import Set exposing (Set)
 import Svg as S exposing (Svg)
 import Svg.Attributes as SA
@@ -48,8 +46,8 @@ import Svg.Events as SE
 import Svg.Keyed
 import Task
 import Time
-import Triangle2d exposing (Triangle2d)
-import Vector2d exposing (Vector2d)
+import Triangle2d
+import Vector2d
 
 
 main : Program (Maybe Value) Model Msg
@@ -87,6 +85,7 @@ graphFilesDecoder =
         )
 
 
+getWindowSize : Dom.Viewport -> { width : Int, height : Int }
 getWindowSize viewPort =
     { width = round viewPort.scene.width
     , height = round viewPort.scene.height
@@ -425,6 +424,7 @@ initialModel maybeSavedFiles =
     }
 
 
+initialPan : Point2d
 initialPan =
     Point2d.fromCoordinates
         ( -layoutParams.leftStripeWidth - layoutParams.leftBarWidth - 50
@@ -662,7 +662,7 @@ updateHelper msg m =
             -- is handled in `update`
             m
 
-        DotFileSelected file ->
+        DotFileSelected _ ->
             -- is handled in `update`
             m
 
@@ -2090,6 +2090,7 @@ viewHelper m =
             (guiColumns m)
 
 
+guiColumns : Model -> List (Element Msg)
 guiColumns m =
     let
         onlyYinYangInsteadOfLeftStripe =
@@ -2520,6 +2521,7 @@ columnHeader headerText =
         (El.text headerText)
 
 
+commonCellProperties : List (El.Attribute msg)
 commonCellProperties =
     [ El.padding 2
     , El.height (El.px 16)
@@ -2829,7 +2831,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     , { header = columnHeader " "
                       , width = El.px 8
                       , view =
-                            \{ from, to, label } ->
+                            \{ from, to } ->
                                 cell ( from, to ) <|
                                     El.el
                                         [ El.width El.fill
@@ -2846,7 +2848,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
                     , { header = columnHeader " "
                       , width = El.px 8
                       , view =
-                            \{ from, to, label } ->
+                            \{ from, to } ->
                                 cell ( from, to ) <|
                                     El.el
                                         [ El.width El.fill
@@ -2894,7 +2896,7 @@ leftBarContentForListsOfBagsVerticesAndEdges m =
 
 
 leftBarContentForGraphOperations : Model -> Element Msg
-leftBarContentForGraphOperations m =
+leftBarContentForGraphOperations _ =
     menu
         { headerText = "Graph Operations (coming soon)"
         , isOn = True
@@ -2905,7 +2907,7 @@ leftBarContentForGraphOperations m =
 
 
 leftBarContentForGraphQueries : Model -> Element Msg
-leftBarContentForGraphQueries m =
+leftBarContentForGraphQueries _ =
     menu
         { headerText = "Graph Queries (coming soon)"
         , isOn = True
@@ -3104,7 +3106,7 @@ runButton msg =
 
 
 leftBarContentForAlgorithmVisualizations : Model -> Element Msg
-leftBarContentForAlgorithmVisualizations m =
+leftBarContentForAlgorithmVisualizations _ =
     El.column []
         [ menu
             { headerText = "Dijsktra's Shortest Path"
@@ -3177,7 +3179,7 @@ leftBarContentForAlgorithmVisualizations m =
 
 
 leftBarContentForGamesOnGraphs : Model -> Element Msg
-leftBarContentForGamesOnGraphs m =
+leftBarContentForGamesOnGraphs _ =
     menu
         { headerText = "Games on Graphs (coming soon)"
         , isOn = True
@@ -3188,7 +3190,7 @@ leftBarContentForGamesOnGraphs m =
 
 
 leftBarContentForPreferences : Model -> Element Msg
-leftBarContentForPreferences m =
+leftBarContentForPreferences _ =
     menu
         { headerText = "Preferences (coming soon)"
         , isOn = True
@@ -3437,6 +3439,7 @@ rightBar m =
         ]
 
 
+labelAttr : Int -> List (El.Attribute msg)
 labelAttr labelWidth =
     [ El.centerY
     , El.width (El.px labelWidth)
@@ -3854,7 +3857,7 @@ bags m =
                     , { header = columnHeader "Elements"
                       , width = El.px 60
                       , view =
-                            \{ bagId, bagProperties } ->
+                            \{ bagId } ->
                                 cell bagId <|
                                     El.text
                                         (present m
@@ -4407,6 +4410,7 @@ wheelDeltaY =
     JD.field "deltaY" JD.int
 
 
+emptySvgElement : Svg msg
 emptySvgElement =
     S.g [] []
 
@@ -4527,7 +4531,7 @@ maybeGravityLines tool graphFile =
     case tool of
         Gravity _ ->
             let
-                viewGravityLine { id, label } =
+                viewGravityLine { label } =
                     Geometry.Svg.lineSegment2d
                         [ SA.strokeWidth "2"
                         , SA.stroke (Colors.toString Colors.highlightPink)
