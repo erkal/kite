@@ -41,7 +41,7 @@ module Colors exposing
     , yellow
     )
 
-import Element as El exposing (Color, Element)
+import Element as El exposing (Color)
 import Hex
 import Json.Decode as JD exposing (Decoder, Value)
 import Json.Encode as JE exposing (Value)

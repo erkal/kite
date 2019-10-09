@@ -3,8 +3,8 @@ module GraphFile.DotLang.Encode exposing (toDot)
 import Colors
 import DotLang exposing (Attr(..), AttrStmtType(..), Dot(..), EdgeRHS(..), EdgeType(..), ID(..), NodeId(..), Stmt(..))
 import Graph exposing (Edge, Node)
-import GraphFile as GF exposing (Bag, BagId, BagProperties, EdgeProperties, GraphFile, KiteGraph, LabelPosition(..), VertexProperties)
-import Json.Encode as JE exposing (Value)
+import GraphFile as GF exposing (Bag, BagId, EdgeProperties, GraphFile, LabelPosition(..), VertexProperties)
+import Json.Encode as JE
 import Point2d exposing (Point2d)
 import Set exposing (Set)
 import Vector2d exposing (Vector2d)

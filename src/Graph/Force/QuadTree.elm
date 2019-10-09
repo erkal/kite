@@ -221,9 +221,6 @@ type Quadrant
 quadrant : BoundingBox2d -> Point2d -> Quadrant
 quadrant boundingBox point =
     let
-        { minX, minY, maxX, maxY } =
-            BoundingBox2d.extrema boundingBox
-
         ( midX, midY ) =
             BoundingBox2d.centroid boundingBox |> Point2d.coordinates
 
