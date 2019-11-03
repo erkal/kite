@@ -1,4 +1,4 @@
-port module Generators.ElmDep exposing (Model, Msg(..), StateVizData(..), finishedDownloadingWith, getPathsOfElmFiles, initialModel, stateVizData, toGraphFile, update)
+module Generators.ElmDep exposing (Model, Msg(..), StateVizData(..), finishedDownloadingWith, getPathsOfElmFiles, initialModel, stateVizData, toGraphFile, update)
 
 import Base64
 import Char
