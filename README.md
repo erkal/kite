@@ -35,11 +35,12 @@ Run the compiler after making any changes.
 make
 ```
 
+If you want to develop Kite, it may help to get an overview on the module dependencies. Thanks to @brandly, we have the following nicely drawn module dependency graph of Kite.
+
+![dependencies](https://github.com/erkal/kite/blob/master/dependency-graph.svg)
+
 ## A little bit more about Kite
 
 If you ever did something related to graph theory, let it be taking a course on graph theory or just trying to solve a puzzle that involves graphs, you must have realized, that it would be great to have an app with which you can easily draw graphs and manipulate them.
 
 If you think that graph theorists must have solved this problem, you are mistaken. There is no such tool that works on the browser. Why? I believe that the reason is the inherent difficulty of building graphical user interfaces. Elm helps with that by bringing functional programming to the browser. If it were not Elm, Kite wouldn't make it here. Hence, the logo. I am sure that Elm is the best choice for a project like Kite. Many thanks to Evan Czaplicki, the creator of this beautifully designed language.
-
-
-
