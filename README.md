@@ -29,9 +29,7 @@ elm make src/Main.elm --output=elm.js
 open index.html
 ```
 
-### Architecture
-
-View the relationships between Kite's modules below:
+If you want to develop Kite, it may help to get an overview on the module dependencies. Thanks to @brandly, we have the following nicely drawn module dependency graph of Kite.
 
 ![dependencies](https://github.com/erkal/kite/blob/master/dependency-graph.svg)
 
