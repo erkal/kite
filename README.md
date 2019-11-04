@@ -20,13 +20,19 @@ There is also an Elm Town episode about the story behind Kite, in case you are i
 
 ## For Development
 
-You should have the latest version of Elm installed.
+After cloning this repo, `npm` will provide the Elm compiler.
 
 ```shell
 git clone https://github.com/erkal/kite.git
 cd kite
-elm make src/Main.elm --output=elm.js
+npm install
 open index.html
+```
+
+Run the compiler after making any changes.
+
+```
+make
 ```
 
 If you want to develop Kite, it may help to get an overview on the module dependencies. Thanks to @brandly, we have the following nicely drawn module dependency graph of Kite.

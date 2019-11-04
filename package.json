@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "postinstall": "make"
+  },
+  "dependencies": {
+    "elm": "0.19.1-3"
+  }
+}
