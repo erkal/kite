@@ -26,7 +26,7 @@ After cloning this repo, `npm` will provide the Elm compiler.
 git clone https://github.com/erkal/kite.git
 cd kite
 npm install
-open index.html
+open dist/index.html
 ```
 
 Run the compiler after making any changes.
