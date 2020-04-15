@@ -129,18 +129,28 @@ fromRawToElmFile { path, raw } =
 
 getPathsOfElmFiles : Model -> String -> Cmd Msg
 getPathsOfElmFiles m token =
-    Http.get
-        { url =
-            "https://api.github.com/repos/"
-                ++ m.repoNameInput
-                ++ "/git/trees/master?recursive=1"
-                ++ (if String.length token > 0 then
-                        "&access_token=" ++ token
-
-                    else
-                        ""
-                   )
+    gitHubGet
+        { path = "/repos/" ++ m.repoNameInput ++ "/git/trees/master?recursive=1"
+        , token = token
         , expect = Http.expectJson GotPathsOfElmFiles pathsOfElmFilesDecoder
+        }
+
+
+gitHubGet : { token : String, path : String, expect : Http.Expect msg } -> Cmd msg
+gitHubGet { token, path, expect } =
+    Http.request
+        { method = "GET"
+        , url = "https://api.github.com" ++ path
+        , headers =
+            if String.length token > 0 then
+                [ Http.header "Authorization" token ]
+
+            else
+                []
+        , expect = expect
+        , body = Http.emptyBody
+        , timeout = Nothing
+        , tracker = Nothing
         }
 
 
