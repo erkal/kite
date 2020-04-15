@@ -5,7 +5,7 @@
     "dependencies": {
         "direct": {
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
-            "brandly/elm-dot-lang": "1.1.3",
+            "brandly/elm-dot-lang": "1.1.4",
             "elm/browser": "1.0.0",
             "elm/core": "1.0.2",
             "elm/file": "1.0.5",
