@@ -267,9 +267,23 @@ update msg m =
                             , Cmd.none
                             )
 
-                        _ ->
+                        Err e ->
                             ( { m
-                                | state = Error "Couldn't connect to github."
+                                | state =
+                                    Error <|
+                                        case e of
+                                            Http.BadStatus 404 ->
+                                                "Repo not found. Is it a private repo? Use an access token!"
+
+                                            Http.NetworkError ->
+                                                String.join " "
+                                                    [ "Network Error."
+                                                    , "This can happen when hitting GitHub's rate limits."
+                                                    , "Using an access token increases these limits!"
+                                                    ]
+
+                                            _ ->
+                                                "Couldn't connect to github."
                               }
                             , Cmd.none
                             )
