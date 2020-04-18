@@ -132,7 +132,10 @@ getPathsOfElmFiles m token =
     gitHubGet
         { path = "/repos/" ++ m.repoNameInput ++ "/git/trees/master?recursive=1"
         , token = token
-        , expect = Http.expectJson GotPathsOfElmFiles pathsOfElmFilesDecoder
+        , expect =
+            Http.expectJson
+                (Result.mapError reportGitHubError >> GotPathsOfElmFiles)
+                pathsOfElmFilesDecoder
         }
 
 
@@ -154,6 +157,23 @@ gitHubGet { token, path, expect } =
         }
 
 
+reportGitHubError : Http.Error -> String
+reportGitHubError error =
+    case error of
+        Http.BadStatus 404 ->
+            "Repo not found. Is it a private repo? Use an access token!"
+
+        Http.NetworkError ->
+            String.join " "
+                [ "Network Error."
+                , "This can happen when hitting GitHub's rate limits."
+                , "Using an access token increases these limits!"
+                ]
+
+        _ ->
+            "Couldn't connect to github."
+
+
 pathsOfElmFilesDecoder : Decoder (List String)
 pathsOfElmFilesDecoder =
     JD.field "tree" (JD.list (JD.field "path" JD.string))
@@ -161,7 +181,7 @@ pathsOfElmFilesDecoder =
 
 
 type Msg
-    = GotPathsOfElmFiles (Result Http.Error (List String))
+    = GotPathsOfElmFiles (Result String (List String))
     | GotRawElmFile (Result Http.Error String)
     | ChangeRepo String
     | ChangeToken String
@@ -267,10 +287,8 @@ update msg m =
                             , Cmd.none
                             )
 
-                        _ ->
-                            ( { m
-                                | state = Error "Couldn't connect to github."
-                              }
+                        Err error ->
+                            ( { m | state = Error error }
                             , Cmd.none
                             )
 
