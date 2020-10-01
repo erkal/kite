@@ -5,13 +5,13 @@
     "dependencies": {
         "direct": {
             "NoRedInk/elm-json-decode-pipeline": "1.0.0",
-            "brandly/elm-dot-lang": "1.1.4",
-            "elm/browser": "1.0.0",
-            "elm/core": "1.0.2",
+            "brandly/elm-dot-lang": "1.1.5",
+            "elm/browser": "1.0.2",
+            "elm/core": "1.0.5",
             "elm/file": "1.0.5",
             "elm/html": "1.0.0",
             "elm/http": "2.0.0",
-            "elm/json": "1.1.2",
+            "elm/json": "1.1.3",
             "elm/parser": "1.1.0",
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
@@ -28,20 +28,18 @@
         },
         "indirect": {
             "avh4/elm-fifo": "1.0.4",
-            "elm/bytes": "1.0.7",
+            "elm/bytes": "1.0.8",
             "elm/regex": "1.0.0",
             "elm/url": "1.0.0",
             "elm/virtual-dom": "1.0.2",
-            "hecrj/html-parser": "2.3.3",
-            "ianmackenzie/elm-float-extra": "1.0.1",
+            "hecrj/html-parser": "2.4.0",
+            "ianmackenzie/elm-float-extra": "1.1.0",
             "ianmackenzie/elm-interval": "1.0.1",
-            "ianmackenzie/elm-triangular-mesh": "1.0.2"
+            "ianmackenzie/elm-triangular-mesh": "1.0.4"
         }
     },
     "test-dependencies": {
         "direct": {},
-        "indirect": {
-            "elm/random": "1.0.0"
-        }
+        "indirect": {}
     }
 }
