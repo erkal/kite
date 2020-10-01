@@ -9,7 +9,7 @@ all: dist/ dist/elm.js dist/index.html
 dist/:
 	mkdir -p $@
 
-dist/elm.js: $(shell find src -type f) package.json
+dist/elm.js: $(shell find src -type f) package.json elm.json
 	$(elm) make src/Main.elm --output $@
 
 dist/index.html: src/index.html
