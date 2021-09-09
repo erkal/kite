@@ -7,6 +7,8 @@
 [Click here to launch the app](https://erkal.github.io/kite/).
 It works best in Chrome.
 
+https://user-images.githubusercontent.com/2286325/132766965-191c7b25-7efc-4274-a49b-5a35f423e76b.mov
+
 This is work in progress, still in **pre-alpha**.
 See the [road map](https://github.com/erkal/kite/projects/1).
 
