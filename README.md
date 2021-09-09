@@ -9,12 +9,11 @@ It works best in Chrome.
 
 https://user-images.githubusercontent.com/2286325/132766965-191c7b25-7efc-4274-a49b-5a35f423e76b.mov
 
-This is work in progress, still in **pre-alpha**.
 See the [road map](https://github.com/erkal/kite/projects/1).
 
 [Here is a short video](https://youtu.be/LeTDfFwZv3s) showing the basic usage in an old version of Kite.
 
-[Here is another short video](https://youtu.be/b4sfzHJeHsI) showing how to use Kite to visualize the module dependency graph of your elm projects.
+[Here is another short video](https://youtu.be/b4sfzHJeHsI) showing how to use Kite to visualize the module dependency graph of your Elm projects.
 
 Kite is entirely written in [Elm](http://elm-lang.org/).
 
