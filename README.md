@@ -21,8 +21,6 @@ There is also an Elm Town episode about the story behind Kite, in case you are i
 
 ## For Development
 
-After cloning this repo, `npm` will provide the Elm compiler.
-
 ```shell
 git clone https://github.com/erkal/kite.git
 cd kite
@@ -30,7 +28,7 @@ npm install
 open dist/index.html
 ```
 
-Run the compiler after making any changes.
+Run the compiler after making any changes:
 
 ```
 make
