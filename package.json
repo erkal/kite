@@ -4,7 +4,7 @@
   },
   "devDependencies": {
     "elm": "^0.19.1-5",
-    "gh-pages": "2.1.1",
+    "gh-pages": "5.0.0",
     "uglify-js": "3.6.7"
   }
 }
