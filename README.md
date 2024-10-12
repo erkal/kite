@@ -17,7 +17,7 @@ See the [road map](https://github.com/erkal/kite/projects/1).
 
 Kite is entirely written in [Elm](http://elm-lang.org/).
 
-There is also an Elm Town episode about the story behind Kite, in case you are interested: [Elm Town 42 – It's Just Darth Vader]([https://elmtown.simplecast.fm/its-just-darth-vader](https://elm.town/episodes/its-just-darth-vader))
+There is also an Elm Town episode about the story behind Kite, in case you are interested: [Elm Town 42 – It's Just Darth Vader](https://elm.town/episodes/its-just-darth-vader)
 
 ## For Development
 
