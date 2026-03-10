@@ -5,3 +5,6 @@ elm-stuff/
 node_modules/
 README.html
 dist/
+CLAUDE.md
+.claude/settings.local.json
+docs/plans/
