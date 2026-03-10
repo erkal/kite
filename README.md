@@ -24,7 +24,7 @@ There is also an Elm Town episode about the story behind Kite, in case you are i
 ```shell
 git clone https://github.com/erkal/kite.git
 cd kite
-npm install
+pnpm install
 open dist/index.html
 ```
 
